@@ -364,25 +364,29 @@
 #define STP1 34 //PC2
 #define EN1  35 //PC3
 
-#define ERR1 37 //PC5
+#define REFC1 37 //PC5
+//#define ERR1 37 //PC5
 
 #define DIR2 38 //PC6
 #define STP2 39 //PC7
 #define EN2  40 //PC8
 
-#define ERR2 41 //PC9
+#define REFC2 41 //PC9
+//#define ERR2 41 //PC9
 
 #define DIR3 51 //PC12
 #define STP3 50 //PC13
 #define EN3  49 //PC14
 
-#define ERR3 48 //PC15
+#define REFC3 48 //PC15
+//#define ERR3 48 //PC15
 
 #define DIR4 47 //PC16
 #define STP4 46 //PC17
 #define EN4  45 //PC18
 
-#define SLEEP 44 //PC19
+#define REFC4 44 //PC19
+//#define SLEEP 44 //PC19
 
 #define LED_P1 9 //PC21
 #define LED_P2 8 //PC22

@@ -813,6 +813,19 @@ void setup()
   //aven 0708
   pinMode(R_IO1,INPUT); 
   pinMode(R_IO2,INPUT);
+
+
+  //aven 0716
+  pinMode(REFC1,OUTPUT); 
+  pinMode(REFC2,OUTPUT);
+  pinMode(REFC3,OUTPUT); 
+  pinMode(REFC4,OUTPUT);
+
+  digitalWrite(REFC1, HIGH);
+  digitalWrite(REFC2, HIGH);
+  digitalWrite(REFC3, HIGH);
+  digitalWrite(REFC4, HIGH);
+  
   
 }
 
