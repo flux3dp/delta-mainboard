@@ -270,6 +270,7 @@ int line_check = 1;
 int NO = 0;
 int cmd_f = 0;
 int in_f=1;
+int n_f = 1;
 
 
 
@@ -6057,7 +6058,7 @@ inline void gcode_NN()
   
   if(line_check == 1)
   {
-    if(line_num >= NULL)
+    if(line_num >= 0)
     {
       //SerialUSB.println(line_num);
       if(NO != line_num)
@@ -6065,13 +6066,16 @@ inline void gcode_NN()
         cmd_f = 0;
 		SerialUSB.print("line num not match!!!");
 		SerialUSB.print(NO);
-		SerialUSB.print(line_num);
+		SerialUSB.print("@");
+		SerialUSB.println(line_num);
+		in_f = 1;
       }
       else
       {
         SerialUSB.println("");
-        SerialUSB.print("ok@");
+        SerialUSB.print("ok@N");
 	    SerialUSB.println(NO);
+		in_f = 0;
         cmd_f = 1;
 		NO = line_num;
 		NO++;
@@ -6766,7 +6770,9 @@ inline void gcode_X17()
   {
 	SerialUSB.println("line check ON!");
 	line_check = 1;
-	cmd_f = 0;
+	cmd_f = 1;
+	in_f = 1;
+	NO = 0;
   }
   
   if (code_seen('F')) 
@@ -6774,6 +6780,8 @@ inline void gcode_X17()
     SerialUSB.println("line check OFF!");
 	line_check = 0;
 	NO = 0;
+	cmd_f = 1;
+	in_f = 0;
   }
 
 }
@@ -6788,21 +6796,32 @@ void process_commands()
  if(cmd_f == 1 | line_check == 0)
  {
  
-  if(code_seen('G')) {
-  	
-  	//SerialUSB.print("ok");
-	//SerialUSB.println("ok");
-    int gCode = code_value_short();
+  if(code_seen('G')) 
+  {
+  	if(in_f == 0)
+  	{
+  	  //SerialUSB.print("ok");
+	  //SerialUSB.println("ok");
+      int gCode = code_value_short();
 
-	SerialUSB.print("ok@G");
-	SerialUSB.println(gCode);
+	  //SerialUSB.print("ok@G");
+	  //SerialUSB.println(gCode);
 	
-    switch(gCode) {
+      switch(gCode) 
+	  {
       //G0 -> G1
       case 0:
       case 1:
         gcode_G0_G1();
-		in_f = 1;
+		if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
         break;
 
       // G2, G3
@@ -6810,27 +6829,59 @@ void process_commands()
         case 2: // G2  - CW ARC
         case 3: // G3  - CCW ARC
           gcode_G2_G3(gCode == 2);
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
       #endif
 
       // G4 Dwell
       case 4:
         gcode_G4(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
 
       #ifdef FWRETRACT
         case 10: // G10: retract
         case 11: // G11: retract_recover
           gcode_G10_G11(gCode == 10);
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
       #endif //FWRETRACT
 
       case 28: //G28: Home all axes, one at a time
         gcode_G28(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
 
       #ifdef ENABLE_AUTO_BED_LEVELING
@@ -6845,14 +6896,30 @@ void process_commands()
         #ifndef Z_PROBE_SLED
           case 30: // G30 Single Z Probe
             gcode_G30();
-            in_f = 1;
+            if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 			break;
 			
         #else // Z_PROBE_SLED
           case 31: // G31: dock the sled
           case 32: // G32: undock the sled
             dock_sled(gCode == 31); 
-            in_f = 1;
+            if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 			break;
         #endif // Z_PROBE_SLED
       #endif // ENABLE_AUTO_BED_LEVELING
@@ -6870,74 +6937,176 @@ void process_commands()
 
       case 60: // G60 Store in memory actual position
         gcode_G60(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
       case 61: // G61 move to X Y Z in memory
         gcode_G61(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
       case 90: // G90
         relative_mode = false; 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
       case 91: // G91
         relative_mode = true; 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
       case 92: // G92
         gcode_G92(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
 
 	  default :
-	      SerialUSB.print("cmd Error!");break;
+	      SerialUSB.print("cmd Error!");
+          n_f = 0;
+		  break;
 		  
     }
+
+    if(n_f == 1)
+	{
+        SerialUSB.print("ok@G");
+	    SerialUSB.println(gCode);
+	}
+	  
+  	}
 	
   }
 
-  else if(code_seen('M')) {
+  else if(code_seen('M')) 
+  {
   	//SerialUSB.print("ok");
+    if(in_f == 0)
+	{
+      int gCode = code_value_short();	
+	  //SerialUSB.print("ok@M");
+	  //SerialUSB.println(gCode);
 
-    int gCode = code_value_short();	
-	SerialUSB.print("ok@M");
-	SerialUSB.println(gCode);
 	
     //switch(code_value_short()) {
-    switch(gCode) {
-      #ifdef ULTIPANEL
+      switch(gCode) 
+	  {
+        #ifdef ULTIPANEL
         case 0: //M0 - Unconditional stop - Wait for user button press on LCD
         case 1: //M1 - Conditional stop - Wait for user button press on LCD
           gcode_M0_M1(); 
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
-      #endif //ULTIPANEL
+        #endif //ULTIPANEL
 
-      #ifdef LASERBEAM
+        #ifdef LASERBEAM
         case 3: // M03 S - Setting laser beam
           gcode_M3(); 
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
         case 4: // M04 - Turn on laser beam
           gcode_M4(); 
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
         case 5: // M05 - Turn off laser beam
           gcode_M5(); 
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
-      #endif //LASERBEAM
+        #endif //LASERBEAM
 
       #ifdef FILAMENT_END_SWITCH
         case 11: //M11 - Start printing
           gcode_M11(); 
-          in_f = 1;
+          if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		  break;
       #endif
 
       case 17: //M17 - Enable/Power all stepper motors
         gcode_M17(); 
-        in_f = 1;
+        if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
 		break;
 
 #if 0 //aven 0724 Mark as not used
@@ -7011,7 +7180,17 @@ void process_commands()
         gcode_M83(); in_f = 1;
 		break;
       case 84: // M84
-        gcode_M18_M84();in_f = 1; break;
+        gcode_M18_M84();
+		if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		break;
       case 85: // M85
         gcode_M85(); in_f = 1;break;
       case 92: // M92
@@ -7037,7 +7216,17 @@ void process_commands()
       case 112: //  M112 Emergency Stop
         gcode_M112(); in_f = 1;break;
       case 114: // M114
-        gcode_M114(); in_f = 1;break;
+        gcode_M114();
+		if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		break;
       case 115: // M115
         gcode_M115(); in_f = 1;break;  
       case 117: // M117 display message
@@ -7223,7 +7412,17 @@ void process_commands()
 
       #if defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
         case 666: //M666 Set Z probe offset or set delta endstop and geometry adjustment
-          gcode_M666(); in_f = 1;break;
+          gcode_M666();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
       #endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
 
       case 907: // M907 Set digital trimpot motor current using axis codes.
@@ -7248,16 +7447,30 @@ void process_commands()
       #endif // CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
 
       default :
-	      SerialUSB.print("cmd Error!");break;
+	      SerialUSB.print("cmd Error!");
+		  n_f = 0;
+		  break;
 
     }
+
+	if(n_f == 1)
+	{
+        SerialUSB.print("ok@M");
+	    SerialUSB.println(gCode);
+	}
+    
+  	}
 	
   }
 
-  else if (code_seen('T')) {
-    gcode_T();
-	SerialUSB.print("ok");
-	in_f = 1;
+  else if (code_seen('T')) 
+  {
+    if(in_f == 0)
+    {
+     gcode_T();
+	 SerialUSB.print("ok");
+	 in_f = 1;
+    }
   }
 
 
@@ -7265,55 +7478,233 @@ void process_commands()
   else if (code_seen('X')) 
   {
     //SerialUSB.print("ok");
-
-    int gCode = code_value_short();	
-	//SerialUSB.print("ok@X");
-	//SerialUSB.println(gCode);
-	//in_f = 1;
-    //switch(code_value_short()) 
-    switch(gCode) 
-	{     
+    if(in_f == 0)
+    {
+      int gCode = code_value_short();	
+	  //SerialUSB.print("ok@X");
+	  //SerialUSB.println(gCode);
+	  //in_f = 1;
+      //switch(code_value_short()) 
+      switch(gCode) 
+	  {     
         case 0: 
         case 1: 
-          gcode_X1(); in_f = 1;break;
+          gcode_X1();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 2:   
-          gcode_X2(); in_f = 1;break;
+          gcode_X2();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
         case 3:   
-          gcode_X3(); in_f = 1;break;
+          gcode_X3();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 4:   
-          gcode_X4(); in_f = 1;break;
+          gcode_X4();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 5:   
-          gcode_X5(); in_f = 1;break; //heater PID on/off 
+          gcode_X5();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; //heater PID on/off 
         case 6:   
-          gcode_X6(); in_f = 1;break;
+          gcode_X6();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
         case 7:   
-          gcode_X7(); in_f = 1;break;
+          gcode_X7();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 8:   
-          gcode_X8(); in_f = 1;break;
+          gcode_X8();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
         case 9:   
-          gcode_X9(); in_f = 1;break;
+          gcode_X9();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 10:   
-          gcode_X10();in_f = 1; break; 
+          gcode_X10();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
 		case 11:   
-          gcode_X11(); in_f = 1;break;
+          gcode_X11();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 12:   
-          gcode_X12(k_value); in_f = 1;break;  
+          gcode_X12(k_value);
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;  
 		case 13:   
-          gcode_X13(k_value); in_f = 1;break;
+          gcode_X13(k_value);
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 14:   
-          gcode_X14(k_value); in_f = 1;break;
+          gcode_X14(k_value);
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 15:   
-          gcode_X15(); in_f = 1;break; 
+          gcode_X15();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
 		case 16:	 
-		  gcode_X16(); in_f = 1;break;
+		  gcode_X16();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 		case 17:   
-          gcode_X17(); in_f = 1;break;
+          gcode_X17();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
 
 		default:
-			SerialUSB.print("cmd Error!");break;
-	
-
+			SerialUSB.print("cmd Error!");
+			n_f = 0;
+			break;
 		  
+      }
+
+	  if(n_f == 1)
+	  {
+        SerialUSB.print("ok@X");
+	    SerialUSB.println(gCode);
+	  }
     }
     
 	
@@ -7323,15 +7714,18 @@ void process_commands()
   //aven_0721
   else if (code_seen('N')) 
   {
-  	if(in_f == 1)
-  	{
-      gcode_NN();
-	  in_f = 0;
-  	}
-	else
-	{
-      SerialUSB.print("cmd Error!");
-	}
+    
+  	  if(in_f == 1)
+  	  {
+        gcode_NN();
+	    //in_f = 0;
+		//n_f = 0;// wait for cmd
+  	  }
+	  else
+	  {
+        SerialUSB.println("cmd Error!");
+	  }
+    
 	//SerialUSB.print("ok@");
 	//SerialUSB.println(NO);
    
@@ -7354,11 +7748,11 @@ void process_commands()
       if(in_f == 1)
   	  {
         gcode_NN();
-		in_f = 0;
+		//in_f = 0;
   	  }
 	  else
 	  {
-        SerialUSB.print("cmd Error!");
+        SerialUSB.println("cmd Error!");
 	  }
     }
   }
