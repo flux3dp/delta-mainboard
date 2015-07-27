@@ -168,7 +168,11 @@ const bool Z_PROBE_ENDSTOP_INVERTING = false;
 //#define DEFAULT_AXIS_STEPS_PER_UNIT {160,160,160,95,50,625,625}        // X, Y, Z, E0, E1, E2, E3
 
 //aven 0716
-#define DEFAULT_AXIS_STEPS_PER_UNIT {80,80,80,95,50,625,625}        // X, Y, Z, E0, E1, E2, E3
+//#define DEFAULT_AXIS_STEPS_PER_UNIT {80,80,80,95,50,625,625}        // X, Y, Z, E0, E1, E2, E3
+
+//aven 0727
+#define DEFAULT_AXIS_STEPS_PER_UNIT {80,80,80,95,25.6,625,625}  // X, Y, Z, E0, E1, E2, E3
+
 
 #define DEFAULT_MAX_FEEDRATE {300,300,300,200,100,100,100}             // X, Y, Z, E0, E1, E2, E3 (mm/sec)
 #define DEFAULT_RETRACTION_MAX_FEEDRATE {150,150,150,150}             // E0, E1, E2, E3 (mm/sec)
