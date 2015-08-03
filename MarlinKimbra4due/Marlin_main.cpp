@@ -946,7 +946,7 @@ bool inline check_line_number(const char* cmd) {
 
   // No error, update last line code
   SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(gcode_LastN);
+  SERIAL_PROTOCOL(gcode_N);
   SERIAL_PROTOCOL("\n");
   MYSERIAL.flush();
 
