@@ -234,7 +234,7 @@ static int bufindw = 0;
 static int buflen = 0;
 static char serial_char;
 static int serial_count = 0;
-static boolean comment_mode = false;
+// static boolean comment_mode = false; // Use in get_command() only and can be removed.
 static char *strchr_pointer; ///< A pointer to find chars in the command string (X, Y, Z, E, etc.)
 const char* queued_commands_P= NULL; /* pointer to the current line in the active sequence of commands, or NULL when none */
 const int sensitive_pins[] = SENSITIVE_PINS; ///< Sensitive pin list for M42
@@ -266,11 +266,8 @@ float u_value;
 //char pbuf[5];
 
 //aven_0721
-int line_check = 1;
+int line_check = 0;
 int NO = 0;
-int cmd_f = 0;
-int in_f=1;
-int n_f = 1;
 
 
 
@@ -892,242 +889,127 @@ void loop() {
   lcd_update();
 }
 
+
+bool inline check_line_number(const char* cmd) {
+  // Check N
+  strchr_pointer = strchr(cmd, 'N');
+
+  if(strchr_pointer == NULL) {
+    // Can not found Line Number, send error, clean buffer and return
+    SERIAL_PROTOCOL("ER MISSING_LINENUMBER\n");
+    MYSERIAL.flush();
+    return false;
+
+  } else {
+    gcode_N = (strtol(strchr_pointer + 1, NULL, 10));
+    if(gcode_N != gcode_LastN + 1) {
+      SERIAL_PROTOCOL("ER LINE_MISMATCH ");
+      SERIAL_PROTOCOL(gcode_LastN + 1);
+      SERIAL_PROTOCOL(" ");
+      SERIAL_PROTOCOL(gcode_N);
+      SERIAL_PROTOCOL("\n");
+      MYSERIAL.flush();
+      return false;
+    }
+  }
+
+  // Check checksum
+  strchr_pointer = strchr(cmd, '*');
+  if(strchr_pointer == NULL) {
+    // Checksum not send
+    SERIAL_PROTOCOL("ER CHECKSUM_MISMATCH ");
+    SERIAL_PROTOCOL(gcode_LastN + 1);
+    SERIAL_PROTOCOL("\n");
+    MYSERIAL.flush();
+    return false;
+
+  } else {
+    // Calculate checksum
+    byte checksum = 0;
+    byte count = 0;
+
+    while(cmd[count] != '*') {
+      checksum = checksum^cmd[count++];
+    }
+
+    strchr_pointer = strchr(cmd, '*');
+
+    if(strtol(strchr_pointer + 1, NULL, 10) != checksum) {
+      // Checksum not match
+      SERIAL_PROTOCOL("ER CHECKSUM_MISMATCH ");
+      SERIAL_PROTOCOL(gcode_LastN + 1);
+      SERIAL_PROTOCOL("\n");
+      MYSERIAL.flush();
+      return false;
+    }
+  }
+
+  // No error, update last line code
+  SERIAL_PROTOCOL("LN ");
+  SERIAL_PROTOCOL(gcode_LastN);
+  SERIAL_PROTOCOL("\n");
+  MYSERIAL.flush();
+
+  gcode_LastN = gcode_N;
+  return true;
+}
+
+
 void get_command()
 {
   if (drain_queued_commands_P()) // priority is given to non-serial commands
     return;
-  
+
   while( MYSERIAL.available() > 0  && buflen < BUFSIZE) {
     serial_char = MYSERIAL.read();
     if(serial_char == '\n' ||
-       serial_char == '\r' ||
        serial_count >= (MAX_CMD_SIZE - 1) )
     {
-      // end of line == end of comment
-      comment_mode = false;
-
       if(!serial_count) {
         // short cut for empty lines
         return;
       }
+
       cmdbuffer[bufindw][serial_count] = 0; //terminate string
-      #ifdef SDSUPPORT
-        fromsd[bufindw] = false;
-      #endif //!SDSUPPORT
-
-
-	  
-      if(strchr(cmdbuffer[bufindw], 'N') != NULL)
-      {
-         //SerialUSB.print("NNN");
-		 strchr_pointer = strchr(cmdbuffer[bufindw], 'N');
-         switch(strtol(strchr_pointer + 1, NULL, 10)){
-         case 0:
-         case 1:
-         case 2:
-         case 3:
-          if (Stopped == true) {
-            SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
-            LCD_MESSAGEPGM(MSG_STOPPED);
-          }
-          break;
-         default:
-          break;
-        }
-
-      }
-#if 0
-		strchr_pointer = strchr(cmdbuffer[bufindw], 'N');
-        gcode_N = (strtol(strchr_pointer + 1, NULL, 10));
-        if(gcode_N != gcode_LastN+1 && (strstr_P(cmdbuffer[bufindw], PSTR("M110")) == NULL) ) {
-          SERIAL_ERROR_START;
-          SERIAL_ERRORPGM(MSG_ERR_LINE_NO);
-          SERIAL_ERRORLN(gcode_LastN);
-          //Serial.println(gcode_N);
-          FlushSerialRequestResend();
-          serial_count = 0;
-          return;
-        }
-
-        if(strchr(cmdbuffer[bufindw], '*') != NULL)
-        {
-          byte checksum = 0;
-          byte count = 0;
-          while(cmdbuffer[bufindw][count] != '*') checksum = checksum^cmdbuffer[bufindw][count++];
-          strchr_pointer = strchr(cmdbuffer[bufindw], '*');
-
-          if(strtol(strchr_pointer + 1, NULL, 10) != checksum) {
-            SERIAL_ERROR_START;
-            SERIAL_ERRORPGM(MSG_ERR_CHECKSUM_MISMATCH);
-            SERIAL_ERRORLN(gcode_LastN);
-            FlushSerialRequestResend();
-            serial_count = 0;
-            return;
-          }
-          //if no errors, continue parsing
-        }
-        else
-        {
-          SERIAL_ERROR_START;
-          SERIAL_ERRORPGM(MSG_ERR_NO_CHECKSUM);
-          SERIAL_ERRORLN(gcode_LastN);
-          FlushSerialRequestResend();
-          serial_count = 0;
-          return;
-        }
-
-        gcode_LastN = gcode_N;
-        //if no errors, continue parsing
-      }
-      else  // if we don't receive 'N' but still see '*'
-      {
-        if((strchr(cmdbuffer[bufindw], '*') != NULL))
-        {
-          SERIAL_ERROR_START;
-          SERIAL_ERRORPGM(MSG_ERR_NO_LINENUMBER_WITH_CHECKSUM);
-          SERIAL_ERRORLN(gcode_LastN);
-          serial_count = 0;
-          return;
-        }
-      }
-#endif
-
-//aven
-      if((strchr(cmdbuffer[bufindw], 'X') != NULL)){
-        strchr_pointer = strchr(cmdbuffer[bufindw], 'X');
-        switch(strtol(strchr_pointer + 1, NULL, 10)){
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-          if (Stopped == true) {
-            SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
-            LCD_MESSAGEPGM(MSG_STOPPED);
-          }
-          break;
-        default:
-          break;
-        }
-
-      }
-
-	  
-      if((strchr(cmdbuffer[bufindw], 'G') != NULL)){
-        strchr_pointer = strchr(cmdbuffer[bufindw], 'G');
-        switch(strtol(strchr_pointer + 1, NULL, 10)){
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-          if (Stopped == true) {
-            SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
-            LCD_MESSAGEPGM(MSG_STOPPED);
-          }
-          break;
-        default:
-          break;
-        }
-
-      }
 
       //If command was e-stop process now
       if(strcmp(cmdbuffer[bufindw], "M112") == 0)
         kill();
+
+      if(line_check == 1) {
+        if(!check_line_number(cmdbuffer[bufindw])) {
+          // Check failed, ignore this command and return
+          serial_count = 0;
+          return;
+        }
+      }
+
+      if((strchr(cmdbuffer[bufindw], 'G') != NULL)) {
+        strchr_pointer = strchr(cmdbuffer[bufindw], 'G');
+        switch(strtol(strchr_pointer + 1, NULL, 10)) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+          if (Stopped == true) {
+            SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
+            LCD_MESSAGEPGM(MSG_STOPPED);
+          }
+          break;
+        default:
+          break;
+        }
+      }
 
       bufindw = (bufindw + 1)%BUFSIZE;
       buflen += 1;
 
       serial_count = 0; //clear buffer
     }
-    else if(serial_char == '\\') {  //Handle escapes
-       
-        if(MYSERIAL.available() > 0  && buflen < BUFSIZE) {
-            // if we have one more character, copy it over
-            serial_char = MYSERIAL.read();
-            cmdbuffer[bufindw][serial_count++] = serial_char;
-        }
-
-        //otherwise do nothing        
-    }
-    else { // its not a newline, carriage return or escape char
-        if(serial_char == ';') comment_mode = true;
-        if(!comment_mode) cmdbuffer[bufindw][serial_count++] = serial_char;
+    else {   // its not a newline, carriage return or escape char
+      cmdbuffer[bufindw][serial_count++] = serial_char;
     }
   }
-  #ifdef SDSUPPORT
-  if(!card.sdprinting || serial_count!=0){
-    return;
-  }
-
-  //'#' stops reading from SD to the buffer prematurely, so procedural macro calls are possible
-  // if it occurs, stop_buffering is triggered and the buffer is ran dry.
-  // this character _can_ occur in serial com, due to checksums. however, no checksums are used in SD printing
-
-  static bool stop_buffering=false;
-  if(buflen==0) stop_buffering=false;
-
-  while( !card.eof()  && buflen < BUFSIZE && !stop_buffering) {
-    int16_t n=card.get();
-    serial_char = (char)n;
-    if(serial_char == '\n' ||
-       serial_char == '\r' ||
-       (serial_char == '#' && comment_mode == false) ||
-       (serial_char == ':' && comment_mode == false) ||
-       serial_count >= (MAX_CMD_SIZE - 1)||n==-1)
-    {
-      if(card.eof()){
-        SERIAL_PROTOCOLLNPGM(MSG_FILE_PRINTED);
-        stoptime = millis();
-
-        #if HAS_POWER_CONSUMPTION_SENSOR
-          stoppower = power_consumption_hour-startpower;
-        #endif
-
-        char time[30];
-        unsigned long t = (stoptime-starttime) / 1000;
-        int hours, minutes;
-        minutes=(t/60)%60;
-        hours=t/60/60;
-
-        #if HAS_POWER_CONSUMPTION_SENSOR
-          sprintf_P(time, PSTR("%i "MSG_END_HOUR" %i "MSG_END_MINUTE" %i Wh"), hours, minutes, stoppower);
-        #else
-          sprintf_P(time, PSTR("%i "MSG_END_HOUR" %i "MSG_END_MINUTE), hours, minutes);
-        #endif
-
-        SERIAL_ECHO_START;
-        SERIAL_ECHOLN(time);
-        lcd_setstatus(time, true);
-        card.printingHasFinished();
-        card.checkautostart(true);
-
-      }
-      if(serial_char=='#')
-        stop_buffering=true;
-
-      if(!serial_count)
-      {
-        comment_mode = false; //for new command
-        return; //if empty line
-      }
-      cmdbuffer[bufindw][serial_count] = 0; //terminate string
-//      if(!comment_mode){
-        fromsd[bufindw] = true;
-        buflen += 1;
-        bufindw = (bufindw + 1)%BUFSIZE;
-//      }
-      comment_mode = false; //for new command
-      serial_count = 0; //clear buffer
-    }
-    else
-    {
-      if(serial_char == ';') comment_mode = true;
-      if(!comment_mode) cmdbuffer[bufindw][serial_count++] = serial_char;
-    }
-  }
-
-  #endif //SDSUPPORT
-
 }
 
 float code_value() {
@@ -6051,44 +5933,6 @@ inline void gcode_T() {
 }
 
 
-inline void gcode_NN()
-{
-  int line_num = code_value();
-  //SerialUSB.println(line_num);
-  
-  if(line_check == 1)
-  {
-    if(line_num >= 0)
-    {
-      //SerialUSB.println(line_num);
-      if(NO != line_num)
-      {
-        cmd_f = 0;
-		SerialUSB.print("line num not match!!!");
-		SerialUSB.print(NO);
-		SerialUSB.print("@");
-		SerialUSB.println(line_num);
-		in_f = 1;
-      }
-      else
-      {
-        SerialUSB.println("");
-        SerialUSB.print("ok@N");
-	    SerialUSB.println(NO);
-		in_f = 0;
-        cmd_f = 1;
-		NO = line_num;
-		NO++;
-		//SerialUSB.println("NO line num!!!");
-      }  
-    }
-    else
-    {
-      SerialUSB.println("NO line num!!!");
-    }	
-  }
-}
-
 //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
 
 inline void gcode_X1()
@@ -6747,43 +6591,20 @@ inline void gcode_X15()
 }
 
 
-
-inline void gcode_X16()
-{
-  if (code_seen('S')) 
-  {
-    int line_num = code_value();
-	SerialUSB.println(line_num);
-	NO = line_num;
-  }
-  
-  if (code_seen('R')) 
-  {
-    SerialUSB.println(NO);
-  }
-
-}
-
 inline void gcode_X17()
 {
   if (code_seen('O')) 
   {
-	SerialUSB.println("line check ON!");
-	line_check = 1;
-	cmd_f = 1;
-	in_f = 1;
-	NO = 0;
+    SERIAL_PROTOCOLLN("echo:line check ON!");
+    line_check = 1;
+    gcode_LastN = 0;
   }
   
   if (code_seen('F')) 
   {
-    SerialUSB.println("line check OFF!");
-	line_check = 0;
-	NO = 0;
-	cmd_f = 1;
-	in_f = 0;
+    SERIAL_PROTOCOLLN("echo:line check OFF!");
+    line_check = 0;
   }
-
 }
 
 
@@ -6792,36 +6613,15 @@ inline void gcode_X17()
 ******************************************************/
 void process_commands() 
 {
- 
- if(cmd_f == 1 | line_check == 0)
- {
- 
-  if(code_seen('G')) 
+  if(code_seen('G'))
   {
-  	if(in_f == 0)
-  	{
-  	  //SerialUSB.print("ok");
-	  //SerialUSB.println("ok");
-      int gCode = code_value_short();
-
-	  //SerialUSB.print("ok@G");
-	  //SerialUSB.println(gCode);
-	
-      switch(gCode) 
-	  {
+    int gCode = code_value_short();
+    switch(gCode) 
+    {
       //G0 -> G1
       case 0:
       case 1:
         gcode_G0_G1();
-		if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
         break;
 
       // G2, G3
@@ -6829,98 +6629,41 @@ void process_commands()
         case 2: // G2  - CW ARC
         case 3: // G3  - CCW ARC
           gcode_G2_G3(gCode == 2);
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          break;
       #endif
 
       // G4 Dwell
       case 4:
         gcode_G4(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
 
       #ifdef FWRETRACT
         case 10: // G10: retract
         case 11: // G11: retract_recover
           gcode_G10_G11(gCode == 10);
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          break;
       #endif //FWRETRACT
 
       case 28: //G28: Home all axes, one at a time
         gcode_G28(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
 
       #ifdef ENABLE_AUTO_BED_LEVELING
 
 #if 0 //aven 0724 Mark as not used
 		case 29: // G29 Detailed Z-Probe, probes the bed at 3 or more points.
-          gcode_G29(); 
-          in_f = 1;
+          gcode_G29();
 		  break;
 #endif
 
         #ifndef Z_PROBE_SLED
           case 30: // G30 Single Z Probe
             gcode_G30();
-            if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-			break;
-			
+            break;
         #else // Z_PROBE_SLED
           case 31: // G31: dock the sled
           case 32: // G32: undock the sled
-            dock_sled(gCode == 31); 
-            if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-			break;
+            dock_sled(gCode == 31);
         #endif // Z_PROBE_SLED
       #endif // ENABLE_AUTO_BED_LEVELING
 
@@ -6937,183 +6680,67 @@ void process_commands()
 
       case 60: // G60 Store in memory actual position
         gcode_G60(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
       case 61: // G61 move to X Y Z in memory
         gcode_G61(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
       case 90: // G90
-        relative_mode = false; 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        relative_mode = false;
+        break;
       case 91: // G91
-        relative_mode = true; 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        relative_mode = true;
+        break;
       case 92: // G92
-        gcode_G92(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
-
-	  default :
-	      SerialUSB.print("cmd Error!");
-          n_f = 0;
-		  break;
-		  
+        gcode_G92();
+        break;
     }
 
-    if(n_f == 1)
-	{
-        SerialUSB.print("ok@G");
-	    SerialUSB.println(gCode);
-	}
-	  
-  	}
-	
+    SERIAL_PROTOCOLLN(MSG_OK);
   }
 
   else if(code_seen('M')) 
   {
-  	//SerialUSB.print("ok");
-    if(in_f == 0)
-	{
-      int gCode = code_value_short();	
+    int gCode = code_value_short();	
 	  //SerialUSB.print("ok@M");
 	  //SerialUSB.println(gCode);
 
 	
     //switch(code_value_short()) {
-      switch(gCode) 
-	  {
+    switch(gCode) 
+    {
         #ifdef ULTIPANEL
         case 0: //M0 - Unconditional stop - Wait for user button press on LCD
         case 1: //M1 - Conditional stop - Wait for user button press on LCD
-          gcode_M0_M1(); 
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          gcode_M0_M1();
+          break;
         #endif //ULTIPANEL
 
         #ifdef LASERBEAM
         case 3: // M03 S - Setting laser beam
-          gcode_M3(); 
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          gcode_M3();
+          break;
         case 4: // M04 - Turn on laser beam
-          gcode_M4(); 
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          gcode_M4();
+          break;
         case 5: // M05 - Turn off laser beam
-          gcode_M5(); 
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          gcode_M5();
+          break;
         #endif //LASERBEAM
 
       #ifdef FILAMENT_END_SWITCH
         case 11: //M11 - Start printing
-          gcode_M11(); 
-          if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          gcode_M11();
+          break;
       #endif
 
       case 17: //M17 - Enable/Power all stepper motors
-        gcode_M17(); 
-        if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        gcode_M17();
+        break;
 
 #if 0 //aven 0724 Mark as not used
       #ifdef SDSUPPORT
         case 20: // M20 - list SD card
           gcode_M20(); 
-          in_f = 1;
 		  break;
         case 21: // M21 - init SD card
           gcode_M21(); break;
@@ -7143,210 +6770,227 @@ void process_commands()
 #endif
 
       case 31: //M31 take time since the start of the SD print or an M109 command
-        gcode_M31(); 
-        in_f = 1;
+        gcode_M31();
 		break;
 		
       case 42: //M42 -Change pin status via gcode
-        gcode_M42(); 
-        in_f = 1;
+        gcode_M42();
 		break;
 
       #if defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
         case 49: //M49 Z-Probe repeatability
-          gcode_M49(); 
-          in_f = 1;
+          gcode_M49();
 		  break;
 		  
       #endif //defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
 
       #if HAS_POWER_SWITCH
         case 80: //M80 - Turn on Power Supply
-          gcode_M80(); 
-          in_f = 1;
+          gcode_M80();
 		  break;
 		  
       #endif //HAS_POWER_SWITCH
       
       case 81: // M81 - Turn off Power, including Power Supply, if possible
-        gcode_M81(); 
-        in_f = 1;
-		break;
+        gcode_M81();
+        break;
       case 82:
-        gcode_M82(); 
-		in_f = 1;
-		break;
+        gcode_M82();
+        break;
       case 83:
-        gcode_M83(); in_f = 1;
-		break;
+        gcode_M83();
+        break;
       case 84: // M84
         gcode_M18_M84();
-		if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
       case 85: // M85
-        gcode_M85(); in_f = 1;break;
+        gcode_M85();
+        break;
       case 92: // M92
-        gcode_M92(); in_f = 1;break;  
-      case 104: // M104
-        gcode_M104(); in_f = 1;break;
-      case 105: // M105 Read current temperature
-        gcode_M105(); in_f = 1;return; break;
-
+        gcode_M92();
+        break;  
+      // NOTE: NOT use
+      // case 104: // M104
+      //   gcode_M104();
+      //   break;
+      // case 105: // M105 Read current temperature
+      //   gcode_M105()
+      //   break;
+      //
       #if HAS_FAN
         case 106: //M106 Fan On
-          gcode_M106();in_f = 1; break;
+          gcode_M106();
+          break;
         case 107: //M107 Fan Off
-          gcode_M107();in_f = 1; break;
+          gcode_M107();
+          break;
       #endif //FAN_PIN
 
       case 109: // M109 Wait for temperature
         gcode_M109(); 
-        in_f = 1;
-		break;
+        break;
       case 111: // M111 - Debug mode
-        gcode_M111(); in_f = 1;break;
+        gcode_M111();
+        break;
       case 112: //  M112 Emergency Stop
-        gcode_M112(); in_f = 1;break;
+        gcode_M112();
+        break;
       case 114: // M114
         gcode_M114();
-		if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		break;
+        break;
       case 115: // M115
-        gcode_M115(); in_f = 1;break;  
+        gcode_M115();
+        break;  
       case 117: // M117 display message
-        gcode_M117(); in_f = 1;break;  
+        gcode_M117();
+        break;  
       case 119: // M119
-        gcode_M119(); in_f = 1;break;  
+        gcode_M119();
+        break;  
       case 120: // M120
-        gcode_M120(); in_f = 1;break;
+        gcode_M120();
+        break;
       case 121: // M121
-        gcode_M121(); in_f = 1;break;  
+        gcode_M121();
+        break;  
 
       #ifdef BARICUDA
         // PWM for HEATER_1_PIN
         #if defined(HEATER_1_PIN) && HEATER_1_PIN > -1
           case 126: // M126 valve open
-            gcode_M126();in_f = 1; break;
+            gcode_M126();
+            break;
           case 127: // M127 valve closed
-            gcode_M127(); in_f = 1;break;
+            gcode_M127();
+            break;
         #endif //HEATER_1_PIN
 
         // PWM for HEATER_2_PIN
         #if defined(HEATER_2_PIN) && HEATER_2_PIN > -1
           case 128: // M128 valve open
-            gcode_M128(); in_f = 1;break;
+            gcode_M128();
+            break;
           case 129: // M129 valve closed
-            gcode_M129(); in_f = 1;break;
+            gcode_M129();
+            break;
         #endif //HEATER_2_PIN
       #endif //BARICUDA
 
       case 140: // M140 Set bed temp
-        gcode_M140(); in_f = 1;break;
+        gcode_M140();
+        break;
 
       #ifdef BLINKM
         case 150: // M150
-          gcode_M150(); in_f = 1;break;
+          gcode_M150();
+          break;
       #endif //BLINKM
 
       #if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
         case 190: // M190 - Wait for bed heater to reach target.
-          gcode_M190(); in_f = 1;break;
+          gcode_M190();
+          break;
       #endif //TEMP_BED_PIN
 
       case 200: // M200 D<millimetres> set filament diameter and set E axis units to cubic millimetres (use S0 to set back to millimeters).
-        gcode_M200();in_f = 1; break;
+        gcode_M200();
+        break;
       case 201: // M201
-        gcode_M201();in_f = 1; break;
+        gcode_M201();
+        break;
       case 203: // M203 max feedrate mm/sec
-        gcode_M203(); in_f = 1;break;
+        gcode_M203();
+        break;
       case 204: // M204 acceleration S normal moves T filament only moves
-        gcode_M204(); in_f = 1;break;
+        gcode_M204();
+        break;
       case 205: //M205 advanced settings:  minimum travel speed S=while printing T=travel only,  B=minimum segment time X= maximum xy jerk, Z=maximum Z jerk
-        gcode_M205(); in_f = 1;break;
+        gcode_M205();
+        break;
       case 206: // M206 additional homing offset
-        gcode_M206(); in_f = 1;break;
+        gcode_M206();
+        break;
 
       #ifdef FWRETRACT
         case 207: //M207 - set retract length S[positive mm] F[feedrate mm/min] Z[additional zlift/hop]
-          gcode_M207(); in_f = 1;break;
+          gcode_M207();
+          break;
         case 208: // M208 - set retract recover length S[positive mm surplus to the M207 S*] F[feedrate mm/min]
-          gcode_M208(); in_f = 1;break;
+          gcode_M208();
+          break;
         case 209: // M209 - S<1=true/0=false> enable automatic retract detect if the slicer did not support G10/11: every normal extrude-only move will be classified as retract depending on the direction.
-          gcode_M209(); in_f = 1;break;
+          gcode_M209();
+          break;
       #endif // FWRETRACT
 
       #if HOTENDS > 1
         case 218: // M218 - set hotend offset (in mm), T<extruder_number> X<offset_on_X> Y<offset_on_Y>
-          gcode_M218(); in_f = 1;break;
+          gcode_M218();
+          break;
       #endif
 
       case 220: // M220 S<factor in percent>- set speed factor override percentage
-        gcode_M220(); in_f = 1;break;
+        gcode_M220();
+          break;
       case 221: // M221 S<factor in percent>- set extrude factor override percentage
-        gcode_M221(); in_f = 1;break;
+        gcode_M221();
+        break;
       case 226: // M226 P<pin number> S<pin state>- Wait until the specified pin reaches the state required
-        gcode_M226(); in_f = 1;break;
+        gcode_M226();
+        break;
 
       #if defined(CHDK) || (defined(PHOTOGRAPH_PIN) && PHOTOGRAPH_PIN > -1)
         case 240: // M240  Triggers a camera by emulating a Canon RC-1 : http://www.doc-diy.net/photo/rc-1_hacked/
-          gcode_M240();in_f = 1; break;
+        gcode_M240();
+        break;
       #endif // CHDK || PHOTOGRAPH_PIN
 
       #if defined(DOGLCD) && LCD_CONTRAST >= 0
         case 250: // M250  Set LCD contrast value: C<value> (value 0..63)
-          gcode_M250(); in_f = 1;break;
+          gcode_M250();
+          break;
       #endif // DOGLCD
 
       #if NUM_SERVOS > 0
         case 280: // M280 - set servo position absolute. P: servo index, S: angle or microseconds
-          gcode_M280(); in_f = 1;break;
+          gcode_M280();
+          break;
       #endif // NUM_SERVOS > 0
 
       #if defined(LARGE_FLASH) && (BEEPER > 0 || defined(ULTRALCD) || defined(LCD_USE_I2C_BUZZER))
         case 300: // M300 - Play beep tone
-          gcode_M300(); in_f = 1;break;
+          gcode_M300();
+          break;
       #endif // LARGE_FLASH && (BEEPER>0 || ULTRALCD || LCD_USE_I2C_BUZZER)
 
       #ifdef PIDTEMP
         case 301: // M301
-          gcode_M301(); in_f = 1;break;
+          gcode_M301();
+          break;
       #endif // PIDTEMP
 
       #ifdef PREVENT_DANGEROUS_EXTRUDE
         case 302: // allow cold extrudes, or set the minimum extrude temperature
-          gcode_M302(); in_f = 1;break;
+          gcode_M302();
+          break;
       #endif // PREVENT_DANGEROUS_EXTRUDE
 
       case 303: // M303 PID autotune
-        gcode_M303(); in_f = 1;break;
+        gcode_M303();
+        break;
 
       #ifdef PIDTEMPBED
         case 304: // M304
-          gcode_M304(); in_f = 1;break;
+          gcode_M304();
+          break;
       #endif // PIDTEMPBED
 
       #if HAS_MICROSTEPS
         case 350: // M350 Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
-          gcode_M350();in_f = 1;
+          gcode_M350();
           break;
         case 351: // M351 Toggle MS1 MS2 pins directly, S# determines MS1 or MS2, X# sets the pin high/low.
-          gcode_M351();in_f = 1;
+          gcode_M351();
           break;
       #endif // HAS_MICROSTEPS
 
@@ -7366,111 +7010,104 @@ void process_commands()
       #endif // SCARA
 
       case 400: // M400 finish all moves
-        gcode_M400(); in_f = 1;break;
+        gcode_M400();
+        break;
 
       #if defined(ENABLE_AUTO_BED_LEVELING) && (defined(SERVO_ENDSTOPS) || defined(Z_PROBE_ALLEN_KEY)) && not defined(Z_PROBE_SLED)
         case 401:
-          gcode_M401(); in_f = 1;break;
+          gcode_M401();
+          break;
         case 402:
-          gcode_M402(); in_f = 1;break;
+          gcode_M402();
+          break;
       #endif
 
        #ifdef FILAMENT_SENSOR
         case 404:  //M404 Enter the nominal filament width (3mm, 1.75mm ) N<3.0> or display nominal filament width
-          gcode_M404(); in_f = 1;break;
+          gcode_M404();
+          break;
         case 405:  //M405 Turn on filament sensor for control
-          gcode_M405(); in_f = 1;break;
+          gcode_M405();
+          break;
         case 406:  //M406 Turn off filament sensor for control
-          gcode_M406(); in_f = 1;break;
+          gcode_M406();
+          break;
         case 407:   //M407 Display measured filament diameter
-          gcode_M407(); in_f = 1;break;
+          gcode_M407();
+          break;
       #endif // FILAMENT_SENSOR 
 
       case 500: // M500 Store settings in EEPROM
-        gcode_M500(); in_f = 1;break;
+        gcode_M500();
+        break;
       case 501: // M501 Read settings from EEPROM
-        gcode_M501(); in_f = 1;break;
+        gcode_M501();
+        break;
       case 502: // M502 Revert to default settings
-        gcode_M502(); in_f = 1;break;
+        gcode_M502();
+        break;
       case 503: // M503 print settings currently in memory
-        gcode_M503(); in_f = 1;break;
+        gcode_M503();
+        break;
 
       #ifdef ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
         case 540:
-          gcode_M540(); in_f = 1;break;
+          gcode_M540();
+          break;
       #endif
 
        #ifdef FILAMENTCHANGEENABLE
         case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
-          gcode_M600(); in_f = 1;break;
+          gcode_M600();
+          break;
       #endif // FILAMENTCHANGEENABLE
 
       #ifdef DUAL_X_CARRIAGE
         case 605:
-          gcode_M605(); in_f = 1;break;
+          gcode_M605();
+          break;
       #endif // DUAL_X_CARRIAGE
 
       #if defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
         case 666: //M666 Set Z probe offset or set delta endstop and geometry adjustment
           gcode_M666();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          break;
       #endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
 
       case 907: // M907 Set digital trimpot motor current using axis codes.
-        gcode_M907(); in_f = 1;break;
+        gcode_M907();
+        break;
 
       #if HAS_DIGIPOTSS
         case 908: // M908 Control digital trimpot directly.
-          gcode_M908(); in_f = 1;break;
+          gcode_M908();
+          break;
       #endif // HAS_DIGIPOTSS
 
       #ifdef NPR2
         case 997: // M997 Cxx Move Carter xx gradi
-          gcode_M997(); in_f = 1;break;
+          gcode_M997();
+          break;
       #endif // NPR2
 
        case 999: // M999: Restart after being Stopped
-        gcode_M999(); in_f = 1;break;
+         gcode_M999();
+         break;
 
         #ifdef CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
         case CUSTOM_M_CODE_SET_Z_PROBE_OFFSET:
-          gcode_SET_Z_PROBE_OFFSET();in_f = 1; break;
+          gcode_SET_Z_PROBE_OFFSET();
+          break;
       #endif // CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
-
-      default :
-	      SerialUSB.print("cmd Error!");
-		  n_f = 0;
-		  break;
-
     }
 
-	if(n_f == 1)
-	{
-        SerialUSB.print("ok@M");
-	    SerialUSB.println(gCode);
-	}
-    
-  	}
-	
+    SERIAL_PROTOCOLLN(MSG_OK);
   }
 
   else if (code_seen('T')) 
   {
-    if(in_f == 0)
-    {
      gcode_T();
-	 SerialUSB.print("ok");
-	 in_f = 1;
-    }
+     SERIAL_PROTOCOLLN(MSG_OK);
   }
 
 
@@ -7478,285 +7115,85 @@ void process_commands()
   else if (code_seen('X')) 
   {
     //SerialUSB.print("ok");
-    if(in_f == 0)
-    {
       int gCode = code_value_short();	
 	  //SerialUSB.print("ok@X");
 	  //SerialUSB.println(gCode);
-	  //in_f = 1;
-      //switch(code_value_short()) 
+    //switch(code_value_short()) 
       switch(gCode) 
-	  {     
+      {
         case 0: 
         case 1: 
           gcode_X1();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 2:   
           gcode_X2();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
         case 3:   
           gcode_X3();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 4:   
           gcode_X4();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 5:   
           gcode_X5();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break; //heater PID on/off 
         case 6:   
           gcode_X6();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
         case 7:   
           gcode_X7();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 8:   
           gcode_X8();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
         case 9:   
           gcode_X9();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 10:   
           gcode_X10();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break; 
 		case 11:   
           gcode_X11();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 12:   
           gcode_X12(k_value);
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;  
 		case 13:   
           gcode_X13(k_value);
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 14:   
           gcode_X14(k_value);
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 15:   
           gcode_X15();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break; 
-		case 16:	 
-		  gcode_X16();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
 		  break;
 		case 17:   
-          gcode_X17();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
+      gcode_X17();
 		  break;
 
 		default:
-			SerialUSB.print("cmd Error!");
-			n_f = 0;
-			break;
-		  
-      }
+      SERIAL_ECHO_START;
+      SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
+      SERIAL_ECHO(cmdbuffer[bufindr]);
+      SERIAL_ECHOLNPGM("\"");
 
-	  if(n_f == 1)
-	  {
-        SerialUSB.print("ok@X");
-	    SerialUSB.println(gCode);
-	  }
+      SERIAL_PROTOCOLLN("ER BAD_CMD");
+      break;
     }
-    
-	
+
+    SERIAL_PROTOCOLLN(MSG_OK);
   }
 //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
-
-  //aven_0721
-  else if (code_seen('N')) 
-  {
-    
-  	  if(in_f == 1)
-  	  {
-        gcode_NN();
-	    //in_f = 0;
-		//n_f = 0;// wait for cmd
-  	  }
-	  else
-	  {
-        SerialUSB.println("cmd Error!");
-	  }
-    
-	//SerialUSB.print("ok@");
-	//SerialUSB.println(NO);
-   
-  }
-
   else 
   {
     SERIAL_ECHO_START;
     SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
     SERIAL_ECHO(cmdbuffer[bufindr]);
     SERIAL_ECHOLNPGM("\"");
-  }
- }
 
-
-  if(cmd_f == 0)
-  {
-    if (code_seen('N')) 
-    {	
-      if(in_f == 1)
-  	  {
-        gcode_NN();
-		//in_f = 0;
-  	  }
-	  else
-	  {
-        SerialUSB.println("cmd Error!");
-	  }
-    }
+    SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
-  
+
   ClearToSend();
 }
 
