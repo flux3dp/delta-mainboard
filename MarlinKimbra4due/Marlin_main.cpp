@@ -982,6 +982,12 @@ void get_command()
           serial_count = 0;
           return;
         }
+      } else {
+        if(strchr(cmdbuffer[bufindw], 'N') != NULL) {
+          SERIAL_PROTOCOLLN("ER NCODE_NOT_ACCEPTED");
+          serial_count = 0;
+          return;
+        }
       }
 
       if((strchr(cmdbuffer[bufindw], 'G') != NULL)) {
