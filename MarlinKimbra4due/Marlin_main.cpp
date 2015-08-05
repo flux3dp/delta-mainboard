@@ -252,6 +252,9 @@ static bool home_all_axis = true;
 
 
 
+//aven_0805
+#define FW_V 1.0
+
 //aven_0509
 long setpoint=0;
 int freq=0;
@@ -6787,6 +6790,15 @@ inline void gcode_X17()
 }
 
 
+
+inline void gcode_X18()
+{
+    SerialUSB.print("FLUX Main Board Version : ");
+	SerialUSB.println(FW_V);	
+
+}
+
+
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
 ******************************************************/
@@ -7692,6 +7704,19 @@ void process_commands()
 		  }
 		  n_f = 1;
 		  break;
+        case 18:   
+          gcode_X18();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
+		  
 
 		default:
 			SerialUSB.print("cmd Error!");
