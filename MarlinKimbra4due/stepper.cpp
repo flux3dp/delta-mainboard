@@ -33,6 +33,7 @@
   #include <SPI.h>
 #endif
 
+extern int G28_f; //aven_0807
 //===========================================================================
 //============================= public variables ============================
 //===========================================================================
@@ -552,6 +553,9 @@ HAL_STEP_TIMER_ISR {
         #endif // Z_MIN_PIN
 
         #ifdef Z_PROBE_ENDSTOP
+
+		if(G28_f != 1)//aven_0807
+		{
           UPDATE_ENDSTOP(z, Z, probe, PROBE);
           z_probe_endstop = (READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
           if(z_probe_endstop && old_z_probe_endstop)
@@ -562,6 +566,7 @@ HAL_STEP_TIMER_ISR {
 //        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
           }
           old_z_probe_endstop = z_probe_endstop;
+		} //aven_0807
         #endif
         
       } // check_endstops
@@ -611,6 +616,9 @@ HAL_STEP_TIMER_ISR {
         #endif // Z_MAX_PIN
         
         #ifdef Z_PROBE_ENDSTOP
+
+		if(G28_f != 1)//aven_0807
+		{
           UPDATE_ENDSTOP(z, Z, probe, PROBE);
           z_probe_endstop=(READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
           if(z_probe_endstop && old_z_probe_endstop)
@@ -620,6 +628,7 @@ HAL_STEP_TIMER_ISR {
 //        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
           }
           old_z_probe_endstop = z_probe_endstop;
+		} //aven_0807 
         #endif
 
       } // check_endstops

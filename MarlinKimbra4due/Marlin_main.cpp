@@ -275,7 +275,8 @@ int cmd_f = 0;
 int in_f=1;
 int n_f = 1;
 
-
+//aven_0807
+int G28_f = 0;
 
 
 #ifndef DELTA
@@ -2476,6 +2477,9 @@ inline void gcode_G4() {
  *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
  */
 inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
+
+  G28_f = 1;//aven_0807
+  
   #ifdef ENABLE_AUTO_BED_LEVELING
     plan_bed_level_matrix.set_to_identity();
   #endif //ENABLE_AUTO_BED_LEVELING
@@ -2535,6 +2539,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
 
   #endif //DELTA
 
+#if 0 //aven_0807
   #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
 
     #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
@@ -2816,6 +2821,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
   #ifdef SCARA
     sync_plan_position_delta();
   #endif //SCARA
+#endif //aven_0807
+
 
   #ifdef ENDSTOPS_ONLY_FOR_HOMING
     enable_endstops(false);
@@ -2825,6 +2832,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
   feedmultiply = saved_feedmultiply;
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
+  G28_f = 0; //aven_0807
 }
 
 #ifdef ENABLE_AUTO_BED_LEVELING
