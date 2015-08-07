@@ -252,6 +252,9 @@ static bool home_all_axis = true;
 
 
 
+//aven_0805
+#define FW_V 1.0
+
 //aven_0509
 long setpoint=0;
 int freq=0;
@@ -269,7 +272,8 @@ float u_value;
 int line_check = 0;
 int NO = 0;
 
-
+//aven_0807
+int G28_f = 0;
 
 
 #ifndef DELTA
@@ -2361,6 +2365,9 @@ inline void gcode_G4() {
  *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
  */
 inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
+
+  G28_f = 1;//aven_0807
+  
   #ifdef ENABLE_AUTO_BED_LEVELING
     plan_bed_level_matrix.set_to_identity();
   #endif //ENABLE_AUTO_BED_LEVELING
@@ -2420,6 +2427,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
 
   #endif //DELTA
 
+#if 0 //aven_0807
   #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
 
     #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
@@ -2701,6 +2709,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
   #ifdef SCARA
     sync_plan_position_delta();
   #endif //SCARA
+#endif //aven_0807
+
 
   #ifdef ENDSTOPS_ONLY_FOR_HOMING
     enable_endstops(false);
@@ -2710,6 +2720,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
   feedmultiply = saved_feedmultiply;
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
+  G28_f = 0; //aven_0807
 }
 
 #ifdef ENABLE_AUTO_BED_LEVELING
@@ -5972,16 +5983,64 @@ inline void gcode_X2()
 
 inline void gcode_X3()
 {
-  if (code_seen('S')) 
+  if (code_seen('F')) 
   {
-    int line_num = code_value();
-	SerialUSB.println(line_num);
-	NO = line_num;
+    pleds = code_value_short();
+    SerialUSB.println("REFC OFF :");
+	SerialUSB.println(pleds);
+	if(pleds == 1)
+    {
+      digitalWrite(REFC1, LOW);
+	}
+    if(pleds == 2)
+    {
+      digitalWrite(REFC2, LOW);
+	}
+	if(pleds == 3)
+    {
+      digitalWrite(REFC3, LOW);
+	}
+	if(pleds == 4)
+    {
+      digitalWrite(REFC4, LOW);
+	}
+    if(pleds == 0)
+    {
+      digitalWrite(REFC1, LOW);
+	  digitalWrite(REFC2, LOW);
+      digitalWrite(REFC3, LOW);
+	  digitalWrite(REFC4, LOW);
+	}
+	
   }
-  
-  if (code_seen('R')) 
+  if (code_seen('O')) 
   {
-    SerialUSB.println(NO);
+    pleds = code_value_short();
+    SerialUSB.println("REFC ON :");
+	SerialUSB.println(pleds);
+    if(pleds == 1)
+    {
+      digitalWrite(REFC1, HIGH);
+	}
+    if(pleds == 2)
+    {
+      digitalWrite(REFC2, HIGH);
+	}
+	if(pleds == 3)
+    {
+      digitalWrite(REFC3, HIGH);
+	}
+	if(pleds == 4)
+    {
+      digitalWrite(REFC4, HIGH);
+	}
+    if(pleds == 0)
+    {
+      digitalWrite(REFC1, HIGH);
+	  digitalWrite(REFC2, HIGH);
+      digitalWrite(REFC3, HIGH);
+	  digitalWrite(REFC4, HIGH);
+	}
   }
 
 }
@@ -6614,6 +6673,15 @@ inline void gcode_X17()
 }
 
 
+
+inline void gcode_X18()
+{
+    SerialUSB.print("FLUX Main Board Version : ");
+	SerialUSB.println(FW_V);	
+
+}
+
+
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
 ******************************************************/
@@ -7176,6 +7244,19 @@ void process_commands()
 		case 17:   
       gcode_X17();
 		  break;
+        case 18:   
+          gcode_X18();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
+		  
 
 		default:
       SERIAL_ECHO_START;
