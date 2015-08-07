@@ -6125,16 +6125,64 @@ inline void gcode_X2()
 
 inline void gcode_X3()
 {
-  if (code_seen('S')) 
+  if (code_seen('F')) 
   {
-    int line_num = code_value();
-	SerialUSB.println(line_num);
-	NO = line_num;
+    pleds = code_value_short();
+    SerialUSB.println("REFC OFF :");
+	SerialUSB.println(pleds);
+	if(pleds == 1)
+    {
+      digitalWrite(REFC1, LOW);
+	}
+    if(pleds == 2)
+    {
+      digitalWrite(REFC2, LOW);
+	}
+	if(pleds == 3)
+    {
+      digitalWrite(REFC3, LOW);
+	}
+	if(pleds == 4)
+    {
+      digitalWrite(REFC4, LOW);
+	}
+    if(pleds == 0)
+    {
+      digitalWrite(REFC1, LOW);
+	  digitalWrite(REFC2, LOW);
+      digitalWrite(REFC3, LOW);
+	  digitalWrite(REFC4, LOW);
+	}
+	
   }
-  
-  if (code_seen('R')) 
+  if (code_seen('O')) 
   {
-    SerialUSB.println(NO);
+    pleds = code_value_short();
+    SerialUSB.println("REFC ON :");
+	SerialUSB.println(pleds);
+    if(pleds == 1)
+    {
+      digitalWrite(REFC1, HIGH);
+	}
+    if(pleds == 2)
+    {
+      digitalWrite(REFC2, HIGH);
+	}
+	if(pleds == 3)
+    {
+      digitalWrite(REFC3, HIGH);
+	}
+	if(pleds == 4)
+    {
+      digitalWrite(REFC4, HIGH);
+	}
+    if(pleds == 0)
+    {
+      digitalWrite(REFC1, HIGH);
+	  digitalWrite(REFC2, HIGH);
+      digitalWrite(REFC3, HIGH);
+	  digitalWrite(REFC4, HIGH);
+	}
   }
 
 }
