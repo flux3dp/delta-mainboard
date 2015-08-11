@@ -21,6 +21,10 @@
 
 #include "Marlin.h"
 
+//aven_0812
+#include "vector_3.h"
+
+
 #ifdef ENABLE_AUTO_BED_LEVELING
   #include "vector_3.h"
   #ifdef AUTO_BED_LEVELING_GRID
@@ -277,6 +281,9 @@ int n_f = 1;
 
 //aven_0807
 int G28_f = 0;
+
+//aven_0812
+#define ROUND(x, y) (roundf(x * (float)(1e ## y)) / (float)(1e ## y))
 
 
 #ifndef DELTA
@@ -2129,6 +2136,56 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     SERIAL_ECHOPGM(" offset="); SERIAL_ECHOLN(offset);
     */
   }
+
+  //aven_0812
+  void actuator_to_cartesian( float delta[3])
+  {
+    float cartesian[3]; 
+    Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
+    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
+    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
+
+	Vector3 s12 = tower1.sub(tower2);
+    Vector3 s23 = tower2.sub(tower3);
+    Vector3 s13 = tower1.sub(tower3);
+
+    Vector3 normal = s12.cross(s23);
+
+    float magsq_s12 = s12.magsq();
+    float magsq_s23 = s23.magsq();
+    float magsq_s13 = s13.magsq();
+
+    float inv_nmag_sq = 1.0F / normal.magsq();
+    float q = 0.5F * inv_nmag_sq;
+
+    float a = q * magsq_s23 * s12.dot(s13);
+    float b = q * magsq_s13 * s12.dot(s23) * -1.0F; // negate because we use s12 instead of s21
+    float c = q * magsq_s12 * s13.dot(s23);
+
+	Vector3 circumcenter( delta_tower1_x * a + delta_tower2_x * b + delta_tower3_x * c,
+                          delta_tower1_y * a + delta_tower2_y * b + delta_tower3_y * c,
+                          delta[X_AXIS] * a + delta[Y_AXIS] * b + delta[Z_AXIS] * c );
+
+    float r_sq = 0.5F * q * magsq_s12 * magsq_s23 * magsq_s13;
+    //float dist = sqrtf(inv_nmag_sq * (arm_length_squared - r_sq));
+    float dist = sqrt(inv_nmag_sq * (DELTA_DIAGONAL_ROD_2 - r_sq));
+   
+
+    Vector3 cartesianln = circumcenter.sub(normal.mul(dist));
+            
+    cartesian[X_AXIS] = ROUND(cartesianln[0], 4);
+    cartesian[Y_AXIS] = ROUND(cartesianln[1], 4);
+    cartesian[Z_AXIS] = ROUND(cartesianln[2], 4);
+
+	SerialUSB.print("X : ");
+	SerialUSB.print(cartesian[X_AXIS]);
+	SerialUSB.print(" Y : ");
+	SerialUSB.print(cartesian[Y_AXIS]);
+	SerialUSB.print(" Z : ");
+	SerialUSB.print(cartesian[Z_AXIS]);
+	
+  }
+//aven_0812
 #endif //DELTA
 
 #ifdef IDLE_OOZING_PREVENT
