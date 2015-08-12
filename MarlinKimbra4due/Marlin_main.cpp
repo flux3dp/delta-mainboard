@@ -7246,16 +7246,7 @@ void process_commands()
 		  break;
         case 18:   
           gcode_X18();
-		  if(line_check ==1)
-		  {
-		    in_f = 1;
-		  }
-		  else
-		  {
-            in_f = 0;
-		  }
-		  n_f = 1;
-		  break;
+          break;
 		  
 
 		default:
