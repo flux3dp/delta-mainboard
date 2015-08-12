@@ -285,6 +285,10 @@ int G28_f = 0;
 //aven_0812
 #define ROUND(x, y) (roundf(x * (float)(1e ## y)) / (float)(1e ## y))
 
+float cartesian[3] = { 0, 0, 0 };
+float odelta[3] = { 0, 0, 0 };
+float cdelta[3] = { 0, 0, 0 };
+
 
 #ifndef DELTA
   int xy_travel_speed = XY_TRAVEL_SPEED;
@@ -1244,6 +1248,7 @@ inline void sync_plan_position() {
 inline void set_current_to_destination() { memcpy(current_position, destination, sizeof(current_position)); }
 inline void set_destination_to_current() { memcpy(destination, current_position, sizeof(destination)); }
 
+#if 0 //aven_0813
 #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
   static void axis_is_at_home(int axis) {
 
@@ -1634,6 +1639,9 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   }
   #define HOMEAXIS(LETTER) homeaxis(LETTER##_AXIS)
 #endif // Cartesian || CoreXY || Scara
+
+#endif //aven_0813
+
 
 #ifdef DELTA
   static void axis_is_at_home(int axis) {
@@ -2097,6 +2105,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
                          - sq(delta_tower3_x-cartesian[X_AXIS])
                          - sq(delta_tower3_y-cartesian[Y_AXIS])
                          ) + cartesian[Z_AXIS];
+#if 0
+	SerialUSB.print(" X: ");
+	SerialUSB.print(delta[X_AXIS]);
+	SerialUSB.print(" Y: ");
+	SerialUSB.print(delta[Y_AXIS]);
+	SerialUSB.print(" Z: ");
+	SerialUSB.println(delta[Z_AXIS]);
+#endif	
   }
 
   // Adjust print surface height by linear interpolation over the bed_level array.
@@ -2120,6 +2136,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     delta[Y_AXIS] += offset;
     delta[Z_AXIS] += offset;
 
+#if 0
+	SerialUSB.print(" aX: ");
+	SerialUSB.print(delta[X_AXIS]);
+	SerialUSB.print(" aY: ");
+	SerialUSB.print(delta[Y_AXIS]);
+	SerialUSB.print(" aZ: ");
+	SerialUSB.println(delta[Z_AXIS]);
+#endif
     /*
     SERIAL_ECHOPGM("grid_x="); SERIAL_ECHO(grid_x);
     SERIAL_ECHOPGM(" grid_y="); SERIAL_ECHO(grid_y);
@@ -2140,10 +2164,10 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   //aven_0812
   void actuator_to_cartesian( float delta[3])
   {
-    float cartesian[3]; 
-    Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
-    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
-    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
+    
+    Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
+    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
+    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
 
 	Vector3 s12 = tower1.sub(tower2);
     Vector3 s23 = tower2.sub(tower3);
@@ -2177,12 +2201,12 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     cartesian[Y_AXIS] = ROUND(cartesianln[1], 4);
     cartesian[Z_AXIS] = ROUND(cartesianln[2], 4);
 
-	SerialUSB.print("X : ");
-	SerialUSB.print(cartesian[X_AXIS]);
-	SerialUSB.print(" Y : ");
-	SerialUSB.print(cartesian[Y_AXIS]);
-	SerialUSB.print(" Z : ");
-	SerialUSB.print(cartesian[Z_AXIS]);
+	//SerialUSB.print("X : ");
+	//SerialUSB.print(cartesian[X_AXIS]);
+	//SerialUSB.print(" Y : ");
+	//SerialUSB.print(cartesian[Y_AXIS]);
+	//SerialUSB.print(" Z : ");
+	//SerialUSB.print(cartesian[Z_AXIS]);
 	
   }
 //aven_0812
@@ -2434,12 +2458,15 @@ inline void wait_bed() {
 inline void gcode_G0_G1() {
   if (!Stopped) {
 
+#if 0 //aven_0813
     #ifdef IDLE_OOZING_PREVENT
       IDLE_OOZING_retract(false);
     #endif
+#endif
 
     get_coordinates(); // For X Y Z E F
 
+#if 0 //aven_0813
     #ifdef FWRETRACT
       if (autoretract_enabled) {
         if (!(code_seen('X') || code_seen('Y') || code_seen('Z')) && code_seen('E')) {
@@ -2454,6 +2481,8 @@ inline void gcode_G0_G1() {
         }
       }
     #endif //FWRETRACT
+#endif
+
     prepare_move();
     //ClearToSend();
   }
@@ -2512,385 +2541,6 @@ inline void gcode_G4() {
 
 #endif //FWRETRACT
 
-/**
- * G28: Home all axes according to settings
- *
- * Parameters
- *
- *  None  Home to all axes with no parameters.
- *        With QUICK_HOME enabled XY will home together, then Z.
- *
- * Cartesian parameters
- *
- *  X   Home to the X endstop
- *  Y   Home to the Y endstop
- *  Z   Home to the Z endstop
- *
- * If numbers are included with XYZ set the position as with G92
- * Currently adds the home_offset, which may be wrong and removed soon.
- *
- *  Xn  Home X, setting X to n + home_offset[X_AXIS]
- *  Yn  Home Y, setting Y to n + home_offset[Y_AXIS]
- *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
- */
-inline void gcode_G28(boolean home_x = false, boolean home_y = false) {
-
-  G28_f = 1;//aven_0807
-  
-  #ifdef ENABLE_AUTO_BED_LEVELING
-    plan_bed_level_matrix.set_to_identity();
-  #endif //ENABLE_AUTO_BED_LEVELING
-
-  saved_feedrate = feedrate;
-  saved_feedmultiply = feedmultiply;
-  feedmultiply = 100;
-  refresh_cmd_timeout();
-
-  enable_endstops(true);
-
-  set_destination_to_current();
-
-  feedrate = 0.0;
-
-  bool  homeX = code_seen(axis_codes[X_AXIS]),
-        homeY = code_seen(axis_codes[Y_AXIS]),
-        homeZ = code_seen(axis_codes[Z_AXIS]),
-        homeE = code_seen(axis_codes[E_AXIS]);
-        
-  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
-
-  #ifdef NPR2
-    if((home_all_axis) || (code_seen(axis_codes[E_AXIS]))) {
-      active_driver = active_extruder = 1;
-      plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], -200, COLOR_HOMERATE, active_extruder, active_driver);
-      st_synchronize();
-      old_color = 99;
-      active_driver = active_extruder = 0;
-    }
-  #endif
-
-  #ifdef DELTA
-    // A delta can only safely home all axis at the same time
-    // all axis have to home at the same time
-
-    // Move all carriages up together until the first endstop is hit.
-    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
-    sync_plan_position();
-
-    // Move all carriages up together until the first endstop is hit.
-    for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
-    feedrate = 1.732 * homing_feedrate[X_AXIS];
-    line_to_destination();
-    st_synchronize();
-    endstops_hit_on_purpose(); // clear endstop hit flags
-
-    // Destination reached
-    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
-
-    // take care of back off and rehome now we are all at the top
-    HOMEAXIS(X);
-    HOMEAXIS(Y);
-    HOMEAXIS(Z);
-
-    sync_plan_position_delta();
-
-  #endif //DELTA
-
-#if 0 //aven_0807
-  #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
-
-    #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
-      if (home_all_axis || homeZ) HOMEAXIS(Z);
-    #elif !defined(Z_SAFE_HOMING) && defined(Z_RAISE_BEFORE_HOMING) && Z_RAISE_BEFORE_HOMING > 0
-      // Raise Z before homing any other axes
-      if (home_all_axis || homeZ) {
-        destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
-        feedrate = max_feedrate[Z_AXIS] * 60;
-        line_to_destination();
-        st_synchronize();
-      }
-    #endif
-
-    #ifdef QUICK_HOME
-      if (home_all_axis || (homeX && homeY)) {  // First diagonal move
-
-        current_position[X_AXIS] = current_position[Y_AXIS] = 0;
-
-        #ifdef DUAL_X_CARRIAGE
-          int x_axis_home_dir = x_home_dir(active_extruder);
-          extruder_duplication_enabled = false;
-        #else
-          int x_axis_home_dir = home_dir(X_AXIS);
-        #endif
-
-        sync_plan_position();
-
-        float mlx = max_length(X_AXIS), mly = max_length(Y_AXIS),
-              mlratio = mlx>mly ? mly/mlx : mlx/mly;
-
-        destination[X_AXIS] = 1.5 * mlx * x_axis_home_dir;
-        destination[Y_AXIS] = 1.5 * mly * home_dir(Y_AXIS);
-        feedrate = min(homing_feedrate[X_AXIS], homing_feedrate[Y_AXIS]) * sqrt(mlratio * mlratio + 1);
-        line_to_destination();
-        st_synchronize();
-
-        axis_is_at_home(X_AXIS);
-        axis_is_at_home(Y_AXIS);
-        sync_plan_position();
-
-        destination[X_AXIS] = current_position[X_AXIS];
-        destination[Y_AXIS] = current_position[Y_AXIS];
-        line_to_destination();
-        feedrate = 0.0;
-        st_synchronize();
-        endstops_hit_on_purpose(); // clear endstop hit flags
-
-        current_position[X_AXIS] = destination[X_AXIS];
-        current_position[Y_AXIS] = destination[Y_AXIS];
-        #ifndef SCARA
-          current_position[Z_AXIS] = destination[Z_AXIS];
-        #endif
-      }
-    #endif // QUICK_HOME
-
-    if (home_all_axis || homeX) {
-      #ifdef DUAL_X_CARRIAGE
-        int tmp_extruder = active_extruder;
-        extruder_duplication_enabled = false;
-        active_extruder = !active_extruder;
-        HOMEAXIS(X);
-        inactive_extruder_x_pos = current_position[X_AXIS];
-        active_extruder = tmp_extruder;
-        HOMEAXIS(X);
-        // reset state used by the different modes
-        memcpy(raised_parked_position, current_position, sizeof(raised_parked_position));
-        delayed_move_time = 0;
-        active_extruder_parked = true;
-      #else
-        HOMEAXIS(X);
-      #endif //DUAL_X_CARRIAGE
-    }
-
-    // Home Y
-    if (home_all_axis || homeY) HOMEAXIS(Y);
-
-    // Set the X position, if included
-    // Adds the home_offset as well, which may be wrong
-    if (homeX) {
-      float v = code_value();
-      if (v) current_position[X_AXIS] = v
-        #ifndef SCARA
-          + home_offset[X_AXIS]
-        #endif
-      ;
-    }
-
-    // Set the Y position, if included
-    // Adds the home_offset as well, which may be wrong
-    if (homeY) {
-      float v = code_value();
-      if (v) current_position[Y_AXIS] = v
-        #ifndef SCARA
-          + home_offset[Y_AXIS]
-        #endif
-      ;
-    }
-
-    #if Z_HOME_DIR < 0  // If homing towards BED do Z last
-      #ifndef Z_SAFE_HOMING
-        if (code_seen('M') && !(homeX || homeY)) {
-          // Manual G28 bed level
-          #ifdef ULTIPANEL
-            SERIAL_ECHOLN(" --LEVEL PLATE SCRIPT--");
-            set_ChangeScreen(true);
-            while(!lcd_clicked()) {
-              set_pageShowInfo(0);
-              lcd_update();
-            }
-            saved_feedrate = feedrate;
-            saved_feedmultiply = feedmultiply;
-            feedmultiply = 100;
-            previous_millis_cmd = millis();
-
-            enable_endstops(true);
-            for(int8_t i=0; i < NUM_AXIS; i++) {
-              destination[i] = current_position[i];
-            }
-            feedrate = 0.0;
-            #if Z_HOME_DIR > 0  // If homing away from BED do Z first
-              HOMEAXIS(Z);
-            #endif
-            HOMEAXIS(X);
-            HOMEAXIS(Y);
-            #if Z_HOME_DIR < 0
-              HOMEAXIS(Z);
-            #endif
-            sync_plan_position();
-
-            #ifdef ENDSTOPS_ONLY_FOR_HOMING
-              enable_endstops(false);
-            #endif
-
-            feedrate = saved_feedrate;
-            feedmultiply = saved_feedmultiply;
-            previous_millis_cmd = millis();
-            endstops_hit_on_purpose(); // clear endstop hit flags
-
-            sync_plan_position();
-
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_MIN_POS + 5);
-
-            // PROBE FIRST POINT
-            set_pageShowInfo(1);
-            set_ChangeScreen(true);
-            do_blocking_move_to(LEFT_PROBE_BED_POSITION, FRONT_PROBE_BED_POSITION, current_position[Z_AXIS]);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_MIN_POS);
-            while(!lcd_clicked()) {          
-              manage_heater();
-              manage_inactivity();
-            }
-
-            // PROBE SECOND POINT
-            set_ChangeScreen(true);
-            set_pageShowInfo(2);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
-            do_blocking_move_to(RIGHT_PROBE_BED_POSITION, FRONT_PROBE_BED_POSITION, current_position[Z_AXIS]);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
-            while(!lcd_clicked()) {
-              manage_heater();
-              manage_inactivity();
-            }
-
-            // PROBE THIRD POINT
-            set_ChangeScreen(true);
-            set_pageShowInfo(3);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
-            do_blocking_move_to(RIGHT_PROBE_BED_POSITION, BACK_PROBE_BED_POSITION, current_position[Z_AXIS]);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
-            while(!lcd_clicked()) {
-              manage_heater();
-              manage_inactivity();
-            }     
-
-            // PROBE FOURTH POINT
-            set_ChangeScreen(true);
-            set_pageShowInfo(4);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
-            do_blocking_move_to(LEFT_PROBE_BED_POSITION, BACK_PROBE_BED_POSITION, current_position[Z_AXIS]);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
-            while(!lcd_clicked()) {
-              manage_heater();
-              manage_inactivity();
-            }
-
-            // PROBE CENTER
-            set_ChangeScreen(true);
-            set_pageShowInfo(5);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
-            do_blocking_move_to((X_MAX_POS-X_MIN_POS)/2, (Y_MAX_POS-Y_MIN_POS)/2, current_position[Z_AXIS]);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
-            while(!lcd_clicked()) {
-              manage_heater();
-              manage_inactivity();
-            }
-
-            // FINISH MANUAL BED LEVEL
-            set_ChangeScreen(true);
-            set_pageShowInfo(6);
-            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
-            enquecommands_P(PSTR("G28 X0 Y0\nG4 P0\nG4 P0\nG4 P0"));
-          #endif // ULTIPANEL
-        }
-        else if(home_all_axis || homeZ) HOMEAXIS(Z);
-      #elif defined(Z_SAFE_HOMING) && defined(ENABLE_AUTO_BED_LEVELING)// Z Safe mode activated.
-        if (home_all_axis) {
-          destination[X_AXIS] = round(Z_SAFE_HOMING_X_POINT - X_PROBE_OFFSET_FROM_EXTRUDER);
-          destination[Y_AXIS] = round(Z_SAFE_HOMING_Y_POINT - Y_PROBE_OFFSET_FROM_EXTRUDER);
-          destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
-          feedrate = xy_travel_speed;
-          current_position[Z_AXIS] = 0;
-
-          sync_plan_position();
-          line_to_destination();
-          st_synchronize();
-          current_position[X_AXIS] = destination[X_AXIS];
-          current_position[Y_AXIS] = destination[Y_AXIS];
-          HOMEAXIS(Z);
-        }
-        // Let's see if X and Y are homed and probe is inside bed area.
-        if (homeZ) {
-          if (axis_known_position[X_AXIS] && axis_known_position[Y_AXIS]) {
-            float cpx = current_position[X_AXIS], cpy = current_position[Y_AXIS];
-            if (   cpx >= X_MIN_POS - X_PROBE_OFFSET_FROM_EXTRUDER
-                && cpx <= X_MAX_POS - X_PROBE_OFFSET_FROM_EXTRUDER
-                && cpy >= Y_MIN_POS - Y_PROBE_OFFSET_FROM_EXTRUDER
-                && cpy <= Y_MAX_POS - Y_PROBE_OFFSET_FROM_EXTRUDER) {
-              current_position[Z_AXIS] = 0;
-              plan_set_position(cpx, cpy, 0, current_position[E_AXIS]);
-              destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
-              feedrate = max_feedrate[Z_AXIS] * 60;
-              line_to_destination();
-              st_synchronize();
-              HOMEAXIS(Z);
-            }
-            else {
-              LCD_MESSAGEPGM(MSG_ZPROBE_OUT);
-              SERIAL_ECHO_START;
-              SERIAL_ECHOLNPGM(MSG_ZPROBE_OUT);
-            }
-          }
-          else {
-            LCD_MESSAGEPGM(MSG_POSITION_UNKNOWN);
-            SERIAL_ECHO_START;
-            SERIAL_ECHOLNPGM(MSG_POSITION_UNKNOWN);
-          }
-        }
-      #elif defined(Z_SAFE_HOMING)
-        if(home_all_axis || homeZ) {
-          destination[X_AXIS] = round(Z_SAFE_HOMING_X_POINT);
-          destination[Y_AXIS] = round(Z_SAFE_HOMING_Y_POINT);
-          feedrate = xy_travel_speed;
-          destination[Z_AXIS] = current_position[Z_AXIS] = 0;
-          sync_plan_position();
-          line_to_destination();
-          st_synchronize();
-          current_position[X_AXIS] = destination[X_AXIS];
-          current_position[Y_AXIS] = destination[Y_AXIS];
-
-          HOMEAXIS(Z);
-        }
-      #endif //Z_SAFE_HOMING
-    #endif //Z_HOME_DIR < 0
-
-    // Set the Z position, if included
-    // Adds the home_offset as well, which may be wrong
-    if (homeZ) {
-      float v = code_value();
-      if (v) current_position[Z_AXIS] = v + home_offset[Z_AXIS];
-    }
-
-    #ifdef ENABLE_AUTO_BED_LEVELING && (Z_HOME_DIR < 0)
-      if (home_all_axis || homeZ) current_position[Z_AXIS] += zprobe_zoffset;  //Add Z_Probe offset (the distance is negative)
-    #endif //ENABLE_AUTO_BED_LEVELING
-    sync_plan_position();
-  #endif // defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
-
-  #ifdef SCARA
-    sync_plan_position_delta();
-  #endif //SCARA
-#endif //aven_0807
-
-
-  #ifdef ENDSTOPS_ONLY_FOR_HOMING
-    enable_endstops(false);
-  #endif
-
-  feedrate = saved_feedrate;
-  feedmultiply = saved_feedmultiply;
-  refresh_cmd_timeout();
-  endstops_hit_on_purpose(); // clear endstop hit flags
-  G28_f = 0; //aven_0807
-}
 
 #ifdef ENABLE_AUTO_BED_LEVELING
 
@@ -4603,6 +4253,7 @@ inline void gcode_M114() {
 
   SERIAL_EOL;
 
+#if 0 //aven_0813
   #ifdef SCARA
     SERIAL_PROTOCOLPGM("SCARA Theta:");
     SERIAL_PROTOCOL(delta[X_AXIS]);
@@ -4622,6 +4273,7 @@ inline void gcode_M114() {
     SERIAL_PROTOCOL((delta[Y_AXIS]-delta[X_AXIS])/90*axis_steps_per_unit[Y_AXIS]);
     SERIAL_EOL; SERIAL_EOL;
   #endif
+#endif  
 }
 
 /**
@@ -6157,6 +5809,392 @@ inline void gcode_NN()
   }
 }
 
+
+/**
+ * G28: Home all axes according to settings
+ *
+ * Parameters
+ *
+ *  None  Home to all axes with no parameters.
+ *        With QUICK_HOME enabled XY will home together, then Z.
+ *
+ * Cartesian parameters
+ *
+ *  X   Home to the X endstop
+ *  Y   Home to the Y endstop
+ *  Z   Home to the Z endstop
+ *
+ * If numbers are included with XYZ set the position as with G92
+ * Currently adds the home_offset, which may be wrong and removed soon.
+ *
+ *  Xn  Home X, setting X to n + home_offset[X_AXIS]
+ *  Yn  Home Y, setting Y to n + home_offset[Y_AXIS]
+ *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
+ */
+inline void gcode_G28(boolean home_x = false, boolean home_y = false) 
+{
+
+  G28_f = 1;//aven_0807
+  
+  #ifdef ENABLE_AUTO_BED_LEVELING
+    plan_bed_level_matrix.set_to_identity();
+  #endif //ENABLE_AUTO_BED_LEVELING
+
+  saved_feedrate = feedrate;
+  saved_feedmultiply = feedmultiply;
+  feedmultiply = 100;
+  refresh_cmd_timeout();
+
+  enable_endstops(true);
+
+  set_destination_to_current();
+
+  feedrate = 0.0;
+
+  bool  homeX = code_seen(axis_codes[X_AXIS]),
+        homeY = code_seen(axis_codes[Y_AXIS]),
+        homeZ = code_seen(axis_codes[Z_AXIS]),
+        homeE = code_seen(axis_codes[E_AXIS]);
+        
+  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+
+#if 0
+  #ifdef NPR2
+    if((home_all_axis) || (code_seen(axis_codes[E_AXIS]))) {
+      active_driver = active_extruder = 1;
+      plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], -200, COLOR_HOMERATE, active_extruder, active_driver);
+      st_synchronize();
+      old_color = 99;
+      active_driver = active_extruder = 0;
+    }
+  #endif
+#endif
+
+  #ifdef DELTA
+    // A delta can only safely home all axis at the same time
+    // all axis have to home at the same time
+
+    // Move all carriages up together until the first endstop is hit.
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+    sync_plan_position();
+
+    // Move all carriages up together until the first endstop is hit.
+    for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
+    feedrate = 1.732 * homing_feedrate[X_AXIS];
+    line_to_destination();
+    st_synchronize();
+    endstops_hit_on_purpose(); // clear endstop hit flags
+
+    // Destination reached
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
+
+    // take care of back off and rehome now we are all at the top
+    HOMEAXIS(X);
+    HOMEAXIS(Y);
+    HOMEAXIS(Z);
+
+    sync_plan_position_delta();
+
+  #endif //DELTA
+
+#if 0 //aven_0807
+  #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
+
+    #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
+      if (home_all_axis || homeZ) HOMEAXIS(Z);
+    #elif !defined(Z_SAFE_HOMING) && defined(Z_RAISE_BEFORE_HOMING) && Z_RAISE_BEFORE_HOMING > 0
+      // Raise Z before homing any other axes
+      if (home_all_axis || homeZ) {
+        destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
+        feedrate = max_feedrate[Z_AXIS] * 60;
+        line_to_destination();
+        st_synchronize();
+      }
+    #endif
+
+    #ifdef QUICK_HOME
+      if (home_all_axis || (homeX && homeY)) {  // First diagonal move
+
+        current_position[X_AXIS] = current_position[Y_AXIS] = 0;
+
+        #ifdef DUAL_X_CARRIAGE
+          int x_axis_home_dir = x_home_dir(active_extruder);
+          extruder_duplication_enabled = false;
+        #else
+          int x_axis_home_dir = home_dir(X_AXIS);
+        #endif
+
+        sync_plan_position();
+
+        float mlx = max_length(X_AXIS), mly = max_length(Y_AXIS),
+              mlratio = mlx>mly ? mly/mlx : mlx/mly;
+
+        destination[X_AXIS] = 1.5 * mlx * x_axis_home_dir;
+        destination[Y_AXIS] = 1.5 * mly * home_dir(Y_AXIS);
+        feedrate = min(homing_feedrate[X_AXIS], homing_feedrate[Y_AXIS]) * sqrt(mlratio * mlratio + 1);
+        line_to_destination();
+        st_synchronize();
+
+        axis_is_at_home(X_AXIS);
+        axis_is_at_home(Y_AXIS);
+        sync_plan_position();
+
+        destination[X_AXIS] = current_position[X_AXIS];
+        destination[Y_AXIS] = current_position[Y_AXIS];
+        line_to_destination();
+        feedrate = 0.0;
+        st_synchronize();
+        endstops_hit_on_purpose(); // clear endstop hit flags
+
+        current_position[X_AXIS] = destination[X_AXIS];
+        current_position[Y_AXIS] = destination[Y_AXIS];
+        #ifndef SCARA
+          current_position[Z_AXIS] = destination[Z_AXIS];
+        #endif
+      }
+    #endif // QUICK_HOME
+
+    if (home_all_axis || homeX) {
+      #ifdef DUAL_X_CARRIAGE
+        int tmp_extruder = active_extruder;
+        extruder_duplication_enabled = false;
+        active_extruder = !active_extruder;
+        HOMEAXIS(X);
+        inactive_extruder_x_pos = current_position[X_AXIS];
+        active_extruder = tmp_extruder;
+        HOMEAXIS(X);
+        // reset state used by the different modes
+        memcpy(raised_parked_position, current_position, sizeof(raised_parked_position));
+        delayed_move_time = 0;
+        active_extruder_parked = true;
+      #else
+        HOMEAXIS(X);
+      #endif //DUAL_X_CARRIAGE
+    }
+
+    // Home Y
+    if (home_all_axis || homeY) HOMEAXIS(Y);
+
+    // Set the X position, if included
+    // Adds the home_offset as well, which may be wrong
+    if (homeX) {
+      float v = code_value();
+      if (v) current_position[X_AXIS] = v
+        #ifndef SCARA
+          + home_offset[X_AXIS]
+        #endif
+      ;
+    }
+
+    // Set the Y position, if included
+    // Adds the home_offset as well, which may be wrong
+    if (homeY) {
+      float v = code_value();
+      if (v) current_position[Y_AXIS] = v
+        #ifndef SCARA
+          + home_offset[Y_AXIS]
+        #endif
+      ;
+    }
+
+    #if Z_HOME_DIR < 0  // If homing towards BED do Z last
+      #ifndef Z_SAFE_HOMING
+        if (code_seen('M') && !(homeX || homeY)) {
+          // Manual G28 bed level
+          #ifdef ULTIPANEL
+            SERIAL_ECHOLN(" --LEVEL PLATE SCRIPT--");
+            set_ChangeScreen(true);
+            while(!lcd_clicked()) {
+              set_pageShowInfo(0);
+              lcd_update();
+            }
+            saved_feedrate = feedrate;
+            saved_feedmultiply = feedmultiply;
+            feedmultiply = 100;
+            previous_millis_cmd = millis();
+
+            enable_endstops(true);
+            for(int8_t i=0; i < NUM_AXIS; i++) {
+              destination[i] = current_position[i];
+            }
+            feedrate = 0.0;
+            #if Z_HOME_DIR > 0  // If homing away from BED do Z first
+              HOMEAXIS(Z);
+            #endif
+            HOMEAXIS(X);
+            HOMEAXIS(Y);
+            #if Z_HOME_DIR < 0
+              HOMEAXIS(Z);
+            #endif
+            sync_plan_position();
+
+            #ifdef ENDSTOPS_ONLY_FOR_HOMING
+              enable_endstops(false);
+            #endif
+
+            feedrate = saved_feedrate;
+            feedmultiply = saved_feedmultiply;
+            previous_millis_cmd = millis();
+            endstops_hit_on_purpose(); // clear endstop hit flags
+
+            sync_plan_position();
+
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_MIN_POS + 5);
+
+            // PROBE FIRST POINT
+            set_pageShowInfo(1);
+            set_ChangeScreen(true);
+            do_blocking_move_to(LEFT_PROBE_BED_POSITION, FRONT_PROBE_BED_POSITION, current_position[Z_AXIS]);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS], Z_MIN_POS);
+            while(!lcd_clicked()) {          
+              manage_heater();
+              manage_inactivity();
+            }
+
+            // PROBE SECOND POINT
+            set_ChangeScreen(true);
+            set_pageShowInfo(2);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
+            do_blocking_move_to(RIGHT_PROBE_BED_POSITION, FRONT_PROBE_BED_POSITION, current_position[Z_AXIS]);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
+            while(!lcd_clicked()) {
+              manage_heater();
+              manage_inactivity();
+            }
+
+            // PROBE THIRD POINT
+            set_ChangeScreen(true);
+            set_pageShowInfo(3);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
+            do_blocking_move_to(RIGHT_PROBE_BED_POSITION, BACK_PROBE_BED_POSITION, current_position[Z_AXIS]);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
+            while(!lcd_clicked()) {
+              manage_heater();
+              manage_inactivity();
+            }     
+
+            // PROBE FOURTH POINT
+            set_ChangeScreen(true);
+            set_pageShowInfo(4);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
+            do_blocking_move_to(LEFT_PROBE_BED_POSITION, BACK_PROBE_BED_POSITION, current_position[Z_AXIS]);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
+            while(!lcd_clicked()) {
+              manage_heater();
+              manage_inactivity();
+            }
+
+            // PROBE CENTER
+            set_ChangeScreen(true);
+            set_pageShowInfo(5);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
+            do_blocking_move_to((X_MAX_POS-X_MIN_POS)/2, (Y_MAX_POS-Y_MIN_POS)/2, current_position[Z_AXIS]);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS);
+            while(!lcd_clicked()) {
+              manage_heater();
+              manage_inactivity();
+            }
+
+            // FINISH MANUAL BED LEVEL
+            set_ChangeScreen(true);
+            set_pageShowInfo(6);
+            do_blocking_move_to(current_position[X_AXIS], current_position[Y_AXIS],Z_MIN_POS + 5);
+            enquecommands_P(PSTR("G28 X0 Y0\nG4 P0\nG4 P0\nG4 P0"));
+          #endif // ULTIPANEL
+        }
+        else if(home_all_axis || homeZ) HOMEAXIS(Z);
+      #elif defined(Z_SAFE_HOMING) && defined(ENABLE_AUTO_BED_LEVELING)// Z Safe mode activated.
+        if (home_all_axis) {
+          destination[X_AXIS] = round(Z_SAFE_HOMING_X_POINT - X_PROBE_OFFSET_FROM_EXTRUDER);
+          destination[Y_AXIS] = round(Z_SAFE_HOMING_Y_POINT - Y_PROBE_OFFSET_FROM_EXTRUDER);
+          destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
+          feedrate = xy_travel_speed;
+          current_position[Z_AXIS] = 0;
+
+          sync_plan_position();
+          line_to_destination();
+          st_synchronize();
+          current_position[X_AXIS] = destination[X_AXIS];
+          current_position[Y_AXIS] = destination[Y_AXIS];
+          HOMEAXIS(Z);
+        }
+        // Let's see if X and Y are homed and probe is inside bed area.
+        if (homeZ) {
+          if (axis_known_position[X_AXIS] && axis_known_position[Y_AXIS]) {
+            float cpx = current_position[X_AXIS], cpy = current_position[Y_AXIS];
+            if (   cpx >= X_MIN_POS - X_PROBE_OFFSET_FROM_EXTRUDER
+                && cpx <= X_MAX_POS - X_PROBE_OFFSET_FROM_EXTRUDER
+                && cpy >= Y_MIN_POS - Y_PROBE_OFFSET_FROM_EXTRUDER
+                && cpy <= Y_MAX_POS - Y_PROBE_OFFSET_FROM_EXTRUDER) {
+              current_position[Z_AXIS] = 0;
+              plan_set_position(cpx, cpy, 0, current_position[E_AXIS]);
+              destination[Z_AXIS] = -Z_RAISE_BEFORE_HOMING * home_dir(Z_AXIS);    // Set destination away from bed
+              feedrate = max_feedrate[Z_AXIS] * 60;
+              line_to_destination();
+              st_synchronize();
+              HOMEAXIS(Z);
+            }
+            else {
+              LCD_MESSAGEPGM(MSG_ZPROBE_OUT);
+              SERIAL_ECHO_START;
+              SERIAL_ECHOLNPGM(MSG_ZPROBE_OUT);
+            }
+          }
+          else {
+            LCD_MESSAGEPGM(MSG_POSITION_UNKNOWN);
+            SERIAL_ECHO_START;
+            SERIAL_ECHOLNPGM(MSG_POSITION_UNKNOWN);
+          }
+        }
+      #elif defined(Z_SAFE_HOMING)
+        if(home_all_axis || homeZ) {
+          destination[X_AXIS] = round(Z_SAFE_HOMING_X_POINT);
+          destination[Y_AXIS] = round(Z_SAFE_HOMING_Y_POINT);
+          feedrate = xy_travel_speed;
+          destination[Z_AXIS] = current_position[Z_AXIS] = 0;
+          sync_plan_position();
+          line_to_destination();
+          st_synchronize();
+          current_position[X_AXIS] = destination[X_AXIS];
+          current_position[Y_AXIS] = destination[Y_AXIS];
+
+          HOMEAXIS(Z);
+        }
+      #endif //Z_SAFE_HOMING
+    #endif //Z_HOME_DIR < 0
+
+    // Set the Z position, if included
+    // Adds the home_offset as well, which may be wrong
+    if (homeZ) {
+      float v = code_value();
+      if (v) current_position[Z_AXIS] = v + home_offset[Z_AXIS];
+    }
+
+    #ifdef ENABLE_AUTO_BED_LEVELING && (Z_HOME_DIR < 0)
+      if (home_all_axis || homeZ) current_position[Z_AXIS] += zprobe_zoffset;  //Add Z_Probe offset (the distance is negative)
+    #endif //ENABLE_AUTO_BED_LEVELING
+    sync_plan_position();
+  #endif // defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
+
+  #ifdef SCARA
+    sync_plan_position_delta();
+  #endif //SCARA
+#endif //aven_0807
+
+
+  #ifdef ENDSTOPS_ONLY_FOR_HOMING
+    enable_endstops(false);
+  #endif
+
+  feedrate = saved_feedrate;
+  feedmultiply = saved_feedmultiply;
+  refresh_cmd_timeout();
+  endstops_hit_on_purpose(); // clear endstop hit flags
+  G28_f = 0; //aven_0807
+}
+
+
+
 //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
 
 inline void gcode_X1()
@@ -6911,7 +6949,899 @@ inline void gcode_X18()
 
 }
 
+//aven_0813
+inline void gcode_X19()
+{
+    //delta[X_AXIS]=180.04;
+	//delta[Y_AXIS]=190.87;
+	//delta[Z_AXIS]=203.30;
+    //actuator_to_cartesian(delta);
+    if (code_seen('A')) {
+      delta[X_AXIS] = code_value();
+	  SerialUSB.println(delta[X_AXIS]);
+    }
 
+	if (code_seen('B')) {
+      delta[Y_AXIS] = code_value();
+	  SerialUSB.println(delta[Y_AXIS]);
+    }
+
+	if (code_seen('C')) {
+      delta[Z_AXIS] = code_value();
+	  SerialUSB.println(delta[Z_AXIS]);
+    }
+	
+	actuator_to_cartesian(delta);
+	
+#if 0
+  SerialUSB.print("Get Position X: ");
+  SerialUSB.print(st_get_position(X_AXIS));
+  SerialUSB.println(float(st_get_position(X_AXIS)));
+  SerialUSB.print(" Y : ");
+  SerialUSB.print(st_get_position(Y_AXIS));
+  SerialUSB.print(" Z : ");
+  SerialUSB.println(st_get_position(Z_AXIS));
+#endif
+  
+#if 0
+  
+  saved_feedrate = feedrate;
+  saved_feedmultiply = feedmultiply;
+  feedmultiply = 100;
+  refresh_cmd_timeout();
+
+  enable_endstops(true);
+
+  set_destination_to_current();
+
+  feedrate = 0.0;
+
+  bool  homeX = code_seen(axis_codes[X_AXIS]),
+        homeY = code_seen(axis_codes[Y_AXIS]),
+        homeZ = code_seen(axis_codes[Z_AXIS]),
+        homeE = code_seen(axis_codes[E_AXIS]);
+
+
+  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+
+  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+    sync_plan_position();//X:0.00
+	
+    // Move all carriages up together until the first endstop is hit.
+    for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
+    feedrate = 1.732 * homing_feedrate[X_AXIS];
+    line_to_destination();
+	
+    st_synchronize();
+	
+    endstops_hit_on_purpose(); // clear endstop hit flags
+
+   
+
+
+#endif
+
+
+#if 0
+ do{ 
+
+    if(READ(A_STOP)==1)
+    {  
+      SerialUSB.println("A STOP!");
+      SERIAL_PROTOCOLPGM("X:");
+      SERIAL_PROTOCOL(current_position[X_AXIS]);
+      SerialUSB.println(" Count X: ");
+      SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
+	  ASTOP = true;
+    }
+ 
+    if(READ(B_STOP)==1)
+    {
+      SerialUSB.println("B STOP!");
+      SERIAL_PROTOCOLPGM("Y:");
+      SERIAL_PROTOCOL(current_position[Y_AXIS]);
+      SerialUSB.println(" Count Y: ");
+      SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
+	  BSTOP = true;
+    }
+ 
+    if(READ(C_STOP)==1)
+    {
+      SerialUSB.println("C STOP!");
+      SERIAL_PROTOCOLPGM("Z:");
+      SERIAL_PROTOCOL(current_position[Z_AXIS]);
+      SerialUSB.println(" Count Z: ");
+      SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
+	  CSTOP = true;
+    }
+ 	}
+	while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
+#endif
+
+
+#if 0
+ HOMEAXIS(X);
+ HOMEAXIS(Y);
+ HOMEAXIS(Z);
+ enable_endstops(false);
+
+ feedrate = saved_feedrate;
+ feedmultiply = saved_feedmultiply;
+ refresh_cmd_timeout(); 
+ endstops_hit_on_purpose(); // clear endstop hit flags
+#endif  
+  
+ 
+#if 0
+ if(READ(Z_PROBE_PIN)==1)
+ {
+   SerialUSB.println("Z probe STOP!");
+ }
+#endif
+
+
+}
+
+
+
+inline void gcode_X20(boolean home_x = false, boolean home_y = false)
+{
+
+  gcode_G28();
+
+  delay(1000);
+  
+  odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+  odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
+  odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+  
+  SerialUSB.print("Default X: ");
+  SerialUSB.print(odelta[0]);
+  SerialUSB.print(" Y: ");
+  SerialUSB.print(odelta[1]);
+  SerialUSB.print(" Z: ");
+  SerialUSB.println(odelta[2]);
+
+  delay(500);
+  
+  disable_x();
+  disable_y();
+  disable_z();
+
+  SerialUSB.println("Done!");
+
+  
+
+}
+
+
+inline void gcode_X21(boolean home_x = false, boolean home_y = false)
+{
+
+#if 1
+  
+  saved_feedrate = feedrate;
+  saved_feedmultiply = feedmultiply;
+  feedmultiply = 100;
+  refresh_cmd_timeout();
+
+  enable_endstops(true);
+
+  set_destination_to_current();
+
+  feedrate = 0.0;
+
+  bool  homeX = code_seen(axis_codes[X_AXIS]),
+        homeY = code_seen(axis_codes[Y_AXIS]),
+        homeZ = code_seen(axis_codes[Z_AXIS]),
+        homeE = code_seen(axis_codes[E_AXIS]);
+
+
+  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+
+#if 0
+  sync_plan_position();
+  destination[X_AXIS] = 200;
+  destination[Y_AXIS] = 200;
+  destination[Z_AXIS] = 200;
+  feedrate = 1.732 * homing_feedrate[X_AXIS];
+  line_to_destination();
+  st_synchronize();
+  //plan_buffer_line();
+#endif
+
+  #if 1
+  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+	  sync_plan_position();
+  
+	  // Move all carriages up together until the first endstop is hit.
+	  //for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
+	  for (int i = X_AXIS; i <= Z_AXIS; i++) {destination[i] = 470;}
+	  feedrate = 1.732 * homing_feedrate[X_AXIS];
+	  line_to_destination();
+	  st_synchronize();
+	  endstops_hit_on_purpose(); // clear endstop hit flags
+  
+	  // Destination reached
+	  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
+  
+      endstops_hit_on_purpose(); // clear endstop hit flags
+
+
+	  cdelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+      cdelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
+      cdelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+
+	  SerialUSB.print("Default X: ");
+      SerialUSB.print(cdelta[0]);
+      SerialUSB.print(" Y: ");
+      SerialUSB.print(cdelta[1]);
+      SerialUSB.print(" Z: ");
+      SerialUSB.println(cdelta[2]);
+
+  delay(500);
+  #endif
+   
+
+
+#endif
+
+
+#if 0
+ do{ 
+
+    if(READ(A_STOP)==1)
+    {  
+      SerialUSB.println("A STOP!");
+      SERIAL_PROTOCOLPGM("X:");
+      SERIAL_PROTOCOL(current_position[X_AXIS]);
+      SerialUSB.println(" Count X: ");
+      SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
+	  ASTOP = true;
+    }
+ 
+    if(READ(B_STOP)==1)
+    {
+      SerialUSB.println("B STOP!");
+      SERIAL_PROTOCOLPGM("Y:");
+      SERIAL_PROTOCOL(current_position[Y_AXIS]);
+      SerialUSB.println(" Count Y: ");
+      SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
+	  BSTOP = true;
+    }
+ 
+    if(READ(C_STOP)==1)
+    {
+      SerialUSB.println("C STOP!");
+      SERIAL_PROTOCOLPGM("Z:");
+      SERIAL_PROTOCOL(current_position[Z_AXIS]);
+      SerialUSB.println(" Count Z: ");
+      SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
+	  CSTOP = true;
+    }
+ 	}
+	while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
+#endif
+
+
+#if 0
+ HOMEAXIS(X);
+ SerialUSB.println(delta[X_AXIS]);
+
+ HOMEAXIS(Y);
+ SerialUSB.println(delta[X_AXIS]);
+ 
+ HOMEAXIS(Z);
+ SerialUSB.println(delta[X_AXIS]);
+ //sync_plan_position_delta();
+
+ 
+ enable_endstops(false);
+ SerialUSB.println(delta[X_AXIS]);
+
+ feedrate = saved_feedrate;
+ feedmultiply = saved_feedmultiply;
+ refresh_cmd_timeout(); 
+ endstops_hit_on_purpose(); // clear endstop hit flags
+#endif  
+  
+ 
+#if 0
+ if(READ(Z_PROBE_PIN)==1)
+ {
+   SerialUSB.println("Z probe STOP!");
+ }
+#endif
+
+
+}
+
+
+inline void gcode_X22()
+{
+
+  boolean home_x = false; 
+  boolean home_y = false;
+  odelta[0]=0;
+  odelta[1]=0;
+  odelta[2]=0;
+  cdelta[0]= 0;
+  cdelta[1]= 0;
+  cdelta[2]= 0;
+
+  
+  for(int i=0 ; i<600 ; i++)
+  {
+    saved_feedrate = feedrate;
+	saved_feedmultiply = feedmultiply;
+	feedmultiply = 100;
+	refresh_cmd_timeout();
+  
+	enable_endstops(true);
+  
+	set_destination_to_current();
+  
+	feedrate = 0.0;
+  
+	bool  homeX = code_seen(axis_codes[X_AXIS]),
+		  homeY = code_seen(axis_codes[Y_AXIS]),
+		  homeZ = code_seen(axis_codes[Z_AXIS]),
+		  homeE = code_seen(axis_codes[E_AXIS]);
+  
+  
+	home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+	  sync_plan_position();
+	  
+    for (int i = X_AXIS; i <= Z_AXIS; i++) 
+	{
+	  destination[i] = 1;
+
+#if 1	  
+      if(READ(A_STOP)==1)
+      {  
+        //SerialUSB.println("A STOP!");
+        //disable_x();
+		destination[0] = 0;	  
+      }
+ 
+      if(READ(B_STOP)==1)
+      {
+        //SerialUSB.println("B STOP!");
+        //disable_y();
+		destination[1] = 0;
+      }
+ 
+      if(READ(C_STOP)==1)
+      {
+        //SerialUSB.println("C STOP!");
+        //disable_e();
+		destination[2] = 0;
+      }
+#endif
+      check_axes_activity();
+
+
+	 }
+	
+	  feedrate = 1.732 * homing_feedrate[X_AXIS];
+	  line_to_destination();
+	  st_synchronize();
+
+       odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+       odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
+       odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+
+       
+
+	   //odelta[0] = st_get_position(X_AXIS);
+	   //odelta[1] = st_get_position(Y_AXIS);
+	   //odelta[2] = st_get_position(Z_AXIS);
+      
+	  cdelta[0] = cdelta[0] + odelta[0];
+      cdelta[1] = cdelta[1] + odelta[1];
+      cdelta[2] = cdelta[2] + odelta[2];
+
+      //SerialUSB.print(i);
+	  //SerialUSB.print(" X: ");
+      //SerialUSB.print(cdelta[0]);
+      //SerialUSB.print(" Y: ");
+      //SerialUSB.print(cdelta[1]);
+      //SerialUSB.print(" Z: ");
+      //SerialUSB.println(cdelta[2]);
+
+
+	  
+	  
+
+  	}
+
+    //cdelta[0] = (cdelta[0]/80) - 403.23;
+	//cdelta[1] = (cdelta[1]/80) - 403.23;
+	//cdelta[2] = (cdelta[2]/80) - 403.23;
+
+	enable_endstops(false);
+
+	cdelta[0] = 403.23 - cdelta[0];
+	cdelta[1] = 403.23 - cdelta[1];
+	cdelta[2] = 403.23 - cdelta[2];
+
+    //cdelta[0] = 403.23 - cdelta[0];
+	//cdelta[1] = 403.23 - cdelta[1];
+	//cdelta[2] = 403.23 - cdelta[2];
+
+    //SerialUSB.print(i);
+	//SerialUSB.print(" X: ");
+    //SerialUSB.print(cdelta[0]);
+    //SerialUSB.print(" Y: ");
+    //SerialUSB.print(cdelta[1]);
+    //SerialUSB.print(" Z: ");
+    //SerialUSB.println(cdelta[2]);
+
+	//gcode_X19(cdelta);
+
+	actuator_to_cartesian(cdelta);
+    
+	
+
+}
+
+
+inline void gcode_X23()
+{
+  boolean home_x = false;
+  boolean home_y = false;
+  float h_value=0; 
+  odelta[0]=0;
+  odelta[1]=0;
+  odelta[2]=0;
+  cdelta[0]= 0;
+  cdelta[1]= 0;
+  cdelta[2]= 0;
+  
+  gcode_G28();
+
+  delay(100);
+
+
+  
+  
+  for(int i=245 ; i>0 ; i--)
+  {
+    saved_feedrate = feedrate;
+	saved_feedmultiply = feedmultiply;
+	feedmultiply = 100;
+	refresh_cmd_timeout();
+  
+	enable_endstops(true);
+  
+	set_destination_to_current();
+  
+	feedrate = 0.0;
+  
+	bool  homeX = code_seen(axis_codes[X_AXIS]),
+		  homeY = code_seen(axis_codes[Y_AXIS]),
+		  homeZ = code_seen(axis_codes[Z_AXIS]),
+		  homeE = code_seen(axis_codes[E_AXIS]);
+  
+  
+	home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+	  sync_plan_position();
+	  
+    for (int i = X_AXIS; i <= Z_AXIS; i++) 
+	{
+	  destination[i] = -1;
+
+#if 0	  
+      if(READ(A_STOP)==1)
+      {  
+        //SerialUSB.println("A STOP!");
+        //disable_x();
+		destination[0] = 0;	  
+      }
+ 
+      if(READ(B_STOP)==1)
+      {
+        //SerialUSB.println("B STOP!");
+        //disable_y();
+		destination[1] = 0;
+      }
+ 
+      if(READ(C_STOP)==1)
+      {
+        //SerialUSB.println("C STOP!");
+        //disable_e();
+		destination[2] = 0;
+      }
+#endif
+      check_axes_activity();
+
+
+	 }
+	
+	  feedrate = 1.732 * homing_feedrate[X_AXIS];
+	  line_to_destination();
+	  st_synchronize();
+
+       odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+       odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
+       odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+
+       
+
+	   //odelta[0] = st_get_position(X_AXIS);
+	   //odelta[1] = st_get_position(Y_AXIS);
+	   //odelta[2] = st_get_position(Z_AXIS);
+      
+	  cdelta[0] = cdelta[0] + odelta[0];
+      cdelta[1] = cdelta[1] + odelta[1];
+      cdelta[2] = cdelta[2] + odelta[2];
+
+      //SerialUSB.print(i);
+	  //SerialUSB.print(" X: ");
+      //SerialUSB.print(cdelta[0]);
+      //SerialUSB.print(" Y: ");
+      //SerialUSB.print(cdelta[1]);
+      //SerialUSB.print(" Z: ");
+      //SerialUSB.println(cdelta[2]);
+
+
+	  
+	  
+
+  	}
+
+    //cdelta[0] = (cdelta[0]/80) - 403.23;
+	//cdelta[1] = (cdelta[1]/80) - 403.23;
+	//cdelta[2] = (cdelta[2]/80) - 403.23;
+
+	cdelta[0] = cdelta[0] + 403.23;
+	cdelta[1] = cdelta[1] + 403.23;
+	cdelta[2] = cdelta[2] + 403.23;
+
+    //cdelta[0] = 403.23 - cdelta[0];
+	//cdelta[1] = 403.23 - cdelta[1];
+	//cdelta[2] = 403.23 - cdelta[2];
+
+    //SerialUSB.print(i);
+	//SerialUSB.print(" X: ");
+    //SerialUSB.print(cdelta[0]);
+    //SerialUSB.print(" Y: ");
+    //SerialUSB.print(cdelta[1]);
+    //SerialUSB.print(" Z: ");
+    //SerialUSB.println(cdelta[2]);
+
+	//gcode_X19(cdelta);
+
+	actuator_to_cartesian(cdelta);
+
+	delay(500);
+
+	gcode_X22();
+
+	h_value = cartesian[Z_AXIS];
+	
+
+	max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+    set_delta_constants();
+	SerialUSB.println("");
+    SerialUSB.print(" H : ");
+	SerialUSB.println(max_pos[Z_AXIS], 4);
+
+	delay(500);
+
+	gcode_G28();
+
+	delay(500);
+
+	
+	
+
+}
+
+
+inline void gcode_X24()
+{
+  float vv=0;
+  //float v1_offset=0;
+  //float v2_offset=0;
+  float v_value=0;
+
+  //gcode_X23();
+
+  delay(500);
+  
+  gcode_G28();
+  delay(100);
+
+  while(1){
+  float x = -73.61;
+  float y = -42.5;
+  float z = 0;
+  float x_value = 0;
+  float vv=0;
+  deploy_z_probe();
+
+  destination[X_AXIS]= x;
+  destination[Y_AXIS]= y;
+  destination[Z_AXIS]= z;
+  prepare_move();
+  st_synchronize();
+
+  delay(1000);
+  gcode_X22();
+
+  x_value = cartesian[Z_AXIS];
+  SerialUSB.println("");	
+  SerialUSB.print("x_value : ");	
+  SerialUSB.println(x_value);	
+
+	//max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+    //set_delta_constants();
+	//SerialUSB.println("");
+    //SerialUSB.print(" H : ");
+	//SerialUSB.println(max_pos[Z_AXIS], 4);
+
+  
+  delay(500);
+
+
+   
+  gcode_G28();
+  delay(100);
+
+  x = 73.61;
+  y = -42.5;
+  z = 0;
+  float y_value=0;
+  deploy_z_probe();
+
+  destination[X_AXIS]= x;
+  destination[Y_AXIS]= y;
+  destination[Z_AXIS]= z;
+  prepare_move();
+  st_synchronize();
+
+  delay(1000);
+  gcode_X22();
+
+  y_value = cartesian[Z_AXIS];
+
+  //SerialUSB.println("");	
+  SerialUSB.print("y_value : ");	
+  SerialUSB.println(y_value);	 
+  
+  v_value = abs(x_value - y_value);
+  SerialUSB.print("v_value : ");	
+  SerialUSB.println(v_value);	
+
+  if(x_value > y_value)
+  {
+    if(v_value < k_value)
+    {
+      endstop_adj[0] = x_value;
+	  endstop_adj[1] = y_value;
+
+	  set_delta_constants();
+	  SerialUSB.println("");
+      SerialUSB.print(" X : ");
+	  SerialUSB.println(endstop_adj[0], 4);
+	  SerialUSB.print(" Y : ");
+	  SerialUSB.println(endstop_adj[1], 4);
+	  break;
+	
+    }
+    else
+    {
+      vv = ((y_value - x_value) * 0.8);
+	           endstop_adj[1] = endstop_adj[1] - vv;
+	           //endstop_adj[1] =  vv;
+               set_delta_constants();
+	           SerialUSB.print(" vv : ");
+			   SerialUSB.println(vv);
+			   SerialUSB.print("end_y : ");
+               SerialUSB.println(endstop_adj[1], 4);
+	           delay(100);
+	           gcode_G28();
+	           delay(100);
+    }
+  }
+  
+  else
+  {
+    if(v_value < k_value)
+    {
+      endstop_adj[0] = x_value;
+	  endstop_adj[1] = y_value;
+
+	  set_delta_constants();
+	  SerialUSB.println("");
+      SerialUSB.print(" X : ");
+	  SerialUSB.println(endstop_adj[0], 4);
+	  SerialUSB.print(" Y : ");
+	  SerialUSB.println(endstop_adj[1], 4);
+	  break;
+	
+    }
+    else
+    {
+      vv = ((x_value - y_value) * 0.8);
+	           endstop_adj[0] = endstop_adj[0] - vv;
+	           //endstop_adj[0] =  vv;
+               set_delta_constants();
+	           SerialUSB.print(" vv : ");
+			   SerialUSB.println(vv);
+			   SerialUSB.print("end_x : ");
+               SerialUSB.println(endstop_adj[0], 4);
+	           delay(100);
+	           gcode_G28();
+	           delay(100);
+    }
+  }
+}
+}
+
+inline void gcode_X25()
+{
+  float vv=0;
+  //float v1_offset=0;
+  //float v2_offset=0;
+  float v_value=0;
+
+  //gcode_X23();
+  //delay(500);
+
+  //gcode_X24();
+  //delay(500);
+  
+  gcode_G28();
+  delay(100);
+
+  while(1){
+  float x = 73.61;
+  float y = -42.5;
+  float z = 0;
+  float y_value = 0;
+  float vv=0;
+  deploy_z_probe();
+
+  destination[X_AXIS]= x;
+  destination[Y_AXIS]= y;
+  destination[Z_AXIS]= z;
+  prepare_move();
+  st_synchronize();
+
+  delay(1000);
+  gcode_X22();
+
+  y_value = cartesian[Z_AXIS];
+  SerialUSB.println("");	
+  SerialUSB.print("y_value : ");	
+  SerialUSB.println(y_value);	
+
+	//max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+    //set_delta_constants();
+	//SerialUSB.println("");
+    //SerialUSB.print(" H : ");
+	//SerialUSB.println(max_pos[Z_AXIS], 4);
+
+  
+  delay(500);
+
+
+   
+  gcode_G28();
+  delay(100);
+
+  x = 0;
+  y = 85;
+  z = 0;
+  float z_value=0;
+  deploy_z_probe();
+
+  destination[X_AXIS]= x;
+  destination[Y_AXIS]= y;
+  destination[Z_AXIS]= z;
+  prepare_move();
+  st_synchronize();
+
+  delay(1000);
+  gcode_X22();
+
+  z_value = cartesian[Z_AXIS];
+
+  //SerialUSB.println("");	
+  SerialUSB.print("z_value : ");	
+  SerialUSB.println(z_value);	 
+  
+  v_value = abs(z_value - y_value);
+  SerialUSB.print("v_value : ");	
+  SerialUSB.println(v_value);	
+
+  if(y_value > z_value)
+  {
+    if(v_value < k_value)
+    {
+      endstop_adj[1] = y_value;
+	  endstop_adj[2] = z_value;
+
+	  set_delta_constants();
+	  SerialUSB.println("");
+      SerialUSB.print(" Y : ");
+	  SerialUSB.println(endstop_adj[1], 4);
+	  SerialUSB.print(" Z : ");
+	  SerialUSB.println(endstop_adj[2], 4);
+	  break;
+	
+    }
+    else
+    {
+      vv = ((z_value - y_value) * 0.8);
+	           endstop_adj[2] = endstop_adj[2] - vv;
+	           //endstop_adj[2] =   vv;
+               set_delta_constants();
+	           SerialUSB.print(" vv : ");
+			   SerialUSB.println(vv);
+			   SerialUSB.print("end_z : ");
+               SerialUSB.println(endstop_adj[2], 4);
+	           delay(100);
+	           gcode_G28();
+	           delay(100);
+    }
+  }
+  
+  else
+  {
+    if(v_value < k_value)
+    {
+      endstop_adj[1] = y_value;
+	  endstop_adj[2] = z_value;
+
+	  set_delta_constants();
+	  SerialUSB.println("");
+      SerialUSB.print(" Y : ");
+	  SerialUSB.println(endstop_adj[1], 4);
+	  SerialUSB.print(" Z : ");
+	  SerialUSB.println(endstop_adj[2], 4);
+	  break;
+	
+    }
+    else
+    {
+      vv = ((y_value - z_value) * 0.8);
+	           endstop_adj[1] = endstop_adj[1] - vv;
+	           //endstop_adj[1] =  vv;
+               set_delta_constants();
+	           SerialUSB.print(" vv : ");
+			   SerialUSB.println(vv);
+			   SerialUSB.print("end_y : ");
+               SerialUSB.println(endstop_adj[1], 4);
+	           delay(100);
+	           gcode_G28();
+	           delay(100);
+    }
+  }
+}
+}
+
+
+inline void gcode_X26()
+{
+  gcode_X23();
+  delay(500);
+
+  gcode_X24();
+  delay(500);
+  
+  gcode_X25();
+  delay(500);
+
+  gcode_G28();
+  delay(500);
+
+
+}
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
 ******************************************************/
@@ -7829,7 +8759,109 @@ void process_commands()
 		  }
 		  n_f = 1;
 		  break;
-		  
+		
+		 case 19:   
+          gcode_X19();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+		  case 20:   
+          gcode_X20();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 21:   
+          gcode_X21();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 22:   
+          gcode_X22();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 23:   
+          gcode_X23();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 24:   
+          gcode_X24();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 25:   
+          gcode_X25();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break;
+
+		  case 26:   
+          gcode_X26();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
 
 		default:
 			SerialUSB.print("cmd Error!");
@@ -7970,13 +9002,17 @@ void clamp_to_software_endstops(float target[3]) {
 
 void prepare_move() {
 
+#if 0 //aven_0813
   #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
     axis_is_moving = true;
   #endif
+#endif
+
 
   clamp_to_software_endstops(destination);
   refresh_cmd_timeout();
 
+#if 0 //aven_0813
   #ifdef SCARA //for now same as delta-code
 
     float difference[NUM_AXIS];
@@ -8014,6 +9050,7 @@ void prepare_move() {
     }
 
   #endif // SCARA
+#endif  
 
   #ifdef DELTA
     float difference[NUM_AXIS];
@@ -8036,6 +9073,7 @@ void prepare_move() {
       for (int8_t i = 0; i < NUM_AXIS; i++) destination[i] = current_position[i] + difference[i] * fraction;
 
       calculate_delta(destination);
+	  
       //SERIAL_ECHOPGM("destination[0]="); SERIAL_ECHOLN(destination[0]);
       //SERIAL_ECHOPGM("destination[1]="); SERIAL_ECHOLN(destination[1]);
       //SERIAL_ECHOPGM("destination[2]="); SERIAL_ECHOLN(destination[2]);
@@ -8044,11 +9082,13 @@ void prepare_move() {
       //SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
 
       adjust_delta(destination);
+	  
       plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder, active_driver);
     }
 
   #endif // DELTA
 
+#if 0 //aven_0813
   #ifdef DUAL_X_CARRIAGE
     if (active_extruder_parked) {
       if (dual_x_carriage_mode == DXC_DUPLICATION_MODE && active_extruder == 0) {
@@ -8081,6 +9121,8 @@ void prepare_move() {
       }
     }
   #endif //DUAL_X_CARRIAGE
+#endif
+  
 
   #if !defined(DELTA) && !defined(SCARA)
     // Do not use feedmultiply for E or Z only moves
@@ -8092,10 +9134,12 @@ void prepare_move() {
     }
   #endif // !defined(DELTA) && !defined(SCARA)
 
+#if 0 //aven_0813
   #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
     axis_last_activity = millis();
     axis_is_moving = false;
   #endif
+#endif
 
   set_current_to_destination();
 }
