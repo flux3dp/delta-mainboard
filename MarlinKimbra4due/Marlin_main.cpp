@@ -350,6 +350,8 @@ float cdelta[3] = { 0, 0, 0 };
 #endif
 
 #ifdef DELTA
+
+  float saved_endstop_adj[3] = { 0 }; //aven_0813
   float endstop_adj[3] = { 0, 0, 0 };
   float tower_adj[6] = { 0, 0, 0, 0, 0, 0 };
   float delta_radius; // = DEFAULT_delta_radius;
@@ -393,8 +395,14 @@ float cdelta[3] = { 0, 0, 0 };
       { 0, 0, 0, 0, 0, 0, 0 },
       { 0, 0, 0, 0, 0, 0, 0 },
       };
+
+  static float adj_t1_Radius = 0;
+  static float adj_t2_Radius = 0;
+  static float adj_t3_Radius = 0;
+  
   static float z_offset;
   static float bed_level_x, bed_level_y, bed_level_z;
+  static float bed_safe_z = 45; //used for initial bed probe safe distance (to avoid crashing into bed) //aven_0813
   static float bed_level_c = 20; //used for inital bed probe safe distance (to avoid crashing into bed)
   static float bed_level_ox, bed_level_oy, bed_level_oz;
   static int loopcount;
@@ -1982,43 +1990,53 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   void calibration_report()
   {
     //Display Report
-    SERIAL_ECHOLN("\tZ-Tower\t\t\tEndstop Offsets");
+    
 
-    SERIAL_ECHO("\t");
-    SERIAL_PROTOCOL_F(bed_level_z, 4);
-    SERIAL_ECHOPAIR("\t\t\tX:",endstop_adj[0]);
-    SERIAL_ECHOPAIR(" Y:",endstop_adj[1]);
-    SERIAL_ECHOPAIR(" Z:",endstop_adj[2]);
-    SERIAL_EOL;
+    SerialUSB.println("bed level");
+	SerialUSB.print("bed_level_x:");
+	SerialUSB.println(bed_level_x, 4);
+    SerialUSB.print("bed_level_y:");
+	SerialUSB.println(bed_level_y, 4);
+	SerialUSB.print("bed_level_z:");
+	SerialUSB.println(bed_level_z, 4);
+	SerialUSB.print("bed_level_ox:");
+	SerialUSB.println(bed_level_ox, 4);
+	SerialUSB.print("bed_level_oy:");
+    SerialUSB.println(bed_level_oy, 4);
+    SerialUSB.print("bed_level_oz:");
+    SerialUSB.println(bed_level_oz, 4);
+	SerialUSB.print("bed_level_c:");
+    SerialUSB.println(bed_level_c, 4);
 
-    SERIAL_PROTOCOL_F(bed_level_oy, 4);
-    SERIAL_PROTOCOLPGM("\t\t");
-    SERIAL_PROTOCOL_F(bed_level_ox, 4);
-    SERIAL_ECHOLN("\t\tTower Position Adjust");
+	SerialUSB.println("Endstop");
+	SerialUSB.print("X:");
+    SerialUSB.print(endstop_adj[0]);
+    SerialUSB.print(" Y:");
+    SerialUSB.print(endstop_adj[1]);
+	SerialUSB.print(" Z:");
+    SerialUSB.println(endstop_adj[2]);
 
-    SERIAL_PROTOCOLPGM("\t");
-    SERIAL_PROTOCOL_F(bed_level_c, 4);
-    SERIAL_ECHOPAIR("\t\t\tA:",tower_adj[0]);
-    SERIAL_ECHOPAIR(" B:",tower_adj[1]);
-    SERIAL_ECHOPAIR(" C:",tower_adj[2]);
-    SERIAL_EOL;
 
-    SERIAL_PROTOCOL_F(bed_level_x, 4);
-    SERIAL_PROTOCOLPGM("\t\t");
-    SERIAL_PROTOCOL_F(bed_level_y, 4);
-    SERIAL_ECHOPAIR("\t\tI:",tower_adj[3]);
-    SERIAL_ECHOPAIR(" J:",tower_adj[4]);
-    SERIAL_ECHOPAIR(" K:",tower_adj[5]);
-    SERIAL_EOL;
+	SerialUSB.println("tower");
+    SerialUSB.print("A:");
+    SerialUSB.print(tower_adj[0]);
+    SerialUSB.print(" B:");
+    SerialUSB.print(tower_adj[1]);
+	SerialUSB.print(" C:");
+    SerialUSB.print(tower_adj[2]);
+	SerialUSB.print(" I:");
+    SerialUSB.print(tower_adj[3]);
+    SerialUSB.print(" J:");
+    SerialUSB.print(tower_adj[4]);
+	SerialUSB.print(" K:");
+    SerialUSB.println(tower_adj[5]);    
 
-    SERIAL_PROTOCOLPGM("\t");
-    SERIAL_PROTOCOL_F(bed_level_oz, 4);
-    SERIAL_PROTOCOLPGM("\t\t\tDelta Radius: ");
-    SERIAL_PROTOCOL_F(delta_radius, 4);
-    SERIAL_EOL;
+    SerialUSB.println("Delta Radius: ");
+    SerialUSB.println(delta_radius, 4);
+    
 
-    SERIAL_PROTOCOLPGM("X-Tower\t\tY-Tower\t\tDiag Rod: ");
-    SERIAL_PROTOCOL_F(delta_diagonal_rod, 4);
+    SerialUSB.println("X-Tower\t\tY-Tower\t\tDiag Rod: ");
+    SerialUSB.println(delta_diagonal_rod, 4);
     SERIAL_EOL;
   }
 
@@ -2159,6 +2177,672 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     SERIAL_ECHOPGM(" right="); SERIAL_ECHO(right);
     SERIAL_ECHOPGM(" offset="); SERIAL_ECHOLN(offset);
     */
+  }
+
+//aven_0813
+  void apply_endstop_adjustment(float x_endstop, float y_endstop, float z_endstop) {
+
+    memcpy(saved_endstop_adj, endstop_adj, sizeof(saved_endstop_adj));
+    endstop_adj[X_AXIS] += x_endstop;
+    endstop_adj[Y_AXIS] += y_endstop;
+    endstop_adj[Z_AXIS] += z_endstop;
+
+    calculate_delta(current_position);
+    plan_set_position(delta[X_AXIS] - (endstop_adj[X_AXIS] - saved_endstop_adj[X_AXIS]) , delta[Y_AXIS] - (endstop_adj[Y_AXIS] - saved_endstop_adj[Y_AXIS]), delta[Z_AXIS] - (endstop_adj[Z_AXIS] - saved_endstop_adj[Z_AXIS]), current_position[E_AXIS]);  
+    st_synchronize();
+  }
+
+  void adj_endstops()
+  {
+    boolean x_done = false;
+    boolean y_done = false;
+    boolean z_done = false;
+    float prv_bed_level_x, prv_bed_level_y, prv_bed_level_z;
+
+    do {
+      bed_level_z = probe_bed(0.0, bed_radius);
+      bed_level_x = probe_bed(-SIN_60 * bed_radius, -COS_60 * bed_radius);
+      bed_level_y = probe_bed(SIN_60 * bed_radius, -COS_60 * bed_radius);
+
+      apply_endstop_adjustment(bed_level_x, bed_level_y, bed_level_z);
+
+      SerialUSB.print("x:");
+	  SerialUSB.print(bed_level_x, 4);
+      SerialUSB.print(" (adj:");
+	  SerialUSB.print(endstop_adj[0], 4);
+	  SerialUSB.print(") y:");
+	  SerialUSB.print(bed_level_y, 4);
+	  SerialUSB.print(" (adj:");
+	  SerialUSB.print(endstop_adj[1], 4);
+	  SerialUSB.print(") z:");
+	  SerialUSB.print(bed_level_z, 4);
+	  SerialUSB.print(" (adj:");
+	  SerialUSB.print(endstop_adj[2], 4);
+	  SerialUSB.println(" (adj:");
+
+	  #if 0
+      ECHO_SMV(DB, "x:", bed_level_x, 4);
+      ECHO_MV(" (adj:", endstop_adj[0], 4);
+      ECHO_MV(") y:", bed_level_y, 4);
+      ECHO_MV(" (adj:", endstop_adj[1], 4);
+      ECHO_MV(") z:", bed_level_z, 4);
+      ECHO_MV(" (adj:", endstop_adj[2], 4);
+      ECHO_EM(")");
+      #endif
+
+      if ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)) {
+        x_done = true;
+        SerialUSB.println("X=OK ");
+		//ECHO_SM(DB, "X=OK ");
+      }
+      else {
+        x_done = false;
+		SerialUSB.println("X=ERROR ");
+        //ECHO_SM(DB, "X=ERROR ");
+      }
+
+      if ((bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)) {
+        y_done = true;
+		SerialUSB.println("Y=OK ");
+        //ECHO_M("Y=OK ");
+      }
+      else {
+        y_done = false;
+		SerialUSB.println("Y=ERROR ");
+        //ECHO_M("Y=ERROR ");
+      }
+
+      if ((bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)) {
+        z_done = true;
+		SerialUSB.println("Z=OK ");
+        //ECHO_EM("Z=OK");
+      }
+      else {
+        z_done = false;
+		SerialUSB.println("Z=ERROR");
+        //ECHO_EM("Z=ERROR");
+      }
+    } while (((x_done == false) or (y_done == false) or (z_done == false)));
+
+    float high_endstop  = 0;
+    float low_endstop   = 0;
+    for(int x = 0; x < 3; x++) {
+      if (endstop_adj[x] > high_endstop) high_endstop = endstop_adj[x];
+      if (endstop_adj[x] < low_endstop) low_endstop = endstop_adj[x];
+    }
+
+    if (high_endstop > 0) {
+      SerialUSB.print("Reducing Build height by ");
+	  SerialUSB.println(high_endstop);
+	  //ECHO_LMV(DB, "Reducing Build height by ", high_endstop);
+      for(int8_t i = 0; i < 3; i++) {
+        endstop_adj[i] -= high_endstop;
+      }
+      max_pos[Z_AXIS] -= high_endstop;
+      set_delta_constants();
+    }
+
+    bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
+  }
+
+  int adj_deltaradius()
+  { 
+    float adj_r;
+    float prev_c;
+    int c_nochange_count = 0;
+    float nochange_r;
+
+    bed_level_c = probe_bed(0.0, 0.0);
+
+    if ((bed_level_c >= -ac_prec / 2) and (bed_level_c <= ac_prec / 2)) {
+	  SerialUSB.println("Delta Radius OK");	
+      //ECHO_LM(DB, "Delta Radius OK");
+      return 0;
+    }
+    else {
+	  SerialUSB.println("Adjusting Delta Radius");
+      //ECHO_LM(DB, "Adjusting Delta Radius");
+      //set inital direction and magnitude for delta radius adjustment
+      adj_r = 0.1;
+      if (bed_level_c > 0) adj_r = -0.1;
+
+      bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
+
+      do {
+        delta_radius += adj_r;
+        set_delta_constants();
+
+        prev_c = bed_level_c;
+        bed_level_c = probe_bed(0.0, 0.0);
+
+        //Show progress
+
+		SerialUSB.print("r:");
+		SerialUSB.print(delta_radius, 4);
+		SerialUSB.print(" (adj:");
+		SerialUSB.print(adj_r, 4);
+		SerialUSB.print(") c:");
+		SerialUSB.println(bed_level_c, 4);
+		
+        //ECHO_SMV(DB, "r:", delta_radius, 4);
+        //ECHO_MV(" (adj:", adj_r, 4);
+        //ECHO_EMV(") c:",bed_level_c, 4);
+
+        //Adjust delta radius
+        if (((adj_r > 0) and (bed_level_c < prev_c)) or ((adj_r < 0) and (bed_level_c > prev_c))) adj_r = -(adj_r / 2);
+
+        //Count iterations with no change to c probe point
+        if (bed_level_c == prev_c) c_nochange_count ++;
+        if (c_nochange_count == 1) nochange_r = delta_radius;
+
+      } while(((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)) and (c_nochange_count < 3));
+
+      if (c_nochange_count > 0) {
+        delta_radius = nochange_r;
+        set_delta_constants();
+        bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
+      }
+      return 1;
+    }
+  }
+
+
+  void adj_tower_delta(int tower)
+  {
+    float adj_val = 0;
+    float adj_mag = 0.2;
+    float adj_prv;
+
+    do {
+
+      tower_adj[tower - 1] += adj_val;
+      set_delta_constants();
+
+      if ((tower == 1) or (tower == 3)) bed_level_oy = probe_bed(-SIN_60 * bed_radius, COS_60 * bed_radius);
+      if ((tower == 1) or (tower == 2)) bed_level_oz = probe_bed(0.0, -bed_radius);
+      if ((tower == 2) or (tower == 3)) bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
+
+      adj_prv = adj_val;
+      adj_val = 0;
+
+      if (tower == 1) {
+        if (bed_level_oy < bed_level_oz) adj_val = adj_mag;
+        if (bed_level_oy > bed_level_oz) adj_val = -adj_mag;
+      }
+
+      if (tower == 2) {
+        if (bed_level_oz < bed_level_ox) adj_val = adj_mag;
+        if (bed_level_oz > bed_level_ox) adj_val = -adj_mag;
+      }
+
+      if (tower == 3) {
+        if (bed_level_ox < bed_level_oy) adj_val = adj_mag;
+        if (bed_level_ox > bed_level_oy) adj_val = -adj_mag;
+      }
+         
+      if ((adj_val > 0) and (adj_prv < 0)) {
+        adj_mag = adj_mag / 2;
+        adj_val = adj_mag;
+      }
+
+      if ((adj_val < 0) and (adj_prv > 0)) {
+        adj_mag = adj_mag / 2;
+        adj_val = -adj_mag;
+      }
+
+      //Show Adjustments made
+      if (tower == 1) {
+
+		SerialUSB.print("oy:");
+		SerialUSB.print(bed_level_oy, 4);
+		SerialUSB.print("oz:");
+		SerialUSB.println(bed_level_oz, 4);
+		
+        //ECHO_SMV(DB, "oy:", bed_level_oy, 4);
+        //ECHO_MV(" oz:", bed_level_oz, 4);
+      }
+
+      if (tower == 2) {
+
+		SerialUSB.print("ox:");
+		SerialUSB.print(bed_level_ox, 4);
+		SerialUSB.print("oz:");
+		SerialUSB.println(bed_level_oz, 4);
+		
+        //ECHO_SMV(DB, "ox:", bed_level_ox, 4);
+        //ECHO_MV(" oz:", bed_level_oz, 4);
+      }
+
+      if (tower == 3) {
+     
+	    SerialUSB.print("ox:");
+		SerialUSB.print(bed_level_ox, 4);
+		SerialUSB.print("oy:");
+		SerialUSB.println(bed_level_oy, 4);
+		
+        //ECHO_SMV(DB, "ox:", bed_level_ox, 4);
+        //ECHO_MV(" oy:", bed_level_oy, 4);
+      }
+
+      SerialUSB.print(" tower delta adj:");
+	  SerialUSB.println(adj_val, 5);
+		
+      //ECHO_EMV(" tower delta adj:", adj_val, 5);
+    } while(adj_val != 0);
+  }
+
+  
+  void adj_tower_radius(int tower)
+  {
+    boolean done,t1_done,t2_done,t3_done;
+    int nochange_count;
+    float target, prev_target, prev_bed_level;
+    float temp, adj_target;
+
+    //Set inital tower adjustment values
+    adj_t1_Radius = 0;
+    adj_t2_Radius = 0;
+    adj_t3_Radius = 0;
+    nochange_count = 0;
+
+    if ((tower == 1) and (adj_t1_Radius == 0)) {
+      target = (bed_level_oy + bed_level_oz) / 2;
+      temp = (bed_level_ox - target) / 2;
+      adj_target = target + temp;
+      if (bed_level_ox < adj_target) adj_t1_Radius = -0.4;
+      if (bed_level_ox > adj_target) adj_t1_Radius = 0.4;
+    }
+    if ((tower == 2) and (adj_t2_Radius == 0)) {
+      target = (bed_level_ox + bed_level_oz) / 2;
+      temp = (bed_level_oy - target) / 2;
+      adj_target = target + temp;
+      if (bed_level_oy < adj_target) adj_t2_Radius = -0.4;
+      if (bed_level_oy > adj_target) adj_t2_Radius = 0.4;
+    }
+    if ((tower == 3) and (adj_t3_Radius == 0)) {
+      target = (bed_level_oy + bed_level_ox) / 2;
+      temp = (bed_level_oz - target) / 2;
+      adj_target = target + temp;
+      if (bed_level_oz < adj_target) adj_t3_Radius = -0.4; //0.4;
+      if (bed_level_oz > adj_target) adj_t3_Radius = 0.4; //-0.4;
+    }
+
+    do {
+      tower_adj[3] += adj_t1_Radius;
+      tower_adj[4] += adj_t2_Radius;
+      tower_adj[5] += adj_t3_Radius;
+      set_delta_constants();
+
+      //done = false;
+      t1_done = false;
+      t2_done = false;
+      t3_done = false;
+      if (tower == 1) {
+        t2_done = true;
+        t3_done = true;
+        prev_target = adj_target;
+        prev_bed_level = bed_level_ox;
+
+        bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oy = probe_bed(-SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oz = probe_bed(0.0, -bed_radius);
+
+        target = (bed_level_oy + bed_level_oz) / 2;
+        temp = (bed_level_ox - target) / 2;
+        adj_target = target + temp;
+        if (((bed_level_ox < adj_target) and (adj_t1_Radius > 0)) or ((bed_level_ox > adj_target) and (adj_t1_Radius < 0))) adj_t1_Radius = -(adj_t1_Radius / 2);
+        if (bed_level_ox == adj_target) t1_done = true;
+        if ((bed_level_ox + 0.0001 > prev_bed_level) and (bed_level_ox - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
+        if (nochange_count > 1) {
+		  SerialUSB.println("Stuck in Loop.. Exiting");	
+          //ECHO_LM(DB, "Stuck in Loop.. Exiting");
+          t1_done = true;
+        }
+
+        SerialUSB.print("target:");
+		SerialUSB.print(adj_target, 6);
+		SerialUSB.print(" ox:");
+		SerialUSB.print(bed_level_ox, 6);
+		SerialUSB.print(" tower radius adj:");
+		SerialUSB.println(tower_adj[3], 6);
+		
+		
+        //ECHO_SMV(DB, "target:", adj_target, 6);
+        //ECHO_MV(" ox:", bed_level_ox, 6);
+        //ECHO_MV(" tower radius adj:", tower_adj[3], 6);
+        if (t1_done == true)
+			SerialUSB.println(" done:true");
+			//ECHO_EM(" done:true"); 
+		else 
+			SerialUSB.println(" done:false");
+			//ECHO_EM(" done:false");
+      }
+
+      if (tower == 2) {
+        t1_done = true;
+        t3_done = true;
+        prev_target = adj_target;
+        prev_bed_level = bed_level_oy;
+
+        bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oy = probe_bed(-SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oz = probe_bed(0.0, -bed_radius);
+
+        target = (bed_level_ox + bed_level_oz) /2;
+        temp = (bed_level_oy - target) / 2;
+        adj_target = target + temp;
+        if (((bed_level_oy < adj_target) and (adj_t2_Radius > 0)) or ((bed_level_oy > adj_target) and (adj_t2_Radius < 0))) adj_t2_Radius = -(adj_t2_Radius / 2);
+        if (bed_level_oy == adj_target) t2_done = true;
+        if ((bed_level_oy + 0.0001 > prev_bed_level) and (bed_level_oy - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
+        if (nochange_count > 1) {
+		  SerialUSB.println("Stuck in Loop.. Exiting");	
+          //ECHO_LM(DB, "Stuck in Loop.. Exiting");
+          t2_done = true;
+        }
+
+        SerialUSB.print("target:");
+		SerialUSB.print(adj_target, 6);
+		SerialUSB.print(" oy:");
+		SerialUSB.print(bed_level_oy, 6);
+		SerialUSB.print(" tower radius adj:");
+		SerialUSB.println(tower_adj[4], 6);
+		
+        //ECHO_SMV(DB, "target:", adj_target, 6);
+        //ECHO_MV(" oy:", bed_level_oy, 6);
+        //ECHO_MV(" tower radius adj:", tower_adj[4], 6);
+        
+        if (t2_done == true)
+			SerialUSB.println(" done:true");
+			//ECHO_EM(" done:true"); 
+		else
+			SerialUSB.println(" done:false");
+			//ECHO_EM(" done:false");
+      }
+
+      if (tower == 3) {
+        t1_done = true;
+        t2_done = true;
+        prev_target = adj_target;
+        prev_bed_level = bed_level_oz;
+
+        bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oy = probe_bed(-SIN_60 * bed_radius, COS_60 * bed_radius);
+        bed_level_oz = probe_bed(0.0, -bed_radius);
+
+        target = (bed_level_oy + bed_level_ox) / 2;
+        temp = (bed_level_oz - target) / 2;
+        adj_target = target + temp;
+        if (((bed_level_oz < adj_target) and (adj_t3_Radius > 0)) or ((bed_level_oz > adj_target) and (adj_t3_Radius < 0))) adj_t3_Radius = -(adj_t3_Radius / 2);
+        if (bed_level_oz == adj_target) t3_done = true;
+        if ((bed_level_oz + 0.0001 > prev_bed_level) and (bed_level_oz - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
+        if (nochange_count > 1) {
+		  SerialUSB.println("Stuck in Loop.. Exiting");	
+          //ECHO_LM(DB, "Stuck in Loop.. Exiting");
+          t3_done = true;
+        }
+
+		SerialUSB.print("target:");
+		SerialUSB.print(adj_target, 6);
+		SerialUSB.print(" oz:");
+		SerialUSB.print(bed_level_oz, 6);
+		SerialUSB.print(" tower radius adj:");
+		SerialUSB.println(tower_adj[5], 6);
+		
+        //ECHO_SMV(DB, "target:", adj_target, 6);
+        //ECHO_MV(" oz:", bed_level_oz, 6);
+        //ECHO_MV(" tower radius adj:", tower_adj[5], 6);
+        if (t3_done == true)
+			SerialUSB.println(" done:true");
+			//ECHO_EM(" done:true"); 
+		else
+			SerialUSB.println(" done:false");
+			//ECHO_EM(" done:false");
+      }
+
+    } while ((t1_done == false) or (t2_done == false) or (t3_done == false));
+  }
+
+  float adj_diagrod_length()
+  {
+    float adj_val = 0;
+    float adj_mag = 0.2;
+    float adj_prv, target;
+    float prev_diag_rod = delta_diagonal_rod;
+
+    do {
+      delta_diagonal_rod += adj_val;
+      set_delta_constants();
+
+      bed_level_oy = probe_bed(-SIN_60 * bed_radius, COS_60 * bed_radius);
+      bed_level_oz = probe_bed(0.0, -bed_radius);
+      bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
+      bed_level_c = probe_bed(0.0, 0.0);
+
+      target = (bed_level_ox + bed_level_oy + bed_level_oz) / 3;
+      adj_prv = adj_val;
+      adj_val = 0;
+
+      if (bed_level_c - 0.005 < target) adj_val = -adj_mag;
+      if (bed_level_c + 0.005 > target) adj_val = adj_mag;
+
+      if (((adj_val > 0) and (adj_prv < 0)) or ((adj_val < 0) and (adj_prv > 0))) {
+        adj_val = adj_val / 2;
+        adj_mag = adj_mag / 2;
+      }
+
+      if ((bed_level_c - 0.005 < target) and (bed_level_c + 0.005 > target)) adj_val = 0;
+
+      //If adj magnatude is very small.. quit adjusting
+      if ((abs(adj_val) < 0.001) and (adj_val != 0)) adj_val = 0;
+
+      SerialUSB.print("target:");
+      SerialUSB.print(target, 4);
+	  SerialUSB.print(" c:");
+	  SerialUSB.print(bed_level_c, 4);
+	  SerialUSB.print(" adj:");
+	  SerialUSB.print(adj_val, 5);
+	  
+      //ECHO_SMV(DB, "target:", target, 4);
+      //ECHO_MV(" c:", bed_level_c, 4);
+      //ECHO_EMV(" adj:", adj_val, 5);
+    } while(adj_val != 0);
+    return (delta_diagonal_rod - prev_diag_rod);
+  }
+
+  
+  int fix_tower_errors()
+  {
+    boolean t1_err, t2_err, t3_err;
+    boolean xy_equal, xz_equal, yz_equal;
+    float saved_tower_adj[6];
+    int err_tower;
+    float low_diff, high_diff;
+    float x_diff, y_diff, z_diff;
+    float xy_diff, yz_diff, xz_diff;
+    float low_opp, high_opp;
+
+    for (int8_t i = 0; i < 6; i++) saved_tower_adj[i] = tower_adj[i];
+
+    err_tower = 0;
+
+    x_diff = abs(bed_level_x - bed_level_ox);
+    high_diff = x_diff;
+    y_diff = abs(bed_level_y - bed_level_oy);
+    if (y_diff > high_diff) high_diff = y_diff;
+    z_diff = abs(bed_level_z - bed_level_oz);
+    if (z_diff > high_diff) high_diff = z_diff;
+
+    if (x_diff <= ac_prec) t1_err = false; else t1_err = true;
+    if (y_diff <= ac_prec) t2_err = false; else t2_err = true;
+    if (z_diff <= ac_prec) t3_err = false; else t3_err = true;
+
+    SerialUSB.print("x_diff = ");
+	SerialUSB.print(x_diff, 5);
+	SerialUSB.print("y_diff = ");
+	SerialUSB.print(y_diff, 5);
+	SerialUSB.print("z_diff = ");
+    SerialUSB.print(z_diff, 5);
+	SerialUSB.print("high_diff = ");
+	SerialUSB.println(high_diff, 5);
+
+	#if 0
+    ECHO_LMV(DB, "x_diff = ", x_diff, 5);
+    ECHO_LMV(DB, "y_diff = ", y_diff, 5);
+    ECHO_LMV(DB, "z_diff = ", z_diff, 5);
+    ECHO_LMV(DB, "high_diff = ", high_diff, 5);
+    #endif
+
+    //Are all errors equal? (within defined precision)
+    xy_equal = false;
+    xz_equal = false;
+    yz_equal = false;
+    if (abs(x_diff - y_diff) <= ac_prec) xy_equal = true;
+    if (abs(x_diff - z_diff) <= ac_prec) xz_equal = true;
+    if (abs(y_diff - z_diff) <= ac_prec) yz_equal = true;
+
+	SerialUSB.print("xy_equal = ");
+    //ECHO_SM(DB, "xy_equal = ");
+    if (xy_equal == true)
+		SerialUSB.println("true");
+		//ECHO_EM("true"); 
+	else
+		SerialUSB.println("false");
+		//ECHO_EM("false");
+		
+	SerialUSB.print("xz_equal = ");
+    //ECHO_SM(DB, "xz_equal = ");
+    if (xz_equal == true)
+		SerialUSB.println("true");
+		//ECHO_EM("true"); 
+	else 
+        SerialUSB.println("false");
+	    //ECHO_EM("false");
+	    
+	SerialUSB.print("yz_equal = ");    
+    //ECHO_SM(DB, "yz_equal = ");
+    if (yz_equal == true)
+		SerialUSB.println("true");
+		//ECHO_EM("true");
+	else 
+        SerialUSB.println("false");
+	    //ECHO_EM("false");
+
+    low_opp = bed_level_ox;
+    high_opp = low_opp;
+    if (bed_level_oy < low_opp) low_opp = bed_level_oy;
+    if (bed_level_oy > high_opp) high_opp = bed_level_oy;
+    if (bed_level_oz < low_opp) low_opp = bed_level_oz;
+    if (bed_level_oz > high_opp) high_opp = bed_level_oz;
+
+    SerialUSB.print("Opp Range = ");  
+	SerialUSB.println(high_opp - low_opp, 5);
+    //ECHO_LMV(DB, "Opp Range = ", high_opp - low_opp, 5);
+
+    if (high_opp - low_opp  < ac_prec) {
+	  SerialUSB.println("Opposite Points within Limits - Adjustment not required");	
+      //ECHO_LM(DB, "Opposite Points within Limits - Adjustment not required");
+      t1_err = false;
+      t2_err = false;
+      t3_err = false;
+    }
+
+    //All Towers have errors 
+    if ((t1_err == true) and (t2_err == true) and (t3_err == true)) {
+      if ((xy_equal == false) or (xz_equal == false) or (yz_equal == false)) {
+        //Errors not equal .. select the tower that needs to be adjusted
+        if (abs(high_diff - x_diff) < 0.00001) err_tower = 1;
+        if (abs(high_diff - y_diff) < 0.00001) err_tower = 2;
+        if (abs(high_diff - z_diff) < 0.00001) err_tower = 3;
+		SerialUSB.print("Tower ");  
+	    SerialUSB.print(err_tower);
+		SerialUSB.println(" has largest error");
+        //ECHO_SMV(DB, "Tower ", err_tower);
+        //ECHO_EM(" has largest error");
+      }
+      if ((xy_equal == true) and (xz_equal == true) and (yz_equal == true)) {
+	  	SerialUSB.println("All Towers Errors Equal");
+        //ECHO_LM(DB, "All Towers Errors Equal");
+        t1_err = false;
+        t2_err = false;
+        t3_err = false;
+      }
+    }
+
+    //Two tower errors
+    if ((t1_err == true) and (t2_err == true) and (t3_err == false)) err_tower = 3;
+    if ((t1_err == true) and (t2_err == false) and (t3_err == true)) err_tower = 2;
+    if ((t1_err == false) and (t2_err == true) and (t3_err == true)) err_tower = 1;
+
+    //Single tower error
+    if ((t1_err == true) and (t2_err == false) and (t3_err == false)) err_tower = 1;
+    if ((t1_err == false) and (t2_err == true) and (t3_err == false)) err_tower = 2;
+    if ((t1_err == false) and (t2_err == false) and (t3_err == true)) err_tower = 3;
+
+    SerialUSB.print("t1:"); 
+    //ECHO_SM(DB, "t1:");
+    if (t1_err == true)
+		SerialUSB.println("Err"); 
+		//ECHO_M("Err"); 
+	else 
+		SerialUSB.println("OK");
+		//ECHO_M("OK");
+
+	SerialUSB.print(" t2:"); 	
+    //ECHO_M(" t2:");
+    if (t2_err == true)
+		SerialUSB.println("Err"); 
+		//ECHO_M("Err"); 
+	else 
+		SerialUSB.println("OK");
+		//ECHO_M("OK");
+
+	SerialUSB.print(" t3:"); 		
+    //ECHO_M(" t3:");
+    if (t3_err == true)
+		SerialUSB.println("Err");
+		//ECHO_M("Err"); 
+	else
+		SerialUSB.println("OK");
+		//ECHO_M("OK");
+		
+    //ECHO_E;
+
+    if (err_tower == 0) {
+	  SerialUSB.println("Tower geometry OK");	
+      //ECHO_LM(DB, "Tower geometry OK");
+    }
+    else {
+      //If a tower has been adjusted previously.. continue to correct by adjusting that tower! (but only if the difference between the opp points is still large)
+      if (high_opp - low_opp  > ac_prec * 2) {
+        if ((tower_adj[0] != 0) or (tower_adj[3] != 0)) {
+		  SerialUSB.println("Tower 1 has already been adjusted");		
+          //ECHO_LM(DB, "Tower 1 has already been adjusted");
+          err_tower = 1;
+        }
+        if ((tower_adj[1] != 0) or (tower_adj[4] != 0)) {
+		  SerialUSB.println("Tower 2 has already been adjusted");		
+          //ECHO_LM(DB, "Tower 2 has already been adjusted");
+          err_tower = 2;
+        }
+        if ((tower_adj[2] != 0) or (tower_adj[5] != 0)) {
+          SerialUSB.println("Tower 3 has already been adjusted");	
+		  //ECHO_LM(DB, "Tower 3 has already been adjusted");
+          err_tower = 3;
+        }
+      }
+	  SerialUSB.print("Tower");
+	  SerialUSB.print(int(err_tower));
+	  SerialUSB.print(" Error: Adjusting");
+      //ECHO_SMV(DB, "Tower", int(err_tower));
+      //ECHO_EM(" Error: Adjusting");
+      adj_tower_radius(err_tower);
+      //adj_tower_delta(err_tower);
+    }
+
+    //Set return value to indicate if anything has been changed (0 = no change)
+    int retval = 0;
+    for (int8_t i = 0; i < 6; i++) if (saved_tower_adj[i] != tower_adj[i]) retval++;
+    return retval;
   }
 
   //aven_0812
@@ -3307,6 +3991,9 @@ inline void gcode_G4() {
         }
 
         if (loopcount < iterations) {
+
+			//aven_0813
+		  delay(500);	
           home_delta_axis();
 
           //probe bed and display report
@@ -7825,8 +8512,96 @@ inline void gcode_X25()
 }
 }
 
-
 inline void gcode_X26()
+{
+	  float x = 0;
+	  float y = 0;
+	  float z = 0;
+	
+	  gcode_G28();
+	  delay(100);
+	  
+	  if (code_seen('P'))
+	  {
+		x = -73.61;
+		y = -42.5;
+		z = 0;
+	  }
+	  
+	  if (code_seen('Q'))
+	  {
+		x = 73.61;
+		y = -42.5;
+		z = 0;
+	  }
+	
+	  if (code_seen('S'))
+	  {
+		x = 0;
+		y = 85;
+		z = 0;
+	  }
+	
+	
+	  
+	  
+	  float x_value = 0;
+	  float vv=0;
+	  deploy_z_probe();
+	
+	  destination[X_AXIS]= x;
+	  destination[Y_AXIS]= y;
+	  destination[Z_AXIS]= z;
+	  prepare_move();
+	  st_synchronize();
+	
+	  SERIAL_PROTOCOLPGM("X:");
+	  SERIAL_PROTOCOL(current_position[X_AXIS]);
+	  SERIAL_PROTOCOLPGM(" Y:");
+	  SERIAL_PROTOCOL(current_position[Y_AXIS]);
+	  SERIAL_PROTOCOLPGM(" Z:");
+	  SERIAL_PROTOCOL(current_position[Z_AXIS]);
+	  //SERIAL_PROTOCOLPGM(" E:");
+	  //SERIAL_PROTOCOL(current_position[E_AXIS]);
+	
+	  SERIAL_PROTOCOLPGM(MSG_COUNT_X);
+	  SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
+	  SERIAL_PROTOCOLPGM(" Y:");
+	  SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
+	  SERIAL_PROTOCOLPGM(" Z:");
+	  SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
+	
+	  SERIAL_EOL;
+	
+	  delay(3000);
+	
+	  gcode_X22();
+	
+	
+	  actuator_to_cartesian(cdelta);
+	
+	  SerialUSB.print("X:");
+	  SerialUSB.print(cartesian[X_AXIS]);
+	  SerialUSB.print(" Y:");
+	  SerialUSB.print(cartesian[Y_AXIS]);
+	  SerialUSB.print(" Z:");
+	  SerialUSB.print(cartesian[Z_AXIS]);
+	
+	  SerialUSB.print("Count X:");
+	  SerialUSB.print(cdelta[X_AXIS]);
+	  SerialUSB.print(" Y:");
+	  SerialUSB.print(cdelta[Y_AXIS]);
+	  SerialUSB.print(" Z:");
+	  SerialUSB.println(cdelta[Z_AXIS]);
+	
+	  delay(500);
+	  gcode_G28();
+	  delay(500);
+	
+	  
+}
+
+inline void gcode_X27()
 {
   gcode_X23();
   delay(500);
@@ -7839,9 +8614,793 @@ inline void gcode_X26()
 
   gcode_G28();
   delay(500);
-
-
 }
+
+inline void gcode_X28()
+{
+	  int i=0;
+	
+	  if (code_seen('A'))
+	  {
+		gcode_G28();
+		delay(500);
+		gcode_X23();
+		delay(500);
+		gcode_G28();
+		delay(500);
+		gcode_G29();
+		delay(500);
+		gcode_G28();
+		delay(500);
+		gcode_G30();
+		delay(500);
+		gcode_G28();
+		delay(500);
+	  }
+	
+	  if (code_seen('B'))
+	  {
+		gcode_G28();
+		delay(500);
+		gcode_X11();
+		delay(500);
+		gcode_X12(k_value);
+		delay(500);
+		gcode_X13(k_value);
+		delay(500);
+		gcode_X14(k_value);
+		delay(500);
+	  }
+	  
+	
+	  for(i=0; i<10;i++)
+	  {
+	  float x = 0;
+	  float y = 0;
+	  float z = 0;
+	  float x_value = 0;
+	  float vv=0;
+	  deploy_z_probe();
+	
+	  destination[X_AXIS]= x;
+	  destination[Y_AXIS]= y;
+	  destination[Z_AXIS]= z;
+	  prepare_move();
+	  st_synchronize();
+	
+	  delay(500);
+	
+	  destination[X_AXIS]= 30;
+	  destination[Y_AXIS]= -30;
+	  destination[Z_AXIS]= 0;
+	  prepare_move();
+	  st_synchronize();
+	  
+	  
+	  for(y=-30; y<31 ;y++)
+	  {
+		destination[X_AXIS]= x;
+		destination[Y_AXIS]= y;
+		destination[Z_AXIS]= z;
+		prepare_move();
+		st_synchronize();
+	  }
+	
+	  delay(500);
+	  
+	  for(x=30; x>-31 ;x--)
+	  {
+		destination[X_AXIS]= x;
+		destination[Y_AXIS]= y;
+		destination[Z_AXIS]= z;
+		prepare_move();
+		st_synchronize();  
+	  }
+	
+	  delay(500);
+	
+	  for(y=30; y>-31 ;y--)
+	  {
+		destination[X_AXIS]= x;
+		destination[Y_AXIS]= y;
+		destination[Z_AXIS]= z;
+		prepare_move();
+		st_synchronize();  
+	  }
+	
+	  delay(500);
+	
+	  for(x=-30; x<31 ;x++)
+	  {
+		destination[X_AXIS]= x;
+		destination[Y_AXIS]= y;
+		destination[Z_AXIS]= z;
+		prepare_move();
+		st_synchronize();  
+	  }
+	
+	  delay(100);
+	  gcode_G28();
+	  delay(500);
+		}
+	  
+}
+
+inline void gcode_X29()
+{
+  int i=0;
+
+  for(i=0; i<5;i++)
+  {
+  float x = 0;
+  float y = 0;
+  float z = 0;
+  float x_value = 0;
+  float vv=0;
+  deploy_z_probe();
+
+  destination[X_AXIS]= x;
+  destination[Y_AXIS]= y;
+  destination[Z_AXIS]= z;
+  prepare_move();
+  st_synchronize();
+
+  delay(500);
+
+  destination[X_AXIS]= 50;
+  destination[Y_AXIS]= -50;
+  destination[Z_AXIS]= 0;
+  prepare_move();
+  st_synchronize();
+  
+  delay(500);
+  
+  for(y=-50; y<51 ;y++)
+  {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+  }
+
+  delay(500);
+  
+  for(x=50; x>-51 ;x--)
+  {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+  }
+
+  delay(500);
+
+  for(y=50; y>-51 ;y--)
+  {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+  }
+
+  delay(500);
+
+  for(x=-50; x<51 ;x++)
+  {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+  }
+
+  delay(500);
+  gcode_G28();
+  delay(500);
+  	}
+  
+}
+
+inline void gcode_X30()
+{
+  gcode_G28();
+  delay(500);
+  gcode_G29();
+  delay(500);
+
+
+//G30 A
+  int iterations;
+
+  if (code_seen('C')) 
+  {
+      //Show carriage positions 
+      SERIAL_ECHOLN("Carriage Positions for last scan:");
+      for(int8_t i=0; i < 7; i++) {
+        SERIAL_ECHO("[");
+        SERIAL_ECHO(saved_positions[i][X_AXIS]);
+        SERIAL_ECHO(", ");
+        SERIAL_ECHO(saved_positions[i][Y_AXIS]);
+        SERIAL_ECHO(", ");
+        SERIAL_ECHO(saved_positions[i][Z_AXIS]);
+        SERIAL_ECHOLN("]");
+      }
+      return;
+  }
+  
+
+
+    //Zero the bed level array
+  for (int y = 0; y < 7; y++) 
+  {
+    for (int x = 0; x < 7; x++) 
+	{
+      bed_level[x][y] = 0.0;
+    }
+  }
+
+  saved_feedrate = feedrate;
+  saved_feedmultiply = feedmultiply;
+  feedmultiply = 100;
+
+  SerialUSB.println("Starting Auto Calibration..");      
+  if (code_value() != 0) ac_prec = code_value();
+  SERIAL_ECHO("Calibration precision: +/-");
+  SERIAL_PROTOCOL_F(ac_prec,3);
+  SERIAL_ECHOLN("mm");
+
+      //Zero the bedlevel array in case this affects bed probing
+      for (int y = 0; y >=6; y++) {
+        for (int x = 0; x >=6; y++) {
+          bed_level[x][y] = 0.0;
+        }
+      }
+
+  home_delta_axis();
+  deploy_z_probe(); 
+
+  //Probe all points
+  bed_probe_all();
+
+  //Show calibration report      
+  calibration_report();
+
+  if (code_seen('E')) 
+  {
+		int iteration = 0;
+		do {
+		  iteration ++;
+		  SerialUSB.print("Iteration: ");
+		  SerialUSB.println(iteration);
+		  //ECHO_LMV(DB, "Iteration: ", iteration);
+
+		  SerialUSB.println("Checking/Adjusting endstop offsets");  
+		  //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
+		  adj_endstops();
+  
+		  bed_probe_all();
+		  calibration_report();
+		} while ((bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+			  or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+			  or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
+        SerialUSB.println("Endstop adjustment complete");
+		//ECHO_LM(DB, "Endstop adjustment complete");
+  }
+
+  
+  if (code_seen('R')) 
+  {  
+		int iteration = 0;
+		do {
+		  iteration ++;
+		  SerialUSB.print("Iteration: ");
+		  SerialUSB.println(iteration);
+		  //ECHO_LMV(DB, "Iteration: ", iteration);
+
+		  SerialUSB.println("Checking/Adjusting endstop offsets"); 
+		  //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
+		  adj_endstops();
+  
+		  bed_probe_all();
+		  calibration_report();
+
+          SerialUSB.println("Checking delta radius"); 
+		  //ECHO_LM(DB, "Checking delta radius");
+		  adj_deltaradius();
+  
+		} while ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)
+			  or (bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+			  or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+			  or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
+   }
+	   
+   if (code_seen('I')) 
+   {
+        SerialUSB.print("Adjusting Tower Delta for tower");
+		SerialUSB.println(code_value());
+		//ECHO_LMV(DB, "Adjusting Tower Delta for tower", code_value());
+		adj_tower_delta(code_value());
+
+		SerialUSB.print("Tower Delta adjustment complete");
+		//ECHO_LM(DB, "Tower Delta adjustment complete");
+   }
+  
+   if (code_seen('D')) {
+   	    SerialUSB.print("Adjusting Diagonal Rod Length");
+		//ECHO_LM(DB, "Adjusting Diagonal Rod Length");
+		adj_diagrod_length();
+		SerialUSB.print("Diagonal Rod Length adjustment complete");
+		//ECHO_LM(DB, "Diagonal Rod Length adjustment complete");
+	  }
+
+  if (code_seen('A')) 
+  {
+      int iteration = 0;
+      int dr_adjusted;
+
+      do {
+        do {
+          iteration ++;
+		  SerialUSB.print("Iteration: ");
+		  SerialUSB.println(iteration);
+          //ECHO_LMV(DB, "Iteration: ", iteration);
+          SerialUSB.println("Checking/Adjusting endstop offsets");
+         // ECHO_LM(DB, "Checking/Adjusting endstop offsets");
+          adj_endstops();
+
+          bed_probe_all();
+          calibration_report();
+
+          if ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)) {
+		  	SerialUSB.println("Checking delta radius");
+            //ECHO_LM(DB, "Checking delta radius");
+            dr_adjusted = adj_deltaradius();
+          }
+          else dr_adjusted = 0;
+          /*
+          ECHO_EMV("bed_level_c=", bed_level_c, 4);
+          ECHO_EMV("bed_level_x=", bed_level_x, 4);
+          ECHO_EMV("bed_level_y=", bed_level_y, 4);
+          ECHO_EMV("bed_level_z=", bed_level_z, 4);
+          */
+        } while ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)
+              or (bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+              or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+              or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec)
+              or (dr_adjusted != 0));
+
+        if ((bed_level_ox < -ac_prec) or (bed_level_ox > ac_prec) or
+            (bed_level_oy < -ac_prec) or (bed_level_oy > ac_prec) or
+            (bed_level_oz < -ac_prec) or (bed_level_oz > ac_prec)) {
+          SerialUSB.println("Checking for tower geometry errors..");  
+          //ECHO_LM(DB, "Checking for tower geometry errors..");
+          if (fix_tower_errors() != 0 ) {
+            // Tower positions have been changed .. home to endstops
+            SerialUSB.println("Tower Positions changed .. Homing Endstops");
+            //ECHO_LM(DB, "Tower Positions changed .. Homing Endstops");
+            home_delta_axis();
+            bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
+          }
+          else {
+		  	SerialUSB.println("Checking DiagRod Length");
+            //ECHO_LM(DB, "Checking DiagRod Length");
+            if (adj_diagrod_length() != 0) { 
+              //If diag rod length has been changed .. home to endstops
+              SerialUSB.println("Diagonal Rod Length changed .. Homing Endstops");
+              //ECHO_LM(DB, "Diagonal Rod Length changed .. Homing Endstops");
+              home_delta_axis();
+              bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
+            }
+          }
+          bed_probe_all();
+          calibration_report();
+        }
+        /*
+        ECHO_EMV("bed_level_c=", bed_level_c, 4);
+        ECHO_EMV("bed_level_x=", bed_level_x, 4);
+        ECHO_EMV("bed_level_y=", bed_level_y, 4);
+        ECHO_EMV("bed_level_z=", bed_level_z, 4);
+        ECHO_EMV("bed_level_ox=", bed_level_ox, 4);
+        ECHO_EMV("bed_level_oy=", bed_level_oy, 4);
+        ECHO_EMV("bed_level_oz=", bed_level_oz, 4);
+        */
+      } while((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)
+           or (bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+           or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+           or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec)
+           or (bed_level_ox < -ac_prec) or (bed_level_ox > ac_prec)
+           or (bed_level_oy < -ac_prec) or (bed_level_oy > ac_prec)
+           or (bed_level_oz < -ac_prec) or (bed_level_oz > ac_prec));
+      SerialUSB.println("Autocalibration Complete");
+      //ECHO_LM(DB, "Autocalibration Complete");
+    }
+
+
+
+  if (code_seen('O')) 
+  {
+  iterations = 100; //Maximum number of iterations
+  int loopcount = 1;
+  float adj_r_target, adj_dr_target;
+  float adj_r_target_delta = 0, adj_dr_target_delta = 0;
+  float adj_AlphaA, adj_AlphaB, adj_AlphaC;
+  float adj_RadiusA, adj_RadiusB, adj_RadiusC;
+  float radiusErrorA, radiusErrorB,radiusErrorC;
+  float adj_r = 0, adj_dr = 0;
+  boolean equalAB, equalBC, equalCA;
+  boolean adj_r_done, adj_dr_done, adj_tower_done;
+  boolean adj_dr_allowed = true;
+  float h_endstop = -100, l_endstop = 100;
+  float probe_error, ftemp; 
+
+  //Check that endstop are within limits
+      if (bed_level_x + endstop_adj[0] > h_endstop) h_endstop = bed_level_x + endstop_adj[0];
+      if (bed_level_x + endstop_adj[0] < l_endstop) l_endstop = bed_level_x + endstop_adj[0];
+      if (bed_level_y + endstop_adj[1] > h_endstop) h_endstop = bed_level_y + endstop_adj[1];
+      if (bed_level_y + endstop_adj[1] < l_endstop) l_endstop = bed_level_y + endstop_adj[1];
+      if (bed_level_z + endstop_adj[2] > h_endstop) h_endstop = bed_level_z + endstop_adj[2];
+      if (bed_level_z + endstop_adj[2] < l_endstop) l_endstop = bed_level_z + endstop_adj[2];
+
+      if (h_endstop - l_endstop > 3) {
+        SERIAL_ECHOLN("The position of the endstop switches on this printer are not within limits");
+        SERIAL_ECHOLN("Adjust endstop switches so that they are within 3mm Z-height of each other");
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("Current Endstop Positions - X: ", bed_level_x + endstop_adj[0]); 
+        SERIAL_ECHOPAIR(" Y: ", bed_level_y + endstop_adj[1]);
+        SERIAL_ECHOPAIR(" Z: ", bed_level_z + endstop_adj[2]);
+        SERIAL_EOL;
+        SERIAL_EOL;
+        SERIAL_ECHOLN("Auto calibration aborted");
+
+        retract_z_probe();
+
+        //Restore saved variables
+        feedrate = saved_feedrate;
+        feedmultiply = saved_feedmultiply;
+        return;
+      }
+
+     
+	 do {
+        SERIAL_ECHO("Iteration: ");
+        SERIAL_ECHO(loopcount);
+        SERIAL_EOL;
+
+        if ((bed_level_c > 3) or (bed_level_c < -3)) {
+          //Build height is not set correctly .. 
+          max_pos[Z_AXIS] -= bed_level_c + 2;
+          set_delta_constants();
+          SERIAL_ECHOPAIR("Adjusting Z-Height to: ", max_pos[Z_AXIS]);
+          SERIAL_ECHOLN(" mm..");
+        } 
+        else {
+          if ((bed_level_x < -ac_prec) or (bed_level_x > ac_prec) or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec) or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec)) {
+            //Endstop req adjustment
+            SERIAL_ECHOLN("Adjusting Endstop..");
+            endstop_adj[0] += bed_level_x / 1.05;
+            endstop_adj[1] += bed_level_y / 1.05;
+            endstop_adj[2] += bed_level_z / 1.05; 
+
+            //Check that no endstop adj values are > 0 (not allowed).. if they are, reduce the build height to compensate.
+            h_endstop = 0;
+            for(int x=0; x < 3; x++) { 
+              if (endstop_adj[x] > h_endstop) h_endstop = endstop_adj[x]; 
+            }
+            if (h_endstop > 0) {
+              //Reduce build height and adjust endstop
+              for(int x=0; x < 3; x++) {
+                endstop_adj[x] -= h_endstop + 2;
+              }
+              max_pos[Z_AXIS] -= h_endstop + 2;
+              set_delta_constants();
+              SERIAL_ECHOPAIR("Adjusting Z-Height to: ", max_pos[Z_AXIS]);
+              SERIAL_ECHOLN(" mm..");
+			  
+            }
+          }
+          else {
+            SERIAL_ECHOLN("Endstop: OK");
+            adj_r_target = (bed_level_x + bed_level_y + bed_level_z) / 3;
+            adj_dr_target = (bed_level_ox + bed_level_oy + bed_level_oz) / 3;
+
+            //Determine which parameters require adjustment
+            if ((bed_level_c >= adj_r_target - ac_prec) and (bed_level_c <= adj_r_target + ac_prec)) adj_r_done = true; 
+            else adj_r_done = false;
+            if ((adj_dr_target >= adj_r_target - ac_prec) and (adj_dr_target <= adj_r_target + ac_prec)) adj_dr_done = true; 
+            else adj_dr_done = false;
+            if ((bed_level_x != bed_level_ox) or (bed_level_y != bed_level_oy) or (bed_level_z != bed_level_oz)) adj_tower_done = false; 
+            else adj_tower_done = true;
+            if ((adj_r_done == false) or (adj_dr_done == false) or (adj_tower_done == false)) {
+              //delta geometry adjustment required
+              SERIAL_ECHOLN("Adjusting Delta Geometry..");
+              //set initial direction and magnitude for delta radius & diagonal rod adjustment
+              if (adj_r == 0) {
+                if (adj_r_target > bed_level_c) adj_r = 1; 
+                else adj_r = -1;
+              }
+
+              if (adj_dr == 0) {
+                if (adj_r_target > adj_dr_target) adj_dr = 1; 
+                else adj_dr = -1;
+              }
+
+              //Don't adjust tower positions on first iteration
+              adj_AlphaA = adj_AlphaB = adj_AlphaC = 0; 
+              adj_RadiusA = adj_RadiusB = adj_RadiusC = 0;
+
+              do {   
+                //Apply adjustments 
+                if (adj_r_done == false) {
+                  SERIAL_ECHOPAIR("Adjusting Delta Radius (",delta_radius);
+                  SERIAL_ECHOPAIR(" -> ", delta_radius + adj_r);
+                  SERIAL_ECHOLN(")");
+                  delta_radius += adj_r;
+                }
+
+                if (adj_dr_allowed == false) adj_dr_done = true;
+                if (adj_dr_done == false) {
+                  SERIAL_ECHOPAIR("Adjusting Diagonal Rod Length (",delta_diagonal_rod);
+                  SERIAL_ECHOPAIR(" -> ", delta_diagonal_rod + adj_dr);
+                  SERIAL_ECHOLN(")");
+                  delta_diagonal_rod += adj_dr;
+                }
+
+                tower_adj[0] -= adj_AlphaA;
+                tower_adj[1] -= adj_AlphaB;
+                tower_adj[2] -= adj_AlphaC;
+                tower_adj[3] += adj_RadiusA;
+                tower_adj[4] += adj_RadiusB;
+                tower_adj[5] += adj_RadiusC;
+
+                set_delta_constants();
+
+                bed_probe_all();
+                calibration_report();
+
+                //Check to see if auto calc is complete to within limits..
+                if (adj_dr_allowed == true) {
+                  if   ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)
+                    and (bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)
+                    and (bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)
+                    and (bed_level_c >= -ac_prec) and (bed_level_c <= ac_prec)
+                    and (bed_level_ox >= -ac_prec) and (bed_level_ox <= ac_prec)
+                    and (bed_level_oy >= -ac_prec) and (bed_level_oy <= ac_prec)
+                    and (bed_level_oz >= -ac_prec) and (bed_level_oz <= ac_prec)) loopcount = iterations;
+                } 
+                else {
+                  if   ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)
+                    and (bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)
+                    and (bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)
+                    and (bed_level_c >= -ac_prec) and (bed_level_c <= ac_prec)) loopcount = iterations;
+                }
+
+                //set delta radius and diagonal rod targets
+                adj_r_target = (bed_level_x + bed_level_y + bed_level_z) / 3;
+                adj_dr_target = (bed_level_ox + bed_level_oy + bed_level_oz) / 3;
+
+                //set Tower position adjustment values
+                adj_AlphaA = bed_level_oy - bed_level_oz;
+                adj_AlphaB = bed_level_oz - bed_level_ox;
+                adj_AlphaC = bed_level_ox - bed_level_oy;
+
+                //set tower radius errors
+                radiusErrorA = bed_level_x - bed_level_ox;
+                radiusErrorB = bed_level_y - bed_level_oy;
+                radiusErrorC = bed_level_z - bed_level_oz;
+
+                if ((radiusErrorA >= (radiusErrorB - 0.02)) and (radiusErrorA <= (radiusErrorB + 0.02))) equalAB = true;
+                else equalAB = false;
+                if ((radiusErrorB >= (radiusErrorC - 0.02)) and (radiusErrorB <= (radiusErrorC + 0.02))) equalBC = true;
+                else equalBC = false;
+                if ((radiusErrorC >= (radiusErrorA - 0.02)) and (radiusErrorC <= (radiusErrorA + 0.02))) equalCA = true;
+                else equalCA = false;
+
+                #ifdef DEBUG_MESSAGES
+                  if (equalAB == true) {
+                    SERIAL_ECHOPAIR("Tower AB Equal (A=",radiusErrorA);
+                    SERIAL_ECHOPAIR(" B=",radiusErrorB);
+                    SERIAL_ECHOLN(")");
+                  }
+                  else SERIAL_ECHOLN("equalAB=false");
+
+                  if (equalBC == true) {
+                    SERIAL_ECHOPAIR("Tower BC Equal (B=",radiusErrorB);
+                    SERIAL_ECHOPAIR(" C=",radiusErrorC);
+                    SERIAL_ECHOLN(")");
+                  }
+                  else SERIAL_ECHOLN("equalBC=false");
+
+                  if (equalCA == true) {
+                    SERIAL_ECHOPAIR("Tower CA Equal (C=",radiusErrorC);
+                    SERIAL_ECHOPAIR(" A=",radiusErrorA);
+                    SERIAL_ECHOLN(")");
+                  }
+                  else SERIAL_ECHOLN("equalCA=false");
+                #endif //DEBUG_MESSAGES
+
+                if ((equalAB == true) and (equalBC == true) and (equalCA == true)) {
+                  // all tower radius out by the same amount (within 0.02) - allow adjustment with delta rod length
+                  #ifdef DEBUG_MESSAGES
+                    SERIAL_ECHOLN("All tower radius errors equal");
+                  #endif
+                  adj_RadiusA = adj_RadiusB = adj_RadiusC = 0;
+                }
+
+                if ((equalAB == true) and (equalBC == false) and (equalCA == false)) {
+                  //Tower C radius error.. adjust it
+                  SERIAL_ECHOLN("TowerC Radius error - adjusting");
+                  if (adj_RadiusC == 0) {
+                    if (bed_level_z < bed_level_oz) adj_RadiusC = 0.5;
+                    if (bed_level_z > bed_level_oz) adj_RadiusC = -0.5;
+                    #ifdef DEBUG_MESSAGES
+                      SERIAL_ECHOPAIR("adj_RadiusC set to ",adj_RadiusC);
+                      SERIAL_EOL;
+                    #endif
+                  }
+                }
+
+                if ((equalBC == true) and (equalAB == false) and (equalCA == false)) {
+                  //Tower A radius error .. adjust it
+                  SERIAL_ECHOLN("TowerA Radius error - adjusting");
+                  if (adj_RadiusA == 0) {
+                    if (bed_level_x < bed_level_ox) adj_RadiusA = 0.5;
+                    if (bed_level_x > bed_level_ox) adj_RadiusA = -0.5;  
+                    #ifdef DEBUG_MESSAGES
+                      SERIAL_ECHOPAIR("adj_RadiusA set to ",adj_RadiusA);
+                      SERIAL_EOL;
+                    #endif
+                  }
+                } 
+
+                if ((equalCA == true) and (equalAB == false) and (equalBC == false)) {
+                  //Tower B radius error .. adjust it
+                  SERIAL_ECHOLN("TowerB Radius error - adjusting");
+                  if (adj_RadiusB == 0) {
+                    if (bed_level_y < bed_level_oy) adj_RadiusB = 0.5;
+                    if (bed_level_y > bed_level_oy) adj_RadiusB = -0.5;                     
+                    #ifdef DEBUG_MESSAGES
+                      SERIAL_ECHOPAIR("adj_RadiusB set to ",adj_RadiusB);
+                      SERIAL_EOL;
+                    #endif
+                  }
+                }                   
+
+                if (((adj_r > 0) and (bed_level_c > adj_r_target)) or ((adj_r < 0) and (bed_level_c < adj_r_target))) {
+                  //overshot target .. reverse & scale down
+                  adj_r = -(adj_r / 2);
+                }
+
+                if (((adj_dr > 0) and (adj_dr_target > adj_r_target)) or ((adj_dr < 0) and (adj_dr_target < adj_r_target))) {
+                  //overshot target .. reverse & scale down
+                  adj_dr = -(adj_dr / 2);
+                }
+
+                //Tower radius overshot targets?
+                if (((adj_RadiusA > 0) and (bed_level_x > bed_level_ox)) or ((adj_RadiusA < 0) and (bed_level_x < bed_level_ox))) adj_RadiusA = -(adj_RadiusA / 2);
+                if (((adj_RadiusB > 0) and (bed_level_y > bed_level_oy)) or ((adj_RadiusB < 0) and (bed_level_y < bed_level_oy))) adj_RadiusB = -(adj_RadiusB / 2);
+                if (((adj_RadiusC > 0) and (bed_level_z > bed_level_oz)) or ((adj_RadiusC < 0) and (bed_level_z < bed_level_oz))) adj_RadiusC = -(adj_RadiusC / 2);
+
+                //Delta radius adjustment complete?                       
+                if ((bed_level_c >= (adj_r_target - ac_prec)) and (bed_level_c <= (adj_r_target + ac_prec))) adj_r_done = true; 
+                else adj_r_done = false;
+
+                //Diag Rod adjustment complete?
+                if ((adj_dr_target >= (adj_r_target - ac_prec)) and (adj_dr_target <= (adj_r_target + ac_prec))) adj_dr_done = true; 
+                else adj_dr_done = false;
+
+                #ifdef DEBUG_MESSAGES
+                  SERIAL_ECHOPAIR("c: ", bed_level_c);
+                  SERIAL_ECHOPAIR(" x: ", bed_level_x);
+                  SERIAL_ECHOPAIR(" y: ", bed_level_y);
+                  SERIAL_ECHOPAIR(" z: ", bed_level_z);
+                  SERIAL_ECHOPAIR(" ox: ", bed_level_ox);
+                  SERIAL_ECHOPAIR(" oy: ", bed_level_oy);
+                  SERIAL_ECHOPAIR(" oz: ", bed_level_oz);
+                  SERIAL_EOL;
+                  SERIAL_ECHO("radius:");
+                  SERIAL_PROTOCOL_F(delta_radius, 4);
+                  SERIAL_ECHO(" diagrod:");
+                  SERIAL_PROTOCOL_F(delta_diagonal_rod, 4);
+                  SERIAL_EOL;
+                  SERIAL_ECHO("Radius Adj Complete: ");
+                  if (adj_r_done == true) SERIAL_ECHO("Yes"); 
+                  else SERIAL_ECHO("No");
+                  SERIAL_ECHO(" DiagRod Adj Complete: ");
+                  if (adj_dr_done == true) SERIAL_ECHO("Yes"); 
+                  else SERIAL_ECHO("No");
+                  SERIAL_EOL;
+                  SERIAL_ECHOPAIR("RadiusA Error: ",radiusErrorA);
+                  SERIAL_ECHOPAIR(" (adjust: ",adj_RadiusA);
+                  SERIAL_ECHOLN(")");
+                  SERIAL_ECHOPAIR("RadiusB Error: ",radiusErrorB);
+                  SERIAL_ECHOPAIR(" (adjust: ",adj_RadiusB);
+                  SERIAL_ECHOLN(")");
+                  SERIAL_ECHOPAIR("RadiusC Error: ",radiusErrorC);
+                  SERIAL_ECHOPAIR(" (adjust: ",adj_RadiusC);
+                  SERIAL_ECHOLN(")");
+                  SERIAL_ECHOPAIR("DeltaAlphaA: ",adj_AlphaA);
+                  SERIAL_EOL;
+                  SERIAL_ECHOPAIR("DeltaAlphaB: ",adj_AlphaB);
+                  SERIAL_EOL;
+                  SERIAL_ECHOPAIR("DeltaAlphaC: ",adj_AlphaC);
+                  SERIAL_EOL;
+                #endif
+              } while (((adj_r_done == false) or (adj_dr_done = false)) and (loopcount < iterations));
+            }
+            else {
+              SERIAL_ECHOLN("Delta Geometry: OK");
+            }
+          }
+        }
+
+        if (loopcount < iterations) {
+			
+
+		  delay(500);
+          home_delta_axis();
+
+          //probe bed and display report
+          bed_probe_all();
+
+		  
+          calibration_report();
+          
+          //Check to see if autocalc is complete to within limits..
+          if (adj_dr_allowed == true) {
+            if   ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)
+              and (bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)
+              and (bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)
+              and (bed_level_c >= -ac_prec) and (bed_level_c <= ac_prec)
+              and (bed_level_ox >= -ac_prec) and (bed_level_ox <= ac_prec)
+              and (bed_level_oy >= -ac_prec) and (bed_level_oy <= ac_prec)
+              and (bed_level_oz >= -ac_prec) and (bed_level_oz <= ac_prec)) loopcount = iterations;
+          }
+          else {
+            if   ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)
+              and (bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)
+              and (bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)
+              and (bed_level_c >= -ac_prec) and (bed_level_c <= ac_prec)) loopcount = iterations;
+          }
+        }
+        loopcount ++;
+      }while(loopcount < iterations);
+
+      SERIAL_ECHOLN("Auto Calibration Complete");
+      LCD_MESSAGEPGM("Complete");
+      SERIAL_ECHOLN("Issue M500 Command to save calibration settings to EPROM (if enabled)");
+      /*   
+       if ((abs(delta_diagonal_rod - saved_delta_diagonal_rod) > 1) and (adj_dr_allowed == true)) {
+       SERIAL_EOL;
+       SERIAL_ECHOPAIR("WARNING: The length of diagonal rods specified (", saved_delta_diagonal_rod);
+       SERIAL_ECHOLN(" mm) appears to be incorrect");
+       SERIAL_ECHOLN("If you have measured your rods and you believe that this value is correct, this could indicate");
+       SERIAL_ECHOLN("excessive twisting movement of carriages and/or loose screws/joints on carriages or end effector");
+       }
+       */
+    
+
+    retract_z_probe();
+
+    //Restore saved variables
+    feedrate = saved_feedrate;
+    feedmultiply = saved_feedmultiply;
+   
+//G30 A END
+
+    delay(500);
+    gcode_G28();
+	delay(500);
+	gcode_X29();
+	delay(500);
+  }
+}	
+
+
+
+
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
 ******************************************************/
@@ -7941,7 +9500,7 @@ void process_commands()
 
       #ifdef ENABLE_AUTO_BED_LEVELING
 
-#if 0 //aven 0724 Mark as not used
+#if 1 //aven 0724 Mark as not used
 		case 29: // G29 Detailed Z-Probe, probes the bed at 3 or more points.
           gcode_G29(); 
           in_f = 1;
@@ -7981,7 +9540,7 @@ void process_commands()
 
       #ifdef DELTA
 
-#if 0 //aven 0724 Mark as not used	  
+#if 1 //aven 0724 Mark as not used	  
         case 29: // G29 Detailed Z-Probe, probes the bed at more points.
           gcode_G29(); break;
         case 30:  // G30 Delta AutoCalibration
@@ -8852,6 +10411,58 @@ void process_commands()
 
 		  case 26:   
           gcode_X26();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 27:   
+          gcode_X27();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 28:   
+          gcode_X28();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 29:   
+          gcode_X29();
+		  if(line_check ==1)
+		  {
+		    in_f = 1;
+		  }
+		  else
+		  {
+            in_f = 0;
+		  }
+		  n_f = 1;
+		  break; 
+
+		  case 30:   
+          gcode_X30();
 		  if(line_check ==1)
 		  {
 		    in_f = 1;
