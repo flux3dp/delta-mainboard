@@ -7900,16 +7900,23 @@ inline void gcode_X22()
 	//cdelta[2] = 403.23 - cdelta[2];
 
     //SerialUSB.print(i);
-	//SerialUSB.print(" X: ");
-    //SerialUSB.print(cdelta[0]);
-    //SerialUSB.print(" Y: ");
-    //SerialUSB.print(cdelta[1]);
-    //SerialUSB.print(" Z: ");
-    //SerialUSB.println(cdelta[2]);
+	SerialUSB.print(" X: ");
+    SerialUSB.print(cdelta[0]);
+    SerialUSB.print(" Y: ");
+    SerialUSB.print(cdelta[1]);
+    SerialUSB.print(" Z: ");
+    SerialUSB.println(cdelta[2]);
 
 	//gcode_X19(cdelta);
 
 	actuator_to_cartesian(cdelta);
+
+	SerialUSB.print("X : ");
+	SerialUSB.print(cartesian[X_AXIS]);
+	SerialUSB.print(" Y : ");
+	SerialUSB.print(cartesian[Y_AXIS]);
+	SerialUSB.print(" Z : ");
+	SerialUSB.println(cartesian[Z_AXIS]);
     
 	
 
