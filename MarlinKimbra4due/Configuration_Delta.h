@@ -42,12 +42,19 @@
 #define AUTOCALIBRATION_PRECISION 0.05      // mm
 
 // Effective horizontal distance bridged by diagonal push rods.
-#define DEFAULT_DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
+//aven_0813
+//#define DEFAULT_DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
+#define DEFAULT_DELTA_RADIUS 96.7
 
 // Z-Probe variables
 // Start and end location values are used to deploy/retract the probe (will move from start to end and back again)
 #define PROBING_FEEDRATE 500                     // Speed for individual probe Use: G30 A F600
-#define Z_PROBE_OFFSET {0,0,-1,0}                // X, Y, Z, E distance between hotend nozzle and deployed bed leveling probe.
+//aven_0813
+//#define Z_PROBE_OFFSET {0,0,-1,0}                // X, Y, Z, E distance between hotend nozzle and deployed bed leveling probe.
+#define Z_PROBE_OFFSET {0,0,0,0} 
+
+#define Z_RAISE_BETWEEN_PROBINGS 3  //aven_0813
+
 #define Z_PROBE_DEPLOY_START_LOCATION {0,0,50,0} // X, Y, Z, E start location for z-probe deployment sequence
 #define Z_PROBE_DEPLOY_END_LOCATION {0,0,50,0}   // X, Y, Z, E end location for z-probe deployment sequence
 #define Z_PROBE_RETRACT_START_LOCATION {0,0,50,0}// X, Y, Z, E start location for z-probe retract sequence
@@ -107,8 +114,12 @@ const bool Z_PROBE_ENDSTOP_INVERTING = false;
 #define Y_HOME_DIR 1 //DELTA MUST HAVE MAX ENDSTOP
 #define Z_HOME_DIR 1 //DELTA MUST HAVE MAX ENDSTOP
 
+//aven_0813
 #define min_software_endstops true  // If true, axis won't move to coordinates less than HOME_POS.
 #define max_software_endstops true  // If true, axis won't move to coordinates greater than the defined lengths below.
+
+//#define min_software_endstops false  // If true, axis won't move to coordinates less than HOME_POS.
+//#define max_software_endstops false
 
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
@@ -172,6 +183,7 @@ const bool Z_PROBE_ENDSTOP_INVERTING = false;
 
 //aven 0727
 #define DEFAULT_AXIS_STEPS_PER_UNIT {80,80,80,95,25.6,625,625}  // X, Y, Z, E0, E1, E2, E3
+//#define DEFAULT_AXIS_STEPS_PER_UNIT {160,160,160,95,50,625,625} 
 
 
 #define DEFAULT_MAX_FEEDRATE {300,300,300,200,100,100,100}             // X, Y, Z, E0, E1, E2, E3 (mm/sec)
