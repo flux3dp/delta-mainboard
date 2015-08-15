@@ -287,6 +287,9 @@ float odelta[3] = { 0, 0, 0 };
 float cdelta[3] = { 0, 0, 0 };
 
 
+//aven_0815
+float h_offset=0;
+
 #ifndef DELTA
   int xy_travel_speed = XY_TRAVEL_SPEED;
   float zprobe_zoffset = 0;
@@ -1999,6 +2002,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
   void calculate_delta(float cartesian[3]) 
   {
+  
     delta[X_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
                          - sq(delta_tower1_x-cartesian[X_AXIS])
                          - sq(delta_tower1_y-cartesian[Y_AXIS])
@@ -2020,6 +2024,33 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 	SerialUSB.println(delta[Z_AXIS]);
 #endif	
   }
+
+  void calculate_delta_position(float cartesian[3], float actuator_mm[], float r) 
+  {
+
+	DELTA_DIAGONAL_ROD_2 = delta_diagonal_rod * delta_diagonal_rod;
+	float delta_tower11_x = r * -1 * cos(M_PI / 6);
+	float delta_tower11_y = r * -1 * sin(M_PI / 6);
+	float delta_tower22_x = r * cos(M_PI / 3);
+	float delta_tower22_y = r * -1 * sin(M_PI / 6);
+	float delta_tower33_x = 0;
+	float delta_tower33_y = r;
+
+	actuator_mm[0] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower11_x-cartesian[0]) 
+		- sq(delta_tower11_y-cartesian[1])
+		) + cartesian[2];
+
+	actuator_mm[1] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower22_x-cartesian[0])
+		- sq(delta_tower22_y-cartesian[1])
+		) + cartesian[2];
+
+	actuator_mm[2] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower33_x-cartesian[0])
+		- sq(delta_tower33_y-cartesian[1])
+		) + cartesian[2];
+}
 
   // Adjust print surface height by linear interpolation over the bed_level array.
   void adjust_delta(float cartesian[3])
@@ -2737,9 +2768,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   void actuator_to_cartesian( float delta[3])
   {
     
-    Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
-    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
-    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
+    //Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
+    //Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
+    //Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
+
+    //aven_0815
+	Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
+    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
+    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
 
 	Vector3 s12 = tower1.sub(tower2);
     Vector3 s23 = tower2.sub(tower3);
@@ -4828,6 +4864,15 @@ inline void gcode_M114() {
 
   SERIAL_EOL;
 
+  #if 0
+  SerialUSB.print("X:");
+  SerialUSB.print(st_get_position(X_AXIS));
+  SerialUSB.print(" Y:");
+  SerialUSB.print(st_get_position(Y_AXIS));
+  SerialUSB.print(" Z:");
+  SerialUSB.println(st_get_position(Z_AXIS));
+  #endif
+
 #if 0 //aven_0813
   #ifdef SCARA
     SERIAL_PROTOCOLPGM("SCARA Theta:");
@@ -6423,10 +6468,12 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
     // Destination reached
     for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
-
     // take care of back off and rehome now we are all at the top
+    
     HOMEAXIS(X);
+	
     HOMEAXIS(Y);
+	
     HOMEAXIS(Z);
 
     sync_plan_position_delta();
@@ -7068,7 +7115,8 @@ inline void gcode_X11()
        set_delta_constants();
        SERIAL_ECHO(" H : ");
 	   SERIAL_PROTOCOL_F(max_pos[Z_AXIS], 4);
-	   
+
+	   h_offset = h_value;
 	   delay(100);
        gcode_G28();
 	   delay(100);
@@ -7799,6 +7847,14 @@ inline void gcode_X22()
   cdelta[2]= 0;
 
   
+#if 1
+  float h_ori[3]={0,0,0};
+  h_ori[2]= max_length[Z_AXIS];
+  float h_cal[3];
+  calculate_delta_position(h_ori,h_cal,delta_radius);
+  float h_constant = h_cal[0];
+#endif  
+
   for(int i=0 ; i<600 ; i++)
   {
     saved_feedrate = feedrate;
@@ -7871,14 +7927,15 @@ inline void gcode_X22()
       cdelta[1] = cdelta[1] + odelta[1];
       cdelta[2] = cdelta[2] + odelta[2];
 
-      //SerialUSB.print(i);
-	  //SerialUSB.print(" X: ");
-      //SerialUSB.print(cdelta[0]);
-      //SerialUSB.print(" Y: ");
-      //SerialUSB.print(cdelta[1]);
-      //SerialUSB.print(" Z: ");
-      //SerialUSB.println(cdelta[2]);
-
+      #if 0
+      SerialUSB.print(i);
+	  SerialUSB.print(" X: ");
+      SerialUSB.print(cdelta[0]);
+      SerialUSB.print(" Y: ");
+      SerialUSB.print(cdelta[1]);
+      SerialUSB.print(" Z: ");
+      SerialUSB.println(cdelta[2]);
+      #endif
 
 	  
 	  
@@ -7891,33 +7948,44 @@ inline void gcode_X22()
 
 	enable_endstops(false);
 
-	cdelta[0] = 403.23 - cdelta[0];
-	cdelta[1] = 403.23 - cdelta[1];
-	cdelta[2] = 403.23 - cdelta[2];
+	cdelta[0] = h_constant - cdelta[0];
+	cdelta[1] = h_constant - cdelta[1];
+	cdelta[2] = h_constant - cdelta[2];
+
+	SerialUSB.print("h_constant: ");
+	SerialUSB.println(h_constant);
 
     //cdelta[0] = 403.23 - cdelta[0];
 	//cdelta[1] = 403.23 - cdelta[1];
 	//cdelta[2] = 403.23 - cdelta[2];
 
     //SerialUSB.print(i);
-	SerialUSB.print(" X: ");
-    SerialUSB.print(cdelta[0]);
-    SerialUSB.print(" Y: ");
-    SerialUSB.print(cdelta[1]);
-    SerialUSB.print(" Z: ");
-    SerialUSB.println(cdelta[2]);
+	//SerialUSB.print("X: ");
+    //SerialUSB.print(cdelta[0]);
+    //SerialUSB.print(" Y: ");
+    //SerialUSB.print(cdelta[1]);
+    //SerialUSB.print(" Z: ");
+    //SerialUSB.println(cdelta[2]);
 
 	//gcode_X19(cdelta);
 
 	actuator_to_cartesian(cdelta);
 
-	SerialUSB.print("X : ");
+    SerialUSB.println("@X22:");
+	SerialUSB.print("X:");
 	SerialUSB.print(cartesian[X_AXIS]);
-	SerialUSB.print(" Y : ");
+	SerialUSB.print(" Y:");
 	SerialUSB.print(cartesian[Y_AXIS]);
-	SerialUSB.print(" Z : ");
-	SerialUSB.println(cartesian[Z_AXIS]);
-    
+	SerialUSB.print(" Z:");
+	SerialUSB.print(cartesian[Z_AXIS]);
+
+	SerialUSB.print(" Count X:");
+	SerialUSB.print(cdelta[X_AXIS]);
+	SerialUSB.print(" Y:");
+	SerialUSB.print(cdelta[Y_AXIS]);
+	SerialUSB.print(" Z:");
+	SerialUSB.println(cdelta[Z_AXIS]);
+
 	
 
 }
@@ -8032,9 +8100,9 @@ inline void gcode_X23()
 	//cdelta[1] = (cdelta[1]/80) - 403.23;
 	//cdelta[2] = (cdelta[2]/80) - 403.23;
 
-	cdelta[0] = cdelta[0] + 403.23;
-	cdelta[1] = cdelta[1] + 403.23;
-	cdelta[2] = cdelta[2] + 403.23;
+	cdelta[0] = cdelta[0] + (403.23-h_offset);
+	cdelta[1] = cdelta[1] + (403.23-h_offset);
+	cdelta[2] = cdelta[2] + (403.23-h_offset);
 
     //cdelta[0] = 403.23 - cdelta[0];
 	//cdelta[1] = 403.23 - cdelta[1];
