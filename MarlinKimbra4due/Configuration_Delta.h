@@ -114,12 +114,12 @@ const bool Z_PROBE_ENDSTOP_INVERTING = false;
 #define Y_HOME_DIR 1 //DELTA MUST HAVE MAX ENDSTOP
 #define Z_HOME_DIR 1 //DELTA MUST HAVE MAX ENDSTOP
 
-//aven_0813
-#define min_software_endstops true  // If true, axis won't move to coordinates less than HOME_POS.
-#define max_software_endstops true  // If true, axis won't move to coordinates greater than the defined lengths below.
+//aven_0817
+//#define min_software_endstops true  // If true, axis won't move to coordinates less than HOME_POS.
+//#define max_software_endstops true  // If true, axis won't move to coordinates greater than the defined lengths below.
 
-//#define min_software_endstops false  // If true, axis won't move to coordinates less than HOME_POS.
-//#define max_software_endstops false
+#define min_software_endstops false  // If true, axis won't move to coordinates less than HOME_POS.
+#define max_software_endstops false
 
 
 // For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
