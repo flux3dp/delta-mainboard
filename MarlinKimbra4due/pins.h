@@ -439,11 +439,14 @@
 #define Z_DIR_PIN          DIR3//DIR6//66
 #define Z_ENABLE_PIN       EN3//EN6//444
 
-//aven_0414_2015 Enable z_probe_endstop start
 #define Z_MIN_PIN          -1//26
 #define Z_MAX_PIN          C_STOP//34
-//#define Z_PROBE_PIN        -1
-#define Z_PROBE_PIN        F0_STOP//29//26//15
+
+//aven_0817
+#define Z_PROBE_PIN        -1
+//#define Z_PROBE_PIN        F0_STOP//29//26//15
+
+
 //aven_0414_2015 Enable z_probe_endstop end
 
 #define E2_STEP_PIN        46//36
