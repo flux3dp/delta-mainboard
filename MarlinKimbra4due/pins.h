@@ -541,6 +541,10 @@
 
   #endif //ULTRA_LCD
 
+  #if defined(FILAMENT_RUNOUT_SENSOR)
+   #define FILRUNOUT_PIN      F0_STOP
+  #endif
+
 
 // SPI for Max6675 Thermocouple
 
