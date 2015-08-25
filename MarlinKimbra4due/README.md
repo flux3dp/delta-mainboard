@@ -2,8 +2,8 @@ MainBoard Firmware
 
 ##MainBoard Xcode command:
 ```
-X1 + O                                   : set laser1 on
-X1 + F                                   : set laser1 off
+X1 + O + num (0 ~ 2)                     : set laser on (0: all , 1:laser1 , 2:laser2)
+X1 + F + num (0 ~ 2)                     : set laser off (0: all , 1:laser1 , 2:laser2)
 X2 + O                                   : set laser2 on
 X2 + F                                   : set laser2 off
 X3 + O                                   : set board led on

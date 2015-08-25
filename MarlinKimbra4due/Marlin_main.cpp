@@ -7318,6 +7318,8 @@ inline void gcode_X5() //heater PID
 }
 #endif
 
+
+#if 0
 inline void gcode_X6() //Read  Temp
 {
     read_temp = 0;
@@ -7411,6 +7413,7 @@ inline void gcode_X10() //Read status
 	//delay(100);
 }
 
+#endif
 
 
 inline void gcode_X11()
@@ -7802,7 +7805,7 @@ inline void gcode_X15()
   
 }
 
-
+#if 0
 
 inline void gcode_X16()
 {
@@ -8151,8 +8154,9 @@ inline void gcode_X21(boolean home_x = false, boolean home_y = false)
 
 }
 
+#endif
 
-inline void gcode_X22()
+inline void gcode_X6()
 {
 
   boolean home_x = false; 
@@ -8319,6 +8323,7 @@ inline void gcode_X22()
 }
 
 
+#if 0
 inline void gcode_X23()
 {
   bool r_en = true; // enable R modification
@@ -9678,7 +9683,7 @@ inline void gcode_X30()
   }
 }	
 
-
+#endif
 
 
 /*****************************************************
@@ -10213,7 +10218,9 @@ void process_commands()
         case 6:   
           gcode_X6();
 		  break;
-        case 7:   
+
+	   #if 0
+		case 7:   
           gcode_X7();
 		  break;
 		case 8:   
@@ -10291,6 +10298,7 @@ void process_commands()
 		  case 30:   
           gcode_X30();
 		  break; 
+		#endif  
 
 		default:
       SERIAL_ECHO_START;
