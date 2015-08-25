@@ -7111,6 +7111,117 @@ inline void gcode_X4()
 }
 
 
+inline void gcode_X5() //Breathing LED
+{
+  SerialUSB.println("LED Breathing !");
+  if (code_seen('O')) 
+  {
+    pleds = code_value_short();
+
+    for(int j=0; j<pleds ; j++)
+    {
+      for(int i=0; i<=255; i++)
+      {
+        //SerialUSB.println(i);
+        analogWrite(LED_P1,i);
+	    delay(8);
+      }
+
+      for(int i=255; i>=0; i--)
+      {
+        //SerialUSB.println(i);
+        analogWrite(LED_P1,i);
+	    delay(8);
+      }
+
+	  delay(500);
+    }
+  }	
+
+
+
+  
+  if (code_seen('P')) 
+  {
+	  pleds = code_value_short();
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P2,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P2,i);
+		  delay(8);
+		}
+  
+		delay(500);
+	  }
+  } 
+
+  
+  if (code_seen('Q')) 
+	{
+	  pleds = code_value_short();
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		delay(500);
+	  }
+	} 
+
+  
+  if (code_seen('R')) 
+	{
+	  pleds = code_value_short();
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P1,i);
+		  analogWrite(LED_P2,i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P1,i);
+		  analogWrite(LED_P2,i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		delay(500);
+	  }
+	} 
+}
+
+
+#if 0
 inline void gcode_X5() //heater PID
 {
   setpoint = 0;
@@ -7180,7 +7291,7 @@ inline void gcode_X5() //heater PID
   
 
 }
-
+#endif
 
 inline void gcode_X6() //Read  Temp
 {
