@@ -267,6 +267,7 @@ int power=0;
 long read_temp=0;
 char RX_buff[100];
 int pleds=0;
+int qleds=0;
 float k_value= 0.03;
 float u_value;
 //char setpoint;
@@ -286,6 +287,9 @@ float cartesian[3] = { 0, 0, 0 };
 float odelta[3] = { 0, 0, 0 };
 float cdelta[3] = { 0, 0, 0 };
 
+
+//aven_0815
+float h_offset=0;
 
 #ifndef DELTA
   int xy_travel_speed = XY_TRAVEL_SPEED;
@@ -819,8 +823,12 @@ void setup()
   digitalWrite(U5EN, LOW);
 
 //aven 0708
-  pinMode(M_IO1,INPUT);
-  pinMode(M_IO2,INPUT);
+  pinMode(M_IO1,INPUT);//PD7
+
+//aven_0825
+  pinMode(M_IO2,OUTPUT);//PD8
+
+
   pinMode(CAP_IO,INPUT);
   pinMode(REF_IO,INPUT);
   
@@ -1999,6 +2007,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
   void calculate_delta(float cartesian[3]) 
   {
+  
     delta[X_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
                          - sq(delta_tower1_x-cartesian[X_AXIS])
                          - sq(delta_tower1_y-cartesian[Y_AXIS])
@@ -2020,6 +2029,167 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 	SerialUSB.println(delta[Z_AXIS]);
 #endif	
   }
+
+ //aven_0817
+ void calculate_delta_tower(float r, float delta_tower[])
+ { 
+
+	DELTA_DIAGONAL_ROD_2 = delta_diagonal_rod * delta_diagonal_rod;
+
+	delta_tower[0] = (r + tower_adj[3]) * cos((210 + tower_adj[0]) * M_PI/180); // front left tower
+	delta_tower[1] = (r + tower_adj[3]) * sin((210 + tower_adj[0]) * M_PI/180); 
+	delta_tower[2] = (r + tower_adj[4]) * cos((330 + tower_adj[1]) * M_PI/180); // front right tower
+	delta_tower[3] = (r + tower_adj[4]) * sin((330 + tower_adj[1]) * M_PI/180); 
+	delta_tower[4] = (r + tower_adj[5]) * cos((90 + tower_adj[2]) * M_PI/180);  // back middle tower
+	delta_tower[5] = (r + tower_adj[5]) * sin((90 + tower_adj[2]) * M_PI/180); 
+  }
+
+  void calculate_cartesian_position( float actuator_mm[], float cartesian_mm[], float r)
+  {
+	float delta_tower[6];
+
+	calculate_delta_tower(r, delta_tower);
+
+	Vector3 tower1( delta_tower[0], delta_tower[1], actuator_mm[X_AXIS] );
+	Vector3 tower2( delta_tower[2], delta_tower[3], actuator_mm[Y_AXIS] );
+	Vector3 tower3( delta_tower[4], delta_tower[5], actuator_mm[Z_AXIS] );
+
+	Vector3 s12 = tower1.sub(tower2);
+	Vector3 s23 = tower2.sub(tower3);
+	Vector3 s13 = tower1.sub(tower3);
+
+	Vector3 normal = s12.cross(s23);
+
+	float magsq_s12 = s12.magsq();
+	float magsq_s23 = s23.magsq();
+	float magsq_s13 = s13.magsq();
+
+	float inv_nmag_sq = 1.0F / normal.magsq();
+	float q = 0.5F * inv_nmag_sq;
+
+	float a = q * magsq_s23 * s12.dot(s13);
+	float b = q * magsq_s13 * s12.dot(s23) * -1.0F; // negate because we use s12 instead of s21
+	float c = q * magsq_s12 * s13.dot(s23);
+
+	Vector3 circumcenter( delta_tower[0] * a + delta_tower[2] * b + delta_tower[4] * c,
+		delta_tower[1] * a + delta_tower[3] * b + delta_tower[5] * c,
+		actuator_mm[X_AXIS] * a + actuator_mm[Y_AXIS] * b + actuator_mm[Z_AXIS] * c );
+
+	float r_sq = 0.5F * q * magsq_s12 * magsq_s23 * magsq_s13;
+	//float dist = sqrtf(inv_nmag_sq * (arm_length_squared - r_sq));
+	float dist = sqrt(inv_nmag_sq * (DELTA_DIAGONAL_ROD_2 - r_sq));
+
+
+	Vector3 cartesianln = circumcenter.sub(normal.mul(dist));
+
+	cartesian_mm[X_AXIS] = cartesianln[0];
+	cartesian_mm[Y_AXIS] = cartesianln[1];
+	cartesian_mm[Z_AXIS] = cartesianln[2];
+	;
+
+  }
+
+  void calculate_delta_position(float cartesian[3], float actuator_mm[], float r) 
+  {
+
+    float delta_tower[6];
+	calculate_delta_tower(r, delta_tower);
+	
+	actuator_mm[0] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower[0]-cartesian[0]) 
+		- sq(delta_tower[1]-cartesian[1])
+		) + cartesian[2];
+
+	actuator_mm[1] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower[2]-cartesian[0])
+		- sq(delta_tower[3]-cartesian[1])
+		) + cartesian[2];
+
+	actuator_mm[2] = sqrt(DELTA_DIAGONAL_ROD_2
+		- sq(delta_tower[4]-cartesian[0])
+		- sq(delta_tower[5]-cartesian[1])
+		) + cartesian[2];
+	
+  }
+
+  void error_simulation(float p0[], float p1[], float error[])
+  {
+	float temp[3];
+	calculate_delta_position(p0, temp, delta_radius);
+	for (int i = 0; i < 3; i++) temp[i] += error[i];
+	calculate_cartesian_position(temp, p1, delta_radius + error[3]);
+  }
+
+  int calculate_error(float p[][3], float err[], int r_en, int h_en)
+  {
+
+
+	float temp[4][3];
+	float error[5] = {0};
+	for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+	int flag = 0;
+	unsigned int count = 0;
+	do
+	{
+		flag = 0;
+		for(int i = 0; i < 3; i++)
+		{
+			float a = temp[i][2] - temp[(i + 1) % 3][2];
+			float b = temp[i][2] - temp[(i + 2) % 3][2];
+
+			if(a < -0.001 || b < -0.001)
+			{
+				error[i] += 0.001;
+				for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+				flag++;
+			}
+		}
+
+
+		float c = 0;
+		if (r_en) c = temp[3][2] - temp[0][2];
+
+		if(c < -0.001)
+		{
+			error[3] += 0.001;
+			for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+			flag++;
+		}
+		else if(c > 0.001)
+		{
+			error[3] -= 0.001;
+			for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+			flag++;
+		}
+		if (count > 25530)
+		{
+			return 0;
+		}
+		count++;
+	}while (flag);
+
+	if (h_en) error[4] -= temp[3][2];
+
+	//cout << "Count:" << count << endl;
+
+	for (int i = 0; i < 5; i++) err[i] += error[i];
+	float min = err[0];
+	for (int i = 1; i < 3; i++)
+	{
+		if (err[i] < min) min = err[i];
+	}
+	for (int i = 0; i < 3; i++) err[i] -= min;
+	//cout << "M666X" << -1 * err[0] << "Y" << -1 * err[1] << "Z" <<  -1 * err[2] << "R" << err[3] << "H" << err[4] << endl;
+
+
+	return 1;
+
+
+
+  }
+
+  //aven_0817
+  
 
   // Adjust print surface height by linear interpolation over the bed_level array.
   void adjust_delta(float cartesian[3])
@@ -2737,9 +2907,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   void actuator_to_cartesian( float delta[3])
   {
     
-    Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
-    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
-    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
+    //Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
+    //Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
+    //Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
+
+    //aven_0815
+	Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
+    Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
+    Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
 
 	Vector3 s12 = tower1.sub(tower2);
     Vector3 s23 = tower2.sub(tower3);
@@ -4828,6 +5003,15 @@ inline void gcode_M114() {
 
   SERIAL_EOL;
 
+  #if 0
+  SerialUSB.print("X:");
+  SerialUSB.print(st_get_position(X_AXIS));
+  SerialUSB.print(" Y:");
+  SerialUSB.print(st_get_position(Y_AXIS));
+  SerialUSB.print(" Z:");
+  SerialUSB.println(st_get_position(Z_AXIS));
+  #endif
+
 #if 0 //aven_0813
   #ifdef SCARA
     SERIAL_PROTOCOLPGM("SCARA Theta:");
@@ -4910,8 +5094,11 @@ inline void gcode_M119() {
     SERIAL_PROTOCOLLN(((READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_FILRUNOUT
-    SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
-    SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FILRUNOUT_PIN_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+  //aven_0817 FILAMENT RUNOUT
+    //SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
+    SERIAL_PROTOCOLPGM(MSG_FILAMENT_RUNOUT_PIN);
+  	SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FILRUNOUT_PIN_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
 }
 
@@ -6423,10 +6610,12 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
     // Destination reached
     for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
-
     // take care of back off and rehome now we are all at the top
+    
     HOMEAXIS(X);
+	
     HOMEAXIS(Y);
+	
     HOMEAXIS(Z);
 
     sync_plan_position_delta();
@@ -6731,19 +6920,50 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
 
 
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
-
 inline void gcode_X1()
 {
-  if (code_seen('F'))//off  
+  if (code_seen('F')) 
   {
-    SerialUSB.println("LSA1 OFF!");
-    digitalWrite(5, LOW);
+    pleds = code_value_short();
+	if(pleds == 1)
+    {
+      SerialUSB.println("LSA1 OFF");
+      digitalWrite(S_LAS1, LOW);
+	  
+	}
+    if(pleds == 2)
+    {
+      SerialUSB.println("LSA2 OFF");
+      digitalWrite(S_LAS2, LOW);
+	}
+	
+    if(pleds == 0)
+    {
+      SerialUSB.println("LSA1&LSA2 OFF");
+      digitalWrite(S_LAS1, LOW);
+	  digitalWrite(S_LAS2, LOW);
+	}
   }
+  
   if (code_seen('O')) 
   {
-    SerialUSB.println("LSA1 ON!");
-    digitalWrite(5, HIGH);//on
+    pleds = code_value_short();
+    if(pleds == 1)
+    {
+      SerialUSB.println("LSA1 ON");
+      digitalWrite(S_LAS1, HIGH);
+	}
+    if(pleds == 2)
+    {
+      SerialUSB.println("LSA2 ON");
+      digitalWrite(S_LAS2, HIGH);
+	}
+    if(pleds == 0)
+    {
+      SerialUSB.println("LSA1&LSA2 ON");
+      digitalWrite(S_LAS1, HIGH);
+	  digitalWrite(S_LAS2, HIGH);
+	}
   }
 }
 
@@ -6751,16 +6971,26 @@ inline void gcode_X2()
 {
   if (code_seen('F')) 
   {
-    SerialUSB.println("LSA2 OFF!");
-    digitalWrite(4, LOW);
+    SerialUSB.println("PWM OFF");
+    analogWrite(M_IO2, 0);
   }
+  
   if (code_seen('O')) 
   {
-    SerialUSB.println("LSA2 ON!");
-    digitalWrite(4, HIGH);
-  }
+    pleds = code_value_short();
+    if(pleds >255 | pleds <0)
+    {
+      SerialUSB.print("OUT OF RANGE :");
+      SerialUSB.println(pleds);
+    }
+	else
+	{
+	  SerialUSB.print("PWM :");
+      SerialUSB.println(pleds);
+      analogWrite(M_IO2, pleds);
+	}	
+  }	
 }
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
 
 inline void gcode_X3()
 {
@@ -6878,6 +7108,141 @@ inline void gcode_X4()
 }
 
 
+inline void gcode_X5() //Breathing LED
+{
+  SerialUSB.println("LED Breathing !");
+  if (code_seen('O')) 
+  {
+    pleds = code_value_short();
+
+	if(code_seen('C'))
+	{
+      qleds = code_value_short();
+	}
+
+    for(int j=0; j<pleds ; j++)
+    {
+      for(int i=0; i<=255; i++)
+      {
+        //SerialUSB.println(i);
+        analogWrite(LED_P1,i);
+	    delay(8);
+      }
+
+      for(int i=255; i>=0; i--)
+      {
+        //SerialUSB.println(i);
+        analogWrite(LED_P1,i);
+	    delay(8);
+      }
+
+      //SerialUSB.println(qleds);
+	  delay(qleds);
+    }
+  }	
+
+
+
+  
+  if (code_seen('P')) 
+  {
+	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P2,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P2,i);
+		  delay(8);
+		}
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
+	  }
+  } 
+
+  
+  if (code_seen('Q')) 
+	{
+	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
+	  }
+	} 
+
+  
+  if (code_seen('R')) 
+	{
+	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
+  
+	  for(int j=0; j<pleds ; j++)
+	  {
+		for(int i=0; i<=255; i++)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P1,i);
+		  analogWrite(LED_P2,i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+  
+		for(int i=255; i>=0; i--)
+		{
+		  //SerialUSB.println(i);
+		  analogWrite(LED_P1,i);
+		  analogWrite(LED_P2,i);
+		  analogWrite(LED_P3,i);
+		  delay(8);
+		}
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
+	  }
+	} 
+}
+
+
+#if 0
 inline void gcode_X5() //heater PID
 {
   setpoint = 0;
@@ -6947,7 +7312,7 @@ inline void gcode_X5() //heater PID
   
 
 }
-
+#endif
 
 inline void gcode_X6() //Read  Temp
 {
@@ -7064,7 +7429,8 @@ inline void gcode_X11()
        set_delta_constants();
        SERIAL_ECHO(" H : ");
 	   SERIAL_PROTOCOL_F(max_pos[Z_AXIS], 4);
-	   
+
+	   h_offset = h_value;
 	   delay(100);
        gcode_G28();
 	   delay(100);
@@ -7795,7 +8161,17 @@ inline void gcode_X22()
   cdelta[2]= 0;
 
   
-  for(int i=0 ; i<600 ; i++)
+#if 1
+  float h_ori[3]={0,0,0};
+  h_ori[2]= max_length[Z_AXIS];
+  float h_cal[3];
+  calculate_delta_position(h_ori,h_cal,delta_radius);
+  float h_constant = h_cal[0];
+#endif  
+
+//aven_0817
+  //for(int i=0 ; i<600 ; i++)
+  for(int i=0 ; i<3 ; i++)
   {
     saved_feedrate = feedrate;
 	saved_feedmultiply = feedmultiply;
@@ -7820,7 +8196,9 @@ inline void gcode_X22()
 	  
     for (int i = X_AXIS; i <= Z_AXIS; i++) 
 	{
-	  destination[i] = 1;
+//aven_0817	
+	  //destination[i] = 1;
+	  destination[i] = 600;
 
 #if 1	  
       if(READ(A_STOP)==1)
@@ -7848,8 +8226,10 @@ inline void gcode_X22()
 
 
 	 }
-	
-	  feedrate = 1.732 * homing_feedrate[X_AXIS];
+//aven_0817	
+	  //feedrate = 1.732 * homing_feedrate[X_AXIS];
+	  feedrate = 1 * homing_feedrate[X_AXIS];
+
 	  line_to_destination();
 	  st_synchronize();
 
@@ -7867,14 +8247,15 @@ inline void gcode_X22()
       cdelta[1] = cdelta[1] + odelta[1];
       cdelta[2] = cdelta[2] + odelta[2];
 
-      //SerialUSB.print(i);
-	  //SerialUSB.print(" X: ");
-      //SerialUSB.print(cdelta[0]);
-      //SerialUSB.print(" Y: ");
-      //SerialUSB.print(cdelta[1]);
-      //SerialUSB.print(" Z: ");
-      //SerialUSB.println(cdelta[2]);
-
+      #if 0
+      SerialUSB.print(i);
+	  SerialUSB.print(" X: ");
+      SerialUSB.print(cdelta[0]);
+      SerialUSB.print(" Y: ");
+      SerialUSB.print(cdelta[1]);
+      SerialUSB.print(" Z: ");
+      SerialUSB.println(cdelta[2]);
+      #endif
 
 	  
 	  
@@ -7887,16 +8268,19 @@ inline void gcode_X22()
 
 	enable_endstops(false);
 
-	cdelta[0] = 403.23 - cdelta[0];
-	cdelta[1] = 403.23 - cdelta[1];
-	cdelta[2] = 403.23 - cdelta[2];
+	cdelta[0] = h_constant - cdelta[0];
+	cdelta[1] = h_constant - cdelta[1];
+	cdelta[2] = h_constant - cdelta[2];
+
+	SerialUSB.print("h_constant: ");
+	SerialUSB.println(h_constant);
 
     //cdelta[0] = 403.23 - cdelta[0];
 	//cdelta[1] = 403.23 - cdelta[1];
 	//cdelta[2] = 403.23 - cdelta[2];
 
     //SerialUSB.print(i);
-	//SerialUSB.print(" X: ");
+	//SerialUSB.print("X: ");
     //SerialUSB.print(cdelta[0]);
     //SerialUSB.print(" Y: ");
     //SerialUSB.print(cdelta[1]);
@@ -7906,12 +8290,68 @@ inline void gcode_X22()
 	//gcode_X19(cdelta);
 
 	actuator_to_cartesian(cdelta);
-    
+
+    SerialUSB.println("@X22:");
+	SerialUSB.print("X:");
+	SerialUSB.print(cartesian[X_AXIS]);
+	SerialUSB.print(" Y:");
+	SerialUSB.print(cartesian[Y_AXIS]);
+	SerialUSB.print(" Z:");
+	SerialUSB.print(cartesian[Z_AXIS]);
+
+	SerialUSB.print(" Count X:");
+	SerialUSB.print(cdelta[X_AXIS]);
+	SerialUSB.print(" Y:");
+	SerialUSB.print(cdelta[Y_AXIS]);
+	SerialUSB.print(" Z:");
+	SerialUSB.println(cdelta[Z_AXIS]);
+
+    delay(100);
+	gcode_G28();
+	delay(500);
+
 	
 
 }
 
 
+inline void gcode_X23()
+{
+  bool r_en = true; // enable R modification
+  bool h_en = true; // enable H modification
+
+	/* 4 or 3 points input. If r_en == false && h_en == false, only 3 points needed.
+	float p[4][3] = 
+	{
+		{x0, y0, z0},  	1st point should near {-73.61, -42.5, z0}
+		{x1, y1, z1},	2nd point should near {73.61 , -42.5, z1}
+		{x2, y2, z2},   3rd point should near {0	 , 0	, z2}
+		{x3, y3, z3}    4th point should near the center
+	};
+	*/
+	float p[4][3];
+
+
+	float error[5];
+	for (int i = 0; i < 3; i++) error[i] = -1 * endstop_adj[i];
+	error[3] = delta_radius;
+	error[4] = max_pos[Z_AXIS];
+
+	if(calculate_error(p, error, r_en, h_en))
+	{
+		//cout << "OK" << endl;
+		for (int i = 0; i < 3; i++) endstop_adj[i] = -1 * error[i];
+		if (r_en) delta_radius = error[3];
+		if (h_en) max_pos[Z_AXIS] = error[4];
+		set_delta_constants();
+	}
+
+	
+	//return 0;
+}
+
+
+#if 0
 inline void gcode_X23()
 {
   boolean home_x = false;
@@ -8021,9 +8461,9 @@ inline void gcode_X23()
 	//cdelta[1] = (cdelta[1]/80) - 403.23;
 	//cdelta[2] = (cdelta[2]/80) - 403.23;
 
-	cdelta[0] = cdelta[0] + 403.23;
-	cdelta[1] = cdelta[1] + 403.23;
-	cdelta[2] = cdelta[2] + 403.23;
+	cdelta[0] = cdelta[0] + (403.23-h_offset);
+	cdelta[1] = cdelta[1] + (403.23-h_offset);
+	cdelta[2] = cdelta[2] + (403.23-h_offset);
 
     //cdelta[0] = 403.23 - cdelta[0];
 	//cdelta[1] = 403.23 - cdelta[1];
@@ -8064,7 +8504,7 @@ inline void gcode_X23()
 	
 
 }
-
+#endif
 
 inline void gcode_X24()
 {

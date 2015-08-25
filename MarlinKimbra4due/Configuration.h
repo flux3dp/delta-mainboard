@@ -599,7 +599,8 @@ your extruder heater takes 2 minutes to hit the target on heating.
 //===========================================================================
 //============================= Filament Runout Sensor ======================
 //===========================================================================
-//#define FILAMENT_RUNOUT_SENSOR // Uncomment for defining a filament runout sensor such as a mechanical or opto endstop to check the existence of filament
+//aven_0817 FILAMENT_RUNOUT
+#define FILAMENT_RUNOUT_SENSOR // Uncomment for defining a filament runout sensor such as a mechanical or opto endstop to check the existence of filament
                                  // It is assumed that when logic high = filament available
                                  //                    when logic  low = filament ran out
 #ifdef FILAMENT_RUNOUT_SENSOR
