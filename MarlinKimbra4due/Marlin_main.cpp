@@ -822,8 +822,12 @@ void setup()
   digitalWrite(U5EN, LOW);
 
 //aven 0708
-  pinMode(M_IO1,INPUT);
-  pinMode(M_IO2,INPUT);
+  pinMode(M_IO1,INPUT);//PD7
+
+//aven_0825
+  pinMode(M_IO2,OUTPUT);//PD8
+
+
   pinMode(CAP_IO,INPUT);
   pinMode(REF_IO,INPUT);
   
@@ -6915,19 +6919,50 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
 
 
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
-
 inline void gcode_X1()
 {
-  if (code_seen('F'))//off  
+  if (code_seen('F')) 
   {
-    SerialUSB.println("LSA1 OFF!");
-    digitalWrite(5, LOW);
+    pleds = code_value_short();
+	if(pleds == 1)
+    {
+      SerialUSB.println("LSA1 OFF");
+      digitalWrite(S_LAS1, LOW);
+	  
+	}
+    if(pleds == 2)
+    {
+      SerialUSB.println("LSA2 OFF");
+      digitalWrite(S_LAS2, LOW);
+	}
+	
+    if(pleds == 0)
+    {
+      SerialUSB.println("LSA1&LSA2 OFF");
+      digitalWrite(S_LAS1, LOW);
+	  digitalWrite(S_LAS2, LOW);
+	}
   }
+  
   if (code_seen('O')) 
   {
-    SerialUSB.println("LSA1 ON!");
-    digitalWrite(5, HIGH);//on
+    pleds = code_value_short();
+    if(pleds == 1)
+    {
+      SerialUSB.println("LSA1 ON");
+      digitalWrite(S_LAS1, HIGH);
+	}
+    if(pleds == 2)
+    {
+      SerialUSB.println("LSA2 ON");
+      digitalWrite(S_LAS2, HIGH);
+	}
+    if(pleds == 0)
+    {
+      SerialUSB.println("LSA1&LSA2 ON");
+      digitalWrite(S_LAS1, HIGH);
+	  digitalWrite(S_LAS2, HIGH);
+	}
   }
 }
 
@@ -6935,16 +6970,17 @@ inline void gcode_X2()
 {
   if (code_seen('F')) 
   {
-    SerialUSB.println("LSA2 OFF!");
-    digitalWrite(4, LOW);
+    SerialUSB.println("PWM OFF");
+    analogWrite(M_IO2, 0);
   }
+  
   if (code_seen('O')) 
   {
-    SerialUSB.println("LSA2 ON!");
-    digitalWrite(4, HIGH);
-  }
+    pleds = code_value_short();
+    SerialUSB.println(pleds);
+    analogWrite(M_IO2, pleds);
+  }	
 }
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
 
 inline void gcode_X3()
 {
