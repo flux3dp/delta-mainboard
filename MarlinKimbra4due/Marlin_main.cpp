@@ -739,7 +739,7 @@ void led_br()
 	   if(runleds1 == 0)
 	   {
 	     analogWrite(LED_P1,leds1);
-	     delay(8);
+	     delay(3);
 	     leds1++;
 
 		 if(leds1 == 255)
@@ -751,13 +751,13 @@ void led_br()
 	   if(runleds1 == 1)
 	   {
          analogWrite(LED_P1,leds1);
-	     delay(8);
+	     delay(3);
 	     leds1--;
-	   }
 
-	   if(leds1 == 0)
-	   {
+		 if(leds1 == 0)
+	     {
 	       runleds1=2;
+	     }
 	   }	
 	   
        if(runleds1==2)
@@ -799,7 +799,7 @@ void led_br()
        if(runleds2 == 0)
 	   {
 	     analogWrite(LED_P2,leds2);
-	     delay(8);
+	     delay(3);
 	     leds2++;
 
 		 if(leds2 == 255)
@@ -811,13 +811,13 @@ void led_br()
 	   if(runleds2 == 1)
 	   {
          analogWrite(LED_P2,leds2);
-	     delay(8);
+	     delay(3);
 	     leds2--;
-	   }
-	   
-	   if(leds2 == 0)
-	   {
-         runleds2=2;
+
+		 if(leds2 == 0)
+	     {
+           runleds2=2;
+	     }
 	   }
 
 	   if(runleds2 == 2)
@@ -857,7 +857,7 @@ void led_br()
        if(runleds3 == 0)
 	   {
 	     analogWrite(LED_P3,leds3);
-	     delay(8);
+	     delay(3);
 	     leds3++;
 
 		 if(leds3 == 255)
@@ -869,14 +869,15 @@ void led_br()
 	   if(runleds3 == 1)
 	   {
          analogWrite(LED_P3,leds3);
-	     delay(8);
+	     delay(3);
 	     leds3--;
+
+		 if(leds3 == 0)
+	     {
+           runleds3=2;
+	     }
 	   }
 
-	   if(leds3 == 0)
-	   {
-         runleds3=2;
-	   }
 
 	   if(runleds3 == 2)
 	   {
