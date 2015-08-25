@@ -268,6 +268,27 @@ long read_temp=0;
 char RX_buff[100];
 int pleds=0;
 int qleds=0;
+int f_led1=0;
+int f_led2=0;
+int f_led3=0;
+int cled1=0;
+int cled2=0;
+int cled3=0;
+int fled1=0;
+int fled2=0;
+int fled3=0;
+int leds1=0;
+int leds2=0;
+int leds3=0;
+int runleds1=0;
+int runleds2=0;
+int runleds3=0;
+int dcount1=0;
+int dcount2=0;
+int dcount3=0;
+
+
+
 float k_value= 0.03;
 float u_value;
 //char setpoint;
@@ -707,17 +728,188 @@ void servo_init()
 }
 
 
-/*
-void fan_run()
+
+void led_br()
 {
-  //fan boot on
-  Serial.print("p");
-  Serial.print(1);
-  delay(300);	
-  Serial.print("F");
-  Serial.print(255);
+
+  if(f_led1==1)
+  {
+    if(cled1!=0)
+    {
+	   if(runleds1 == 0)
+	   {
+	     analogWrite(LED_P1,leds1);
+	     delay(8);
+	     leds1++;
+
+		 if(leds1 == 255)
+		 {
+           runleds1=1;
+		 }	 	
+	   }
+
+	   if(runleds1 == 1)
+	   {
+         analogWrite(LED_P1,leds1);
+	     delay(8);
+	     leds1--;
+	   }
+
+	   if(leds1 == 0)
+	   {
+	       runleds1=2;
+	   }	
+	   
+       if(runleds1==2)
+	   {	
+	       //delay(8);
+           if(dcount1!=fled1)
+           {
+             //SerialUSB.print("dcount1:");
+		     //SerialUSB.println(dcount1);
+             dcount1++;		 
+           }
+		   else
+		   {
+		     runleds1=0;
+		     cled1--;
+			 dcount1=0;
+		     //SerialUSB.print("cled1:");
+		     //SerialUSB.println(cled1);
+		   }	 
+	     
+	   }
+      
+    }
+	else
+	{
+      f_led1=0;
+	  runleds1=0;
+	  dcount1=0;
+	  fled1=0;
+	}
+	
+  }
+
+
+  if(f_led2==1)
+  {
+    if(cled2!=0)
+    {
+       if(runleds2 == 0)
+	   {
+	     analogWrite(LED_P2,leds2);
+	     delay(8);
+	     leds2++;
+
+		 if(leds2 == 255)
+		 {
+           runleds2=1;
+		 }	 	
+	   }
+
+	   if(runleds2 == 1)
+	   {
+         analogWrite(LED_P2,leds2);
+	     delay(8);
+	     leds2--;
+	   }
+	   
+	   if(leds2 == 0)
+	   {
+         runleds2=2;
+	   }
+
+	   if(runleds2 == 2)
+	   {
+           //delay(8);
+           if(dcount2!=fled2)
+           {
+             //SerialUSB.print("dcount2:");
+		     //SerialUSB.println(dcount2);
+             dcount2++;   
+           }
+		   else
+		   {
+		     dcount2=0;
+		     runleds2=0;
+		     cled2--;
+		     //SerialUSB.print("cled2:");
+		     //SerialUSB.println(cled2);
+		   }
+	    }
+	}
+	else
+	{
+      f_led2=0;
+	  runleds2=0;
+	  dcount2=0;
+	  fled2=0;
+	}
+
+  }
+
+
+  if(f_led3==1)
+  {
+    if(cled3!=0)
+    {
+       if(runleds3 == 0)
+	   {
+	     analogWrite(LED_P3,leds3);
+	     delay(8);
+	     leds3++;
+
+		 if(leds3 == 255)
+		 {
+           runleds3=1;
+		 }	 	
+	   }
+
+	   if(runleds3 == 1)
+	   {
+         analogWrite(LED_P3,leds3);
+	     delay(8);
+	     leds3--;
+	   }
+
+	   if(leds3 == 0)
+	   {
+         runleds3=2;
+	   }
+
+	   if(runleds3 == 2)
+	   {
+	       //delay(8);
+		   if(dcount3!=fled3)
+           {
+             //SerialUSB.print("dcount3:");
+		     //SerialUSB.println(dcount3);
+             dcount3++;   
+           }
+		   else
+		   {
+		     dcount3=0;
+		     runleds3=0;
+		     cled3--;
+		     //SerialUSB.print("cled3:");
+		     //SerialUSB.println(cled3);
+		   }	 
+	     }
+	   }
+    
+	else
+	{
+      f_led3=0;
+	  runleds3=0;
+	  dcount3=0;
+	  fled3=0;
+	}
+
+  }
+  
 }
-*/
+
 
 void setup()
 {
@@ -838,8 +1030,9 @@ void setup()
 
   digitalWrite(S_LAS1, LOW);
   digitalWrite(S_LAS2, LOW);
-  digitalWrite(LED_P2, LOW);
-  digitalWrite(LED_P3, LOW); 
+  
+  analogWrite(LED_P2, 0);
+  analogWrite(LED_P3, 0); 
    
 
 //aven 0504 - HOME_K  
@@ -917,7 +1110,8 @@ void loop() {
   manage_heater();
   manage_inactivity();
   checkHitEndstops();
-  lcd_update();
+  //lcd_update();
+  led_br();
 }
 
 
@@ -7066,21 +7260,21 @@ inline void gcode_X4()
 	SerialUSB.println(pleds);
 	if(pleds == 1)
     {
-      digitalWrite(LED_P1, LOW);
+      analogWrite(LED_P1, 0);
 	}
     if(pleds == 2)
     {
-      digitalWrite(LED_P2, LOW);
+      analogWrite(LED_P2, 0);
 	}
 	if(pleds == 3)
     {
-      digitalWrite(LED_P3, LOW);
+      analogWrite(LED_P3, 0);
 	}
     if(pleds == 0)
     {
-      digitalWrite(LED_P1, LOW);
-	  digitalWrite(LED_P2, LOW);
-      digitalWrite(LED_P3, LOW);
+      analogWrite(LED_P1, 0);
+	  analogWrite(LED_P2, 0);
+      analogWrite(LED_P3, 0);
 	}
 	
   }
@@ -7091,21 +7285,21 @@ inline void gcode_X4()
 	SerialUSB.println(pleds);
     if(pleds == 1)
     {
-      digitalWrite(LED_P1, HIGH);
+      analogWrite(LED_P1, 255);
 	}
     if(pleds == 2)
     {
-      digitalWrite(LED_P2, HIGH);
+      analogWrite(LED_P2, 255);
 	}
 	if(pleds == 3)
     {
-      digitalWrite(LED_P3, HIGH);
+      analogWrite(LED_P3, 255);
 	}
     if(pleds == 0)
     {
-      digitalWrite(LED_P1, HIGH);
-	  digitalWrite(LED_P2, HIGH);
-      digitalWrite(LED_P3, HIGH);
+      analogWrite(LED_P1, 255);
+	  analogWrite(LED_P2, 255);
+      analogWrite(LED_P3, 255);
 	}
   }
 
@@ -7114,35 +7308,26 @@ inline void gcode_X4()
 
 inline void gcode_X5() //Breathing LED
 {
-  SerialUSB.println("LED Breathing !");
+  SerialUSB.println("LED Breathing Setting :");
   if (code_seen('O')) 
   {
-    pleds = code_value_short();
+    SerialUSB.print("LED 1 Breathing ");
+    f_led1=1;
+	
+    cled1 = code_value_short();
+    SerialUSB.print(" count:");
+	SerialUSB.print(cled1);
 
 	if(code_seen('C'))
 	{
-      qleds = code_value_short();
+      fled1 = code_value_short();
+	  SerialUSB.print(" freq:");
+	  SerialUSB.println(fled1);
 	}
 
-    for(int j=0; j<pleds ; j++)
-    {
-      for(int i=0; i<=255; i++)
-      {
-        //SerialUSB.println(i);
-        analogWrite(LED_P1,i);
-	    delay(8);
-      }
-
-      for(int i=255; i>=0; i--)
-      {
-        //SerialUSB.println(i);
-        analogWrite(LED_P1,i);
-	    delay(8);
-      }
-
-      //SerialUSB.println(qleds);
-	  delay(qleds);
-    }
+	
+    leds1=1;
+	
   }	
 
 
@@ -7150,99 +7335,119 @@ inline void gcode_X5() //Breathing LED
   
   if (code_seen('P')) 
   {
-	  pleds = code_value_short();
+      SerialUSB.print("LED 2 Breathing ");
+      f_led2=1;
+	  cled2 = code_value_short();
+	  SerialUSB.print(" count:");
+	  SerialUSB.print(cled2);
 
 	  if(code_seen('C'))
 	  {
-        qleds = code_value_short();
+        fled2 = code_value_short();
+		SerialUSB.print(" freq:");
+	    SerialUSB.println(fled2);
 	  }
-  
-	  for(int j=0; j<pleds ; j++)
-	  {
-		for(int i=0; i<=255; i++)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P2,i);
-		  delay(8);
-		}
-  
-		for(int i=255; i>=0; i--)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P2,i);
-		  delay(8);
-		}
 
-        //SerialUSB.println(qleds);
-		delay(qleds);
-	  }
+      leds1=1;
+	  
   } 
 
   
   if (code_seen('Q')) 
-	{
-	  pleds = code_value_short();
+  {
+	  SerialUSB.print("LED 3 Breathing ");
+	  f_led3=1;
+	  cled3 = code_value_short();
+	  SerialUSB.print(" count:");
+	  SerialUSB.print(cled3);
 
 	  if(code_seen('C'))
 	  {
-        qleds = code_value_short();
+        fled3 = code_value_short();
+		SerialUSB.print(" freq:");
+	    SerialUSB.println(fled3);
 	  }
-  
-	  for(int j=0; j<pleds ; j++)
-	  {
-		for(int i=0; i<=255; i++)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P3,i);
-		  delay(8);
-		}
-  
-		for(int i=255; i>=0; i--)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P3,i);
-		  delay(8);
-		}
 
-        //SerialUSB.println(qleds);
-		delay(qleds);
-	  }
-	} 
+	 
+        leds1=1;
+	
+  } 
 
   
   if (code_seen('R')) 
-	{
-	  pleds = code_value_short();
+  {
+	  SerialUSB.print("ALL LED Breathing ");
+	  //SerialUSB.print("LED 2 Breathing ");
+	  //SerialUSB.print("LED 3 Breathing ");
+
+	  f_led1 = 1;
+	  f_led2 = 1;
+	  f_led3 = 1;
+	  
+	  cled1 = code_value_short();
+	  cled2=cled1;
+	  cled3=cled2;
+
+	  SerialUSB.print(" count:");
+	  SerialUSB.print(cled3);
 
 	  if(code_seen('C'))
 	  {
-        qleds = code_value_short();
-	  }
-  
-	  for(int j=0; j<pleds ; j++)
-	  {
-		for(int i=0; i<=255; i++)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P1,i);
-		  analogWrite(LED_P2,i);
-		  analogWrite(LED_P3,i);
-		  delay(8);
-		}
-  
-		for(int i=255; i>=0; i--)
-		{
-		  //SerialUSB.println(i);
-		  analogWrite(LED_P1,i);
-		  analogWrite(LED_P2,i);
-		  analogWrite(LED_P3,i);
-		  delay(8);
-		}
+        fled1 = code_value_short();
+		fled2=fled1;
+		fled3=fled2;
 
-        //SerialUSB.println(qleds);
-		delay(qleds);
+		SerialUSB.print(" freq:");
+	    SerialUSB.println(fled3);
+		
 	  }
+
+	  
+        leds1=1;
+		leds2=1;
+		leds3=1;
+	  
 	} 
+
+   if (code_seen('F')) 
+   {
+     SerialUSB.print("LED Breathing off");
+	 fled1=0;
+	 fled2=0;
+	 fled3=0;
+
+	 cled1=0;
+	 cled2=0;
+	 cled3=0;
+
+	 fled1=0;
+	 fled2=0;
+	 fled3=0;
+
+	 leds1=0;
+	 leds2=0;
+	 leds3=0;
+
+	 dcount1=0;
+	 dcount2=0;
+	 dcount3=0;
+
+	 runleds1=0;
+	 runleds2=0;
+	 runleds3=0;
+
+     
+	 delay(100);
+	 analogWrite(LED_P2,0);
+	 delay(100);
+	 analogWrite(LED_P3,0);
+	 delay(100);
+	 analogWrite(LED_P1,255);
+	 //delay(100);
+
+	 
+   }
+  
 }
 
 
@@ -10885,6 +11090,8 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #endif
 
   check_axes_activity();
+
+  led_br();//aven_test0825
 }
 
 void kill()
