@@ -267,6 +267,7 @@ int power=0;
 long read_temp=0;
 char RX_buff[100];
 int pleds=0;
+int qleds=0;
 float k_value= 0.03;
 float u_value;
 //char setpoint;
@@ -7118,6 +7119,11 @@ inline void gcode_X5() //Breathing LED
   {
     pleds = code_value_short();
 
+	if(code_seen('C'))
+	{
+      qleds = code_value_short();
+	}
+
     for(int j=0; j<pleds ; j++)
     {
       for(int i=0; i<=255; i++)
@@ -7134,7 +7140,8 @@ inline void gcode_X5() //Breathing LED
 	    delay(8);
       }
 
-	  delay(500);
+      //SerialUSB.println(qleds);
+	  delay(qleds);
     }
   }	
 
@@ -7144,6 +7151,11 @@ inline void gcode_X5() //Breathing LED
   if (code_seen('P')) 
   {
 	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
   
 	  for(int j=0; j<pleds ; j++)
 	  {
@@ -7160,8 +7172,9 @@ inline void gcode_X5() //Breathing LED
 		  analogWrite(LED_P2,i);
 		  delay(8);
 		}
-  
-		delay(500);
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
 	  }
   } 
 
@@ -7169,6 +7182,11 @@ inline void gcode_X5() //Breathing LED
   if (code_seen('Q')) 
 	{
 	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
   
 	  for(int j=0; j<pleds ; j++)
 	  {
@@ -7185,8 +7203,9 @@ inline void gcode_X5() //Breathing LED
 		  analogWrite(LED_P3,i);
 		  delay(8);
 		}
-  
-		delay(500);
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
 	  }
 	} 
 
@@ -7194,6 +7213,11 @@ inline void gcode_X5() //Breathing LED
   if (code_seen('R')) 
 	{
 	  pleds = code_value_short();
+
+	  if(code_seen('C'))
+	  {
+        qleds = code_value_short();
+	  }
   
 	  for(int j=0; j<pleds ; j++)
 	  {
@@ -7214,8 +7238,9 @@ inline void gcode_X5() //Breathing LED
 		  analogWrite(LED_P3,i);
 		  delay(8);
 		}
-  
-		delay(500);
+
+        //SerialUSB.println(qleds);
+		delay(qleds);
 	  }
 	} 
 }
