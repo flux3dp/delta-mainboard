@@ -6767,8 +6767,6 @@ inline void gcode_X3()
   if (code_seen('F')) 
   {
     pleds = code_value_short();
-    SerialUSB.println("REFC OFF :");
-	SerialUSB.println(pleds);
 	if(pleds == 1)
     {
       digitalWrite(REFC1, LOW);
@@ -6797,8 +6795,6 @@ inline void gcode_X3()
   if (code_seen('O')) 
   {
     pleds = code_value_short();
-    SerialUSB.println("REFC ON :");
-	SerialUSB.println(pleds);
     if(pleds == 1)
     {
       digitalWrite(REFC1, HIGH);
