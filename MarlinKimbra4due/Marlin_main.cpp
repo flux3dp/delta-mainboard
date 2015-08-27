@@ -285,6 +285,10 @@ int runleds3=0;
 int dcount1=0;
 int dcount2=0;
 int dcount3=0;
+
+int motors=0;
+int motorc=0;
+
 int filrunout_flag=0;
 
 
