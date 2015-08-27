@@ -12,6 +12,9 @@ X4 + O + num (0 ~ 3)                                                           :
 X4 + F + num (0 ~ 3)                                                           : set panel led off (0: all , 1:led_p1 , 2:led_p2 , 3:led_p3)
 X5 + (O,P,Q,R) + num (breathing times)+ C + num (breathing frequency)          : set breathing LED (O:LED1 , P:LED2 , Q:LED3 , R:all)
 X6                                                                             : delta Homing Distance Calculation
+X7 + R + num (1 ~ 6) + C + num (step)                                          : motor control 
+X8 + O,F                                                                       : filament detect 
+X111                                                                           : read FW version
 ```
 
 

@@ -8921,34 +8921,165 @@ inline void gcode_X6()
 
 void step(int num,boolean dir,int steps)
 {
-  digitalWrite(EN5,LOW);
-  delay(100);
-     SerialUSB.print("Motor :");
-     SerialUSB.print(num);
-     SerialUSB.print("  steps :");
-     SerialUSB.print(steps);
-    
-     digitalWrite(DIR5,dir);
-     delay(50);
-     for(int i=0;i<steps;i++)
-     {
-        digitalWrite(STP5, HIGH);
-        delayMicroseconds(800);
-        digitalWrite(STP5, LOW);
-        delayMicroseconds(800);
-      }
-      digitalWrite(EN5,HIGH);  
+	  
+	  if(num == 1)
+	  {
+	  
+		  digitalWrite(EN1,LOW);
+		  delay(100);
+		  SerialUSB.print("Motor :");
+		  SerialUSB.print(num);
+		  SerialUSB.print("  steps :");
+		  SerialUSB.print(steps);
+		  
+		  digitalWrite(DIR1,dir);
+		  delay(50);
+		  for(int i=0;i<steps;i++)
+		  {
+			  digitalWrite(STP1, HIGH);
+			  delayMicroseconds(800);
+			  digitalWrite(STP1, LOW);
+			  delayMicroseconds(800);
+		   }
+		   digitalWrite(EN1,HIGH);
+	  }
+	  
+	  if(num == 2)
+	  {
+	  
+		  digitalWrite(EN2,LOW);
+		  delay(100);
+		  SerialUSB.print("Motor :");
+		  SerialUSB.print(num);
+		  SerialUSB.print("  steps :");
+		  SerialUSB.print(steps);
+		  
+		  digitalWrite(DIR2,dir);
+		  delay(50);
+		  for(int i=0;i<steps;i++)
+		  {
+			  digitalWrite(STP2, HIGH);
+			  delayMicroseconds(800);
+			  digitalWrite(STP2, LOW);
+			  delayMicroseconds(800);
+		   }
+		   digitalWrite(EN2,HIGH);
+	  } 
+	
+	  if(num == 3)
+	  {
+	  
+		  digitalWrite(EN3,LOW);
+		  delay(100);
+		  SerialUSB.print("Motor :");
+		  SerialUSB.print(num);
+		  SerialUSB.print("  steps :");
+		  SerialUSB.print(steps);
+		  
+		  digitalWrite(DIR3,dir);
+		  delay(50);
+		  for(int i=0;i<steps;i++)
+		  {
+			  digitalWrite(STP3, HIGH);
+			  delayMicroseconds(800);
+			  digitalWrite(STP3, LOW);
+			  delayMicroseconds(800);
+		   }
+		   digitalWrite(EN3,HIGH);
+	  } 
+	
+	  if(num == 4)
+	  {
+	  
+		  digitalWrite(EN4,LOW);
+		  delay(100);
+		  SerialUSB.print("Motor :");
+		  SerialUSB.print(num);
+		  SerialUSB.print("  steps :");
+		  SerialUSB.print(steps);
+		  
+		  digitalWrite(DIR4,dir);
+		  delay(50);
+		  for(int i=0;i<steps;i++)
+		  {
+			  digitalWrite(STP4, HIGH);
+			  delayMicroseconds(800);
+			  digitalWrite(STP4, LOW);
+			  delayMicroseconds(800);
+		   }
+		   digitalWrite(EN4,HIGH);
+	  } 
+	   
+	
+	
+	  if(num == 5)
+	  {
+	
+		digitalWrite(EN5,LOW);
+		delay(100);
+		SerialUSB.print("Motor :");
+		SerialUSB.print(num);
+		SerialUSB.print("  steps :");
+		SerialUSB.print(steps);
+		
+		digitalWrite(DIR5,dir);
+		delay(50);
+		for(int i=0;i<steps;i++)
+		{
+			digitalWrite(STP5, HIGH);
+			delayMicroseconds(800);
+			digitalWrite(STP5, LOW);
+			delayMicroseconds(800);
+		 }
+		 digitalWrite(EN5,HIGH);
+	  } 
+	
+	
+	
+	  if(num == 6)
+	  {
+	
+		digitalWrite(EN6,LOW);
+		delay(100);
+		SerialUSB.print("Motor :");
+		SerialUSB.print(num);
+		SerialUSB.print("  steps :");
+		SerialUSB.print(steps);
+		
+		digitalWrite(DIR6,dir);
+		delay(50);
+		for(int i=0;i<steps;i++)
+		{
+			digitalWrite(STP6, HIGH);
+			delayMicroseconds(800);
+			digitalWrite(STP6, LOW);
+			delayMicroseconds(800);
+		 }
+		 digitalWrite(EN6,HIGH);
+	  }
 }
+
 
 
 inline void gcode_X7()
 {
-  step(5,true,1000);
-  delay(500);
-  step(5,false,1000*5);
-  delay(500);   
+  if (code_seen('R')) 
+  {
+    motors = code_value_short();
 
+	if (code_seen('C')) 
+    {
+      motorc = code_value_short();
+	}
+	
+    step(motors,true,motorc);
+    delay(500);
+    step(motors,false,motorc*5);
+    delay(500);
+	
+  }
 }
+
 
 #if 0
 inline void gcode_X23()
