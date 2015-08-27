@@ -256,8 +256,7 @@ static bool home_all_axis = true;
 
 
 
-//aven_0805
-#define FW_V 1.0
+#define FW_V 1.0827
 
 //aven_0509
 long setpoint=0;
@@ -286,6 +285,7 @@ int runleds3=0;
 int dcount1=0;
 int dcount2=0;
 int dcount3=0;
+int filrunout_flag=0;
 
 
 
@@ -10312,6 +10312,26 @@ inline void gcode_X30()
 
 #endif
 
+inline void gcode_X8()
+{
+  if (code_seen('O')) 
+  {
+    filrunout_flag = 1;
+  }
+
+  if (code_seen('F')) 
+  {
+    filrunout_flag = 0;
+  }
+}
+
+inline void gcode_X111()
+{
+  SerialUSB.print("FW Version:");
+  SerialUSB.println(FW_V,4);
+}
+
+
 
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
@@ -10847,14 +10867,14 @@ void process_commands()
 		  break;
 		case 7:   
           gcode_X7();
-		  break;
- #if 0		  
+		  break;		  
 		case 8:   
           gcode_X8();
+		  break;		  
+        case 111:   
+          gcode_X111();
 		  break;
-        case 9:   
-          gcode_X9();
-		  break;
+ #if 0		  
 		case 10:   
           gcode_X10();
 		  break; 
