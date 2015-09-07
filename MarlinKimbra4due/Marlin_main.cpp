@@ -1133,7 +1133,9 @@ bool inline check_line_number(const char* cmd) {
 
   if(strchr_pointer == NULL) {
     // Can not found Line Number, send error, clean buffer and return
-    SERIAL_PROTOCOL("ER MISSING_LINENUMBER\n");
+    SERIAL_PROTOCOL("ER MISSING_LINENUMBER ");
+    SERIAL_PROTOCOL(gcode_LastN + 1);
+    SERIAL_PROTOCOL("\n");
     MYSERIAL.flush();
     return false;
 
@@ -1184,6 +1186,8 @@ bool inline check_line_number(const char* cmd) {
   // No error, update last line code
   SERIAL_PROTOCOL("LN ");
   SERIAL_PROTOCOL(gcode_N);
+  SERIAL_PROTOCOL(" ");
+  SERIAL_PROTOCOL(buflen);
   SERIAL_PROTOCOL("\n");
   MYSERIAL.flush();
 
@@ -8406,6 +8410,21 @@ inline void gcode_X15()
   
 }
 
+inline void gcode_C1()
+{
+  if (code_seen('O'))
+  {
+    SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
+    line_check = 1;
+    gcode_LastN = 0;
+  } else if (code_seen('F')) {
+    SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
+    line_check = 0;
+  } else {
+    SERIAL_PROTOCOLLN("ER BAD_CMD");
+  }
+}
+
 #if 0
 
 inline void gcode_X16()
@@ -8423,23 +8442,6 @@ inline void gcode_X16()
   }
 
 }
-
-inline void gcode_X17()
-{
-  if (code_seen('O')) 
-  {
-    SERIAL_PROTOCOLLN("echo:line check ON!");
-    line_check = 1;
-    gcode_LastN = 0;
-  }
-  
-  if (code_seen('F')) 
-  {
-    SERIAL_PROTOCOLLN("echo:line check OFF!");
-    line_check = 0;
-  }
-}
-
 
 inline void gcode_X18()
 {
@@ -11094,6 +11096,24 @@ void process_commands()
     SERIAL_PROTOCOLLN(MSG_OK);
   }
 //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
+  else if(code_seen('C')) {
+    int cCode = code_value_short();
+
+    switch(cCode) {
+      case 1:
+        // Enable/Disable lineno and sumcheck
+        gcode_C1();
+        break;
+      default:
+        SERIAL_ECHO_START;
+        SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
+        SERIAL_ECHO(cmdbuffer[bufindr]);
+        SERIAL_ECHOLNPGM("\"");
+
+        SERIAL_PROTOCOLLN("ER BAD_CMD");
+        break;
+    }
+  }
   else 
   {
     SERIAL_ECHO_START;
