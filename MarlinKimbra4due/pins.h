@@ -449,17 +449,17 @@
 
 //aven_0414_2015 Enable z_probe_endstop end
 
-#define E2_STEP_PIN        46//36
-#define E2_DIR_PIN         47//28
-#define E2_ENABLE_PIN      45//42
+#define E2_STEP_PIN        STP4//36
+#define E2_DIR_PIN         DIR4//28
+#define E2_ENABLE_PIN      EN4//42
 
 #define E0_STEP_PIN        STP5//59//43
 #define E0_DIR_PIN         DIR5//58//41
 #define E0_ENABLE_PIN      EN5//60//39
 
-#define E1_STEP_PIN        STP4//STP2//62//32
-#define E1_DIR_PIN         DIR4//DIR2//61//47
-#define E1_ENABLE_PIN      EN4//EN2//60//45
+#define E1_STEP_PIN        STP6//STP2//62//32
+#define E1_DIR_PIN         DIR6//DIR2//61//47
+#define E1_ENABLE_PIN      EN6//EN2//60//4547
 
 #define SDPOWER            -1
 #define SDSS               -1///4

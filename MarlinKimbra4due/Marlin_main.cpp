@@ -256,7 +256,7 @@ static bool home_all_axis = true;
 
 
 
-#define FW_V 1.0827
+#define FW_V 1.0907
 
 //aven_0509
 long setpoint=0;
@@ -290,6 +290,7 @@ int motors=0;
 int motorc=0;
 
 int filrunout_flag=0;
+int filrunout_info_count=0;
 
 
 
@@ -10454,13 +10455,17 @@ inline void gcode_X8()
   if (code_seen('O')) 
   {
     filrunout_flag = 1;
+	filrunout_info_count=0;
   }
 
   if (code_seen('F')) 
   {
     filrunout_flag = 0;
+	filrunout_info_count=0;
   }
 }
+
+
 
 inline void gcode_X111()
 {
@@ -11534,14 +11539,31 @@ void disable_all_steppers() {
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
+  
   //#if HAS_FILRUNOUT //aven_test0826
-    //if ((printing || card.sdprinting) && (READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING))
-    if ((READ(F0_STOP)^FIL_RUNOUT_INVERTING))
+	  //if ((printing || card.sdprinting) && (READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING))
+
+  //aven_0907
+    if(filrunout_flag == 1)
     {
-		///SerialUSB.println("filrunout");
-        filrunout();
-    }
+	  if ((READ(F0_STOP)^FIL_RUNOUT_INVERTING))
+      {
+        if(filrunout_info_count = 10)
+        {
+		  SerialUSB.println("filrunout");
+          //filrunout();
+          filrunout_info_count = 0;
+        }
+		filrunout_info_count++;
+      }
   //#endif
+    }
+
+	else
+	{
+      filrunout_info_count = 0;
+	}
+//aven_0907
 
   if (buflen < BUFSIZE - 1) get_command();
 
