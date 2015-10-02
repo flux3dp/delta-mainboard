@@ -68,7 +68,7 @@
 
 // This defines the number of extruder real or virtual
 //#define EXTRUDERS 1
-#define EXTRUDERS 2 //For E1
+#define EXTRUDERS 3 //For E1
 
 // This is used for single nozzle and multiple extrusion configuration
 // Uncomment below to enable (One Hotend)
