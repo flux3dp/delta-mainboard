@@ -1057,10 +1057,10 @@ void setup()
   pinMode(REFC3,OUTPUT); 
   pinMode(REFC4,OUTPUT);
 
-  digitalWrite(REFC1, HIGH);
-  digitalWrite(REFC2, HIGH);
-  digitalWrite(REFC3, HIGH);
-  digitalWrite(REFC4, HIGH);
+  digitalWrite(REFC1, LOW);
+  digitalWrite(REFC2, LOW);
+  digitalWrite(REFC3, LOW);
+  digitalWrite(REFC4, LOW);
 
   //aven 0724
   pinMode(EN1,OUTPUT); 
