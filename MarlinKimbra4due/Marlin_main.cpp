@@ -258,13 +258,19 @@ static bool home_all_axis = true;
 
 #define FW_V 1.0907
 
+// Lifetime manage
+unsigned long rpi_last_active = 0;
+unsigned long rpi_wifi_active = 0;
+bool rpi_io1_flag;
+bool rpi_io2_flag;
+
+
 //aven_0509
 long setpoint=0;
 int freq=0;
 int duty=0;
 int power=0;
 long read_temp=0;
-char RX_buff[100];
 int pleds=0;
 int qleds=0;
 int f_led1=0;
@@ -732,188 +738,130 @@ void servo_init()
   #endif
 }
 
+// manage_led
+#define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
+#define _led_wave(i) _led_wave_atom(led_param_a[i], led_param_b[i])
+#define LED_OFF 0
+#define LED_WAVE 1
+#define LED_BLINK 2
+#define LED_ON 3
+#define LED_WAVE_2_ON 4
+#define LED_WAVE_2_OFF 5
 
+int led_pins[3] = {LED_P1, LED_P2, LED_P3};
+char led_mode = 'W';  // 'W'akeup, 'R'eady, 'S'leep, 'F'atel
+float led_param_a[3] = {0.0009, 1, 1};
+float led_param_b[3] = {0, 0, 0};
+char led_ctrl[3] = {1, 0, 0};
 
-void led_br()
+// pre-molloc space
+char new_led_mode;
+
+void manage_led()
 {
+  new_led_mode = led_mode;
 
-  if(f_led1==1)
-  {
-    if(cled1!=0)
-    {
-	   if(runleds1 == 0)
-	   {
-	     analogWrite(LED_P1,leds1);
-	     delay(3);
-	     leds1++;
-
-		 if(leds1 == 255)
-		 {
-           runleds1=1;
-		 }	 	
-	   }
-
-	   if(runleds1 == 1)
-	   {
-         analogWrite(LED_P1,leds1);
-	     delay(3);
-	     leds1--;
-
-		 if(leds1 == 0)
-	     {
-	       runleds1=2;
-	     }
-	   }	
-	   
-       if(runleds1==2)
-	   {	
-	       //delay(8);
-           if(dcount1!=fled1)
-           {
-             //SerialUSB.print("dcount1:");
-		     //SerialUSB.println(dcount1);
-             dcount1++;		 
-           }
-		   else
-		   {
-		     runleds1=0;
-		     cled1--;
-			 dcount1=0;
-		     //SerialUSB.print("cled1:");
-		     //SerialUSB.println(cled1);
-		   }	 
-	     
-	   }
-      
+  if(rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
+    // rpi does not change R_IO1 status, check if timeout
+    if(rpi_last_active) {
+      // TODO: 5000
+      if(millis() - rpi_last_active > 500000) {
+        new_led_mode = 'F';
+      } else {
+        new_led_mode = 'R';
+      }
     }
-	else
-	{
-      f_led1=0;
-	  runleds1=0;
-	  dcount1=0;
-	  fled1=0;
-	}
-	
+  } else {
+    // rpi change R_IO1 flag, update status
+    rpi_io1_flag = !rpi_io1_flag;
+    rpi_last_active = millis();
+    new_led_mode = 'R';
   }
 
-
-  if(f_led2==1)
-  {
-    if(cled2!=0)
-    {
-       if(runleds2 == 0)
-	   {
-	     analogWrite(LED_P2,leds2);
-	     delay(3);
-	     leds2++;
-
-		 if(leds2 == 255)
-		 {
-           runleds2=1;
-		 }	 	
-	   }
-
-	   if(runleds2 == 1)
-	   {
-         analogWrite(LED_P2,leds2);
-	     delay(3);
-	     leds2--;
-
-		 if(leds2 == 0)
-	     {
-           runleds2=2;
-	     }
-	   }
-
-	   if(runleds2 == 2)
-	   {
-           //delay(8);
-           if(dcount2!=fled2)
-           {
-             //SerialUSB.print("dcount2:");
-		     //SerialUSB.println(dcount2);
-             dcount2++;   
-           }
-		   else
-		   {
-		     dcount2=0;
-		     runleds2=0;
-		     cled2--;
-		     //SerialUSB.print("cled2:");
-		     //SerialUSB.println(cled2);
-		   }
-	    }
-	}
-	else
-	{
-      f_led2=0;
-	  runleds2=0;
-	  dcount2=0;
-	  fled2=0;
-	}
-
+  if(new_led_mode == 'R') {
+    if(rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
+      if(millis() - rpi_wifi_active > 5000) {
+        // rpi wifi status does not change over 5s
+        if(rpi_io2_flag && led_ctrl[2] != LED_ON)  // wifi is up
+          led_ctrl[2] = LED_WAVE_2_ON;
+        else if((!rpi_io2_flag) && led_ctrl[2] != LED_OFF)  // sleep
+          new_led_mode = 'S';
+      }
+    } else {
+      // rpi wifi status is changed, wave led
+      rpi_io2_flag = !rpi_io2_flag;
+      rpi_wifi_active = millis();
+      if(led_ctrl[2] != LED_WAVE) {
+        led_ctrl[2] = LED_WAVE;
+        led_param_a[2] = 0.0009;
+        led_param_b[2] = millis();
+      }
+    }
   }
 
-
-  if(f_led3==1)
-  {
-    if(cled3!=0)
-    {
-       if(runleds3 == 0)
-	   {
-	     analogWrite(LED_P3,leds3);
-	     delay(3);
-	     leds3++;
-
-		 if(leds3 == 255)
-		 {
-           runleds3=1;
-		 }	 	
-	   }
-
-	   if(runleds3 == 1)
-	   {
-         analogWrite(LED_P3,leds3);
-	     delay(3);
-	     leds3--;
-
-		 if(leds3 == 0)
-	     {
-           runleds3=2;
-	     }
-	   }
-
-
-	   if(runleds3 == 2)
-	   {
-	       //delay(8);
-		   if(dcount3!=fled3)
-           {
-             //SerialUSB.print("dcount3:");
-		     //SerialUSB.println(dcount3);
-             dcount3++;   
-           }
-		   else
-		   {
-		     dcount3=0;
-		     runleds3=0;
-		     cled3--;
-		     //SerialUSB.print("cled3:");
-		     //SerialUSB.println(cled3);
-		   }	 
-	     }
-	   }
-    
-	else
-	{
-      f_led3=0;
-	  runleds3=0;
-	  dcount3=0;
-	  fled3=0;
-	}
-
+  if(new_led_mode != led_mode) {
+    led_mode = new_led_mode;
+    switch(led_mode) {
+      case 'R':
+        led_ctrl[0] = LED_WAVE_2_ON;
+        led_ctrl[1] = LED_OFF;
+        break;
+      case 'F':
+        led_ctrl[0] = LED_BLINK; led_param_a[0] = 0.003; led_param_b[0] = 0;
+        led_ctrl[1] = LED_BLINK; led_param_a[1] = 0.003; led_param_b[1] = 0;
+        led_ctrl[2] = LED_OFF;
+        break;
+      case 'S':
+        led_ctrl[0] = led_ctrl[1] = led_ctrl[2] = 0;
+        break;
+      case 'W':
+        break;
+      default:
+        led_ctrl[0] = led_ctrl[1] = led_ctrl[2] = LED_WAVE;
+        led_param_a[0] = led_param_a[1] = led_param_a[2] = 0.005;
+        led_param_b[0] = led_param_b[2] = 0;
+        led_param_b[1] = 175;
+    }
   }
-  
+
+  for(int i=0;i<3;i++) {
+    switch(led_ctrl[i]) {
+      case LED_OFF:
+        analogWrite(led_pins[i], 0);
+        break;
+      case LED_WAVE:
+        analogWrite(led_pins[i], int(_led_wave(i) * 255));
+        break;
+      case LED_BLINK:
+        analogWrite(led_pins[i], (_led_wave(i) > 0.5) ? 255 : 0);
+        break;
+      case LED_ON:
+        analogWrite(led_pins[i], 255);
+        break;
+      case LED_WAVE_2_ON:
+        if(_led_wave(i) > 0.95) {
+          analogWrite(led_pins[i], 255);
+          led_ctrl[i] = LED_ON;
+        }
+        else {
+          analogWrite(led_pins[i], int(_led_wave(i) * 255));
+        }
+        break;
+      case LED_WAVE_2_OFF:
+      if(_led_wave(i) < 0.05) {
+        analogWrite(led_pins[i], 0);
+        led_ctrl[i] = LED_OFF;
+      }
+      else {
+        analogWrite(led_pins[i], int(_led_wave(i) * 255));
+      }
+      break;
+        break;
+      default:
+        analogWrite(led_pins[i], 0);
+        break;
+    }
+  }
 }
 
 
@@ -961,12 +909,6 @@ void setup()
   SERIAL_ECHO(freeMemory());
   SERIAL_ECHOPGM(MSG_PLANNER_BUFFER_BYTES);
   SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
-  #ifdef SDSUPPORT
-  for(int8_t i = 0; i < BUFSIZE; i++)
-  {
-    fromsd[i] = false;
-  }
-  #endif //!SDSUPPORT
 
   // loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
   Config_RetrieveSettings();
@@ -1029,7 +971,8 @@ void setup()
 
   pinMode(CAP_IO,INPUT);
   pinMode(REF_IO,INPUT);
-  
+
+  // Initial LED
   pinMode(LED_P1,OUTPUT);
   pinMode(LED_P2,OUTPUT);
   pinMode(LED_P3,OUTPUT);
@@ -1037,6 +980,7 @@ void setup()
   digitalWrite(S_LAS1, LOW);
   digitalWrite(S_LAS2, LOW);
   
+  analogWrite(LED_P1, 0);
   analogWrite(LED_P2, 0);
   analogWrite(LED_P3, 0); 
    
@@ -1046,9 +990,12 @@ void setup()
 
   //fan_run();
 
-  //aven 0708
-  pinMode(R_IO1,INPUT); 
+  // LED Control
+  pinMode(R_IO1,INPUT);
   pinMode(R_IO2,INPUT);
+  rpi_io1_flag = digitalRead(R_IO1) == HIGH;
+  rpi_io2_flag = digitalRead(R_IO1) == HIGH;
+  led_param_b[0] = millis();
 
 
   //aven 0716
@@ -1079,9 +1026,8 @@ void setup()
 
   pinMode(F0_STOP,INPUT);
   digitalWrite(F0_STOP, HIGH);
-  
 
-  
+
 }
 
 void loop() {
@@ -1120,7 +1066,7 @@ void loop() {
   manage_inactivity();
   checkHitEndstops();
   //lcd_update();
-  led_br();
+  manage_led();
 
   //SerialUSB.println(digitalRead(F0_STOP));
   //SerialUSB.println(digitalRead(FILRUNOUT_PIN));
@@ -7593,62 +7539,40 @@ inline void gcode_X2()
 
 inline void gcode_X3()
 {
-  if (code_seen('F')) 
-  {
-    pleds = code_value_short();
-	if(pleds == 1)
-    {
-      digitalWrite(REFC1, LOW);
-	}
-    if(pleds == 2)
-    {
-      digitalWrite(REFC2, LOW);
-	}
-	if(pleds == 3)
-    {
-      digitalWrite(REFC3, LOW);
-	}
-	if(pleds == 4)
-    {
-      digitalWrite(REFC4, LOW);
-	}
-    if(pleds == 0)
-    {
-      digitalWrite(REFC1, LOW);
-	  digitalWrite(REFC2, LOW);
-      digitalWrite(REFC3, LOW);
-	  digitalWrite(REFC4, LOW);
-	}
-	
+  int led_index;
+  if(code_seen('L')) {
+    led_index = code_value_short();
+    SerialUSB.print("MSG LED ");
+    SerialUSB.print(led_index);
+  } else {
+    SerialUSB.println("ER WHERE_IS_CODE_L");
+    return;
   }
-  if (code_seen('O')) 
-  {
-    pleds = code_value_short();
-    if(pleds == 1)
-    {
-      digitalWrite(REFC1, HIGH);
-	}
-    if(pleds == 2)
-    {
-      digitalWrite(REFC2, HIGH);
-	}
-	if(pleds == 3)
-    {
-      digitalWrite(REFC3, HIGH);
-	}
-	if(pleds == 4)
-    {
-      digitalWrite(REFC4, HIGH);
-	}
-    if(pleds == 0)
-    {
-      digitalWrite(REFC1, HIGH);
-	  digitalWrite(REFC2, HIGH);
-      digitalWrite(REFC3, HIGH);
-	  digitalWrite(REFC4, HIGH);
-	}
+  if(code_seen('R')) {
+    SerialUSB.print(" CONTROL ");
+    SerialUSB.print(led_ctrl[led_index]);
+    SerialUSB.print(" PARAM_A ");
+    SerialUSB.print(led_param_a[led_index]);
+    SerialUSB.print(" PARAM_B ");
+    SerialUSB.print(led_param_b[led_index]);
+    return;
   }
-
+  if(code_seen('C')) {
+    led_ctrl[led_index] = code_value();
+    SerialUSB.print(" CONTROL ");
+    SerialUSB.print(led_ctrl[led_index]);
+  }
+  if(code_seen('A')) {
+    led_param_a[led_index] = code_value();
+    SerialUSB.print(" PARAM_A ");
+    SerialUSB.print(led_param_a[led_index]);
+  }
+  if(code_seen('B')) {
+    led_param_b[led_index] = code_value();
+    SerialUSB.print(" PARAM_B ");
+    SerialUSB.print(led_param_b[led_index]);
+  }
+  SerialUSB.println("#");
 }
 
 
@@ -11712,8 +11636,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #endif
 
   check_axes_activity();
-
-  led_br();//aven_test0825
+  manage_led();
 }
 
 void kill()
