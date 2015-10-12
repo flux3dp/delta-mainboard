@@ -764,8 +764,7 @@ void manage_led()
   if(rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
     // rpi does not change R_IO1 status, check if timeout
     if(rpi_last_active) {
-      // TODO: 5000
-      if(millis() - rpi_last_active > 500000) {
+      if(millis() - rpi_last_active > 5000) {
         new_led_mode = 'F';
       } else {
         new_led_mode = 'R';
@@ -1073,6 +1072,22 @@ void loop() {
   
 }
 
+void inline proc_heigh_level_control(const char* cmd) {
+  if(strcmp(cmd, "LINECHECK_ENABLED") == 0) {
+    SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
+    line_check = 1;
+    gcode_LastN = 0;
+
+  } else if(strcmp(cmd, "LINECHECK_DISABLED") == 0) {
+    SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
+    line_check = 0;
+
+  // } else if(strcmp(cmd, "RESET_QUEUE") == 0) {
+  } else {
+    SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
+  }
+}
+
 
 bool inline check_line_number(const char* cmd) {
   // Check N
@@ -1159,6 +1174,12 @@ void get_command()
       }
 
       cmdbuffer[bufindw][serial_count] = 0; //terminate string
+
+      if(cmdbuffer[bufindw][0] == '@') {
+        proc_heigh_level_control(cmdbuffer[bufindw] + 1);
+        serial_count = 0;
+        return;
+      }
 
       //If command was e-stop process now
       if(strcmp(cmdbuffer[bufindw], "M112") == 0)
@@ -5526,7 +5547,7 @@ inline void gcode_M112() {
  * M114: Output current position to serial port
  */
 inline void gcode_M114() {
-  SERIAL_PROTOCOLPGM("X:");
+  SERIAL_PROTOCOLPGM("CTRL STATUS X:");
   SERIAL_PROTOCOL(current_position[X_AXIS]);
   SERIAL_PROTOCOLPGM(" Y:");
   SERIAL_PROTOCOL(current_position[Y_AXIS]);
@@ -5534,6 +5555,8 @@ inline void gcode_M114() {
   SERIAL_PROTOCOL(current_position[Z_AXIS]);
   SERIAL_PROTOCOLPGM(" E:");
   SERIAL_PROTOCOL(current_position[E_AXIS]);
+  SERIAL_PROTOCOLPGM(" T:");
+  SERIAL_PROTOCOL(active_extruder);
 
   SERIAL_PROTOCOLPGM(MSG_COUNT_X);
   SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
@@ -7517,7 +7540,7 @@ inline void gcode_X2()
   if (code_seen('F')) 
   {
     SerialUSB.println("PWM OFF");
-    analogWrite(M_IO2, 0);
+    analogWrite(M_IO2, 255);
   }
   
   if (code_seen('O')) 
@@ -7532,12 +7555,31 @@ inline void gcode_X2()
 	{
 	  SerialUSB.print("PWM :");
       SerialUSB.println(pleds);
-      analogWrite(M_IO2, pleds);
+      analogWrite(M_IO2, 255 - pleds);
 	}	
   }	
 }
 
 inline void gcode_X3()
+{
+  if (code_seen('F')) 
+  {
+    digitalWrite(REFC1, LOW);
+    digitalWrite(REFC2, LOW);
+    digitalWrite(REFC3, LOW);
+    digitalWrite(REFC4, LOW);
+  }
+  if (code_seen('O')) 
+  {
+    digitalWrite(REFC1, HIGH);
+    digitalWrite(REFC2, HIGH);
+    digitalWrite(REFC3, HIGH);
+    digitalWrite(REFC4, HIGH);
+  }
+}
+
+
+inline void gcode_X4()
 {
   int led_index;
   if(code_seen('L')) {
@@ -7573,61 +7615,6 @@ inline void gcode_X3()
     SerialUSB.print(led_param_b[led_index]);
   }
   SerialUSB.println("#");
-}
-
-
-inline void gcode_X4()
-{
-  if (code_seen('F')) 
-  {
-    pleds = code_value_short();
-    SerialUSB.println("LED Panel OFF :");
-	SerialUSB.println(pleds);
-	if(pleds == 1)
-    {
-      analogWrite(LED_P1, 0);
-	}
-    if(pleds == 2)
-    {
-      analogWrite(LED_P2, 0);
-	}
-	if(pleds == 3)
-    {
-      analogWrite(LED_P3, 0);
-	}
-    if(pleds == 0)
-    {
-      analogWrite(LED_P1, 0);
-	  analogWrite(LED_P2, 0);
-      analogWrite(LED_P3, 0);
-	}
-	
-  }
-  if (code_seen('O')) 
-  {
-    pleds = code_value_short();
-    SerialUSB.println("LED Panel ON :");
-	SerialUSB.println(pleds);
-    if(pleds == 1)
-    {
-      analogWrite(LED_P1, 255);
-	}
-    if(pleds == 2)
-    {
-      analogWrite(LED_P2, 255);
-	}
-	if(pleds == 3)
-    {
-      analogWrite(LED_P3, 255);
-	}
-    if(pleds == 0)
-    {
-      analogWrite(LED_P1, 255);
-	  analogWrite(LED_P2, 255);
-      analogWrite(LED_P3, 255);
-	}
-  }
-
 }
 
 
@@ -7846,103 +7833,6 @@ inline void gcode_X5() //heater PID
   
 
 }
-#endif
-
-
-#if 0
-inline void gcode_X6() //Read  Temp
-{
-    read_temp = 0;
-  //if (code_seen('T') | code_seen('t')) 
-  //{
-    SerialUSB.println("Read Temp :");
-    Serial.print("t");
-
-
-    int byteCount = Serial.readBytesUntil(',', RX_buff, 50);
-    if(byteCount > 0)
-    {
-      for(int i = 0; i < byteCount; i++)
-      {  
-        SerialUSB.write(RX_buff[i]);
-               
-      }
-    }
-	//free(RX_buff);
-}
-
-
-inline void gcode_X7() //set frequency
-{
-  freq = 0;
-  if (code_seen('P') | code_seen('p')) 
-  {
-    SerialUSB.println("Set Fan2 frequency ");
-    freq =code_value_short();
-	if(freq == 1 | freq == 8 | freq == 64 | freq == 256 | freq == 1024)
-	{
-      Serial.print("p");
-	  Serial.print(freq);
-	}
-    else
-    {
-      SerialUSB.println("Wrong freq !!");
-	  SerialUSB.println("1 or 8 or 64 or 256 or 1024");
-	}	
-  }
-}
-
-
-
-inline void gcode_X8() //set fan duty
-{
-  duty = 0;
-
-  if(code_seen('F'))
-  {
-    duty = code_value();
-    SerialUSB.println("Set Fan1 & Fan2 duty ");
-    SerialUSB.println(duty);
-	Serial.print("F");
-	Serial.print(duty);
-  }	
-}
-
-
-//Only for Laser Module
-inline void gcode_X9() //set Laser power
-{
-  power = 0;
-  
-  
-  if (code_seen('L')) 
-  {
-    power =code_value_short();
-	SerialUSB.println("Set Laser power ");
-    SerialUSB.println(power);   
-	Serial.print("L");
-	Serial.print(power);	
-  }
-}
-
-
-inline void gcode_X10() //Read status
-{
-    SerialUSB.println("Read Status ");
-	Serial.print("R");
-
-    int byteCount = Serial.readBytesUntil(',', RX_buff, 100);
-    if(byteCount > 0)
-    {
-      for(int i = 0; i < byteCount; i++)
-      {  
-        SerialUSB.write(RX_buff[i]) ;             
-      }
-    }
-	//free(RX_buff);
-	//delay(100);
-}
-
 #endif
 
 
