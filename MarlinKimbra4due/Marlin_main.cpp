@@ -8635,9 +8635,9 @@ inline void gcode_X6()
   //cdelta[2] = (cdelta[2]/80) - 403.23;
   enable_endstops(false);
 
-  cdelta[0] = h_constant - cdelta[0];
-  cdelta[1] = h_constant - cdelta[1];
-  cdelta[2] = h_constant - cdelta[2];
+  cdelta[0] = h_constant - cdelta[0] - endstop_adj[0];
+  cdelta[1] = h_constant - cdelta[1] - endstop_adj[1];
+  cdelta[2] = h_constant - cdelta[2] - endstop_adj[2];
 
   SerialUSB.print("h_constant: ");
   SerialUSB.println(h_constant);
@@ -10679,7 +10679,7 @@ void process_commands()
   //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
   else if (code_seen('X')) 
   {
-    int gCode = code_value_short();  
+    int gCode = code_value_short();  
     switch(gCode) 
     {
       case 0:
