@@ -468,7 +468,7 @@ float h_offset=0;
 #endif //!SDSUPPORT
 
 //#ifdef FILAMENTCHANGEENABLE //aven_test0826
-	bool filament_changing = false;
+  bool filament_changing = false;
 //#endif
 
 #if defined(IDLE_OOZING_PREVENT) || defined(EXTRUDER_RUNOUT_PREVENT)
@@ -1030,7 +1030,6 @@ void setup()
 }
 
 void loop() {
-  
   if (buflen < BUFSIZE - 1) get_command();
 
   #ifdef SDSUPPORT
@@ -1810,17 +1809,16 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     delta_tower1_x = (-SIN_60 * delta_radius) + tower_adj[0]; // front left tower + xa
     delta_tower1_y = (-COS_60 * delta_radius) - tower_adj[0] ;
     delta_tower2_x = -(-SIN_60 * delta_radius) + tower_adj[1]; // front right tower + xb
-    delta_tower2_y = (-COS_60 * delta_radius) + tower_adj[1]; // 
+    delta_tower2_y = (-COS_60 * delta_radius) + tower_adj[1];
     delta_tower3_x = tower_adj[2] ; // back middle tower + xc
-    delta_tower3_y = -2 * (-COS_60 * delta_radius);  
-    */
+    delta_tower3_y = -2 * (-COS_60 * delta_radius);*/
 
     delta_tower1_x = (delta_radius + tower_adj[3]) * cos((210 + tower_adj[0]) * PI/180); // front left tower
-    delta_tower1_y = (delta_radius + tower_adj[3]) * sin((210 + tower_adj[0]) * PI/180); 
+    delta_tower1_y = (delta_radius + tower_adj[3]) * sin((210 + tower_adj[0]) * PI/180);
     delta_tower2_x = (delta_radius + tower_adj[4]) * cos((330 + tower_adj[1]) * PI/180); // front right tower
-    delta_tower2_y = (delta_radius + tower_adj[4]) * sin((330 + tower_adj[1]) * PI/180); 
+    delta_tower2_y = (delta_radius + tower_adj[4]) * sin((330 + tower_adj[1]) * PI/180);
     delta_tower3_x = (delta_radius + tower_adj[5]) * cos((90 + tower_adj[2]) * PI/180);  // back middle tower
-    delta_tower3_y = (delta_radius + tower_adj[5]) * sin((90 + tower_adj[2]) * PI/180); 
+    delta_tower3_y = (delta_radius + tower_adj[5]) * sin((90 + tower_adj[2]) * PI/180);
   }
 
   void deploy_z_probe()
@@ -1890,7 +1888,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
     enable_endstops(false);
     long stop_steps = st_get_position(Z_AXIS);
-    
+
     saved_position[X_AXIS] = float((st_get_position(X_AXIS)) / axis_steps_per_unit[X_AXIS]);
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
@@ -1914,7 +1912,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   {
     float probe_bed_z, probe_z, probe_h, probe_l;
     int probe_count;
-      
+
     for (int y = 3; y >= -3; y--)
     {
       int dir = y % 2 ? -1 : 1;
@@ -2013,8 +2011,8 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       probe_h[x] = -100;
       probe_l[x] = 100;
     }
-    
-    // probe test loop  
+
+    // probe test loop
     for(int x=0; x<3; x++)
     {
       bed_probe_all();
@@ -2045,7 +2043,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   void bed_probe_all()
   {
     //Probe all bed positions & store carriage positions
-    bed_level_c = probe_bed(0.0, 0.0);      
+    bed_level_c = probe_bed(0.0, 0.0);
     save_carriage_positions(0);
     bed_level_z = probe_bed(0.0, bed_radius);
     save_carriage_positions(1);
@@ -2058,56 +2056,53 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     bed_level_y = probe_bed(SIN_60 * bed_radius, -COS_60 * bed_radius);
     save_carriage_positions(5);
     bed_level_ox = probe_bed(SIN_60 * bed_radius, COS_60 * bed_radius);
-    save_carriage_positions(6);    
+    save_carriage_positions(6);
   }
-    
+
   void calibration_report()
   {
     //Display Report
-    
-
     SerialUSB.println("bed level");
-	SerialUSB.print("bed_level_x:");
-	SerialUSB.println(bed_level_x, 4);
+    SerialUSB.print("bed_level_x:");
+    SerialUSB.println(bed_level_x, 4);
     SerialUSB.print("bed_level_y:");
-	SerialUSB.println(bed_level_y, 4);
-	SerialUSB.print("bed_level_z:");
-	SerialUSB.println(bed_level_z, 4);
-	SerialUSB.print("bed_level_ox:");
-	SerialUSB.println(bed_level_ox, 4);
-	SerialUSB.print("bed_level_oy:");
+    SerialUSB.println(bed_level_y, 4);
+    SerialUSB.print("bed_level_z:");
+    SerialUSB.println(bed_level_z, 4);
+    SerialUSB.print("bed_level_ox:");
+    SerialUSB.println(bed_level_ox, 4);
+    SerialUSB.print("bed_level_oy:");
     SerialUSB.println(bed_level_oy, 4);
     SerialUSB.print("bed_level_oz:");
     SerialUSB.println(bed_level_oz, 4);
-	SerialUSB.print("bed_level_c:");
+    SerialUSB.print("bed_level_c:");
     SerialUSB.println(bed_level_c, 4);
 
-	SerialUSB.println("Endstop");
-	SerialUSB.print("X:");
+    SerialUSB.println("Endstop");
+    SerialUSB.print("X:");
     SerialUSB.print(endstop_adj[0]);
     SerialUSB.print(" Y:");
     SerialUSB.print(endstop_adj[1]);
-	SerialUSB.print(" Z:");
+    SerialUSB.print(" Z:");
     SerialUSB.println(endstop_adj[2]);
 
 
-	SerialUSB.println("tower");
+    SerialUSB.println("tower");
     SerialUSB.print("A:");
     SerialUSB.print(tower_adj[0]);
     SerialUSB.print(" B:");
     SerialUSB.print(tower_adj[1]);
-	SerialUSB.print(" C:");
+    SerialUSB.print(" C:");
     SerialUSB.print(tower_adj[2]);
-	SerialUSB.print(" I:");
+    SerialUSB.print(" I:");
     SerialUSB.print(tower_adj[3]);
     SerialUSB.print(" J:");
     SerialUSB.print(tower_adj[4]);
-	SerialUSB.print(" K:");
-    SerialUSB.println(tower_adj[5]);    
+    SerialUSB.print(" K:");
+    SerialUSB.println(tower_adj[5]);
 
     SerialUSB.println("Delta Radius: ");
     SerialUSB.println(delta_radius, 4);
-    
 
     SerialUSB.println("X-Tower\t\tY-Tower\t\tDiag Rod: ");
     SerialUSB.println(delta_diagonal_rod, 4);
@@ -2118,7 +2113,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   {
     for(int8_t i=0; i < NUM_AXIS; i++)
     {
-      saved_positions[position_num][i] = saved_position[i];    
+      saved_positions[position_num][i] = saved_position[i];
     }
   }
 
@@ -2160,7 +2155,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     HOMEAXIS(Z);
 
     calculate_delta(current_position);
-    plan_set_position(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS]);   
+    plan_set_position(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], current_position[E_AXIS]);
 
     #ifdef ENDSTOPS_ONLY_FOR_HOMING
       enable_endstops(false);
@@ -2183,9 +2178,8 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     }
   }
 
-  void calculate_delta(float cartesian[3]) 
+  void calculate_delta(float cartesian[3])
   {
-  
     delta[X_AXIS] = sqrt(DELTA_DIAGONAL_ROD_2
                          - sq(delta_tower1_x-cartesian[X_AXIS])
                          - sq(delta_tower1_y-cartesian[Y_AXIS])
@@ -2199,176 +2193,168 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
                          - sq(delta_tower3_y-cartesian[Y_AXIS])
                          ) + cartesian[Z_AXIS];
 #if 0
-	SerialUSB.print(" X: ");
-	SerialUSB.print(delta[X_AXIS]);
-	SerialUSB.print(" Y: ");
-	SerialUSB.print(delta[Y_AXIS]);
-	SerialUSB.print(" Z: ");
-	SerialUSB.println(delta[Z_AXIS]);
-#endif	
+  SerialUSB.print(" X: ");
+  SerialUSB.print(delta[X_AXIS]);
+  SerialUSB.print(" Y: ");
+  SerialUSB.print(delta[Y_AXIS]);
+  SerialUSB.print(" Z: ");
+  SerialUSB.println(delta[Z_AXIS]);
+#endif
   }
 
  //aven_0817
  void calculate_delta_tower(float r, float delta_tower[])
- { 
+ {
+  DELTA_DIAGONAL_ROD_2 = delta_diagonal_rod * delta_diagonal_rod;
 
-	DELTA_DIAGONAL_ROD_2 = delta_diagonal_rod * delta_diagonal_rod;
-
-	delta_tower[0] = (r + tower_adj[3]) * cos((210 + tower_adj[0]) * M_PI/180); // front left tower
-	delta_tower[1] = (r + tower_adj[3]) * sin((210 + tower_adj[0]) * M_PI/180); 
-	delta_tower[2] = (r + tower_adj[4]) * cos((330 + tower_adj[1]) * M_PI/180); // front right tower
-	delta_tower[3] = (r + tower_adj[4]) * sin((330 + tower_adj[1]) * M_PI/180); 
-	delta_tower[4] = (r + tower_adj[5]) * cos((90 + tower_adj[2]) * M_PI/180);  // back middle tower
-	delta_tower[5] = (r + tower_adj[5]) * sin((90 + tower_adj[2]) * M_PI/180); 
+  delta_tower[0] = (r + tower_adj[3]) * cos((210 + tower_adj[0]) * M_PI/180); // front left tower
+  delta_tower[1] = (r + tower_adj[3]) * sin((210 + tower_adj[0]) * M_PI/180);
+  delta_tower[2] = (r + tower_adj[4]) * cos((330 + tower_adj[1]) * M_PI/180); // front right tower
+  delta_tower[3] = (r + tower_adj[4]) * sin((330 + tower_adj[1]) * M_PI/180);
+  delta_tower[4] = (r + tower_adj[5]) * cos((90 + tower_adj[2]) * M_PI/180);  // back middle tower
+  delta_tower[5] = (r + tower_adj[5]) * sin((90 + tower_adj[2]) * M_PI/180);
   }
 
   void calculate_cartesian_position( float actuator_mm[], float cartesian_mm[], float r)
   {
-	float delta_tower[6];
+  float delta_tower[6];
 
-	calculate_delta_tower(r, delta_tower);
+  calculate_delta_tower(r, delta_tower);
 
-	Vector3 tower1( delta_tower[0], delta_tower[1], actuator_mm[X_AXIS] );
-	Vector3 tower2( delta_tower[2], delta_tower[3], actuator_mm[Y_AXIS] );
-	Vector3 tower3( delta_tower[4], delta_tower[5], actuator_mm[Z_AXIS] );
+  Vector3 tower1( delta_tower[0], delta_tower[1], actuator_mm[X_AXIS] );
+  Vector3 tower2( delta_tower[2], delta_tower[3], actuator_mm[Y_AXIS] );
+  Vector3 tower3( delta_tower[4], delta_tower[5], actuator_mm[Z_AXIS] );
 
-	Vector3 s12 = tower1.sub(tower2);
-	Vector3 s23 = tower2.sub(tower3);
-	Vector3 s13 = tower1.sub(tower3);
+  Vector3 s12 = tower1.sub(tower2);
+  Vector3 s23 = tower2.sub(tower3);
+  Vector3 s13 = tower1.sub(tower3);
 
-	Vector3 normal = s12.cross(s23);
+  Vector3 normal = s12.cross(s23);
 
-	float magsq_s12 = s12.magsq();
-	float magsq_s23 = s23.magsq();
-	float magsq_s13 = s13.magsq();
+  float magsq_s12 = s12.magsq();
+  float magsq_s23 = s23.magsq();
+  float magsq_s13 = s13.magsq();
 
-	float inv_nmag_sq = 1.0F / normal.magsq();
-	float q = 0.5F * inv_nmag_sq;
+  float inv_nmag_sq = 1.0F / normal.magsq();
+  float q = 0.5F * inv_nmag_sq;
 
-	float a = q * magsq_s23 * s12.dot(s13);
-	float b = q * magsq_s13 * s12.dot(s23) * -1.0F; // negate because we use s12 instead of s21
-	float c = q * magsq_s12 * s13.dot(s23);
+  float a = q * magsq_s23 * s12.dot(s13);
+  float b = q * magsq_s13 * s12.dot(s23) * -1.0F; // negate because we use s12 instead of s21
+  float c = q * magsq_s12 * s13.dot(s23);
 
-	Vector3 circumcenter( delta_tower[0] * a + delta_tower[2] * b + delta_tower[4] * c,
-		delta_tower[1] * a + delta_tower[3] * b + delta_tower[5] * c,
-		actuator_mm[X_AXIS] * a + actuator_mm[Y_AXIS] * b + actuator_mm[Z_AXIS] * c );
+  Vector3 circumcenter( delta_tower[0] * a + delta_tower[2] * b + delta_tower[4] * c,
+    delta_tower[1] * a + delta_tower[3] * b + delta_tower[5] * c,
+    actuator_mm[X_AXIS] * a + actuator_mm[Y_AXIS] * b + actuator_mm[Z_AXIS] * c );
 
-	float r_sq = 0.5F * q * magsq_s12 * magsq_s23 * magsq_s13;
-	//float dist = sqrtf(inv_nmag_sq * (arm_length_squared - r_sq));
-	float dist = sqrt(inv_nmag_sq * (DELTA_DIAGONAL_ROD_2 - r_sq));
+  float r_sq = 0.5F * q * magsq_s12 * magsq_s23 * magsq_s13;
+  //float dist = sqrtf(inv_nmag_sq * (arm_length_squared - r_sq));
+  float dist = sqrt(inv_nmag_sq * (DELTA_DIAGONAL_ROD_2 - r_sq));
 
 
-	Vector3 cartesianln = circumcenter.sub(normal.mul(dist));
+  Vector3 cartesianln = circumcenter.sub(normal.mul(dist));
 
-	cartesian_mm[X_AXIS] = cartesianln[0];
-	cartesian_mm[Y_AXIS] = cartesianln[1];
-	cartesian_mm[Z_AXIS] = cartesianln[2];
-	;
+  cartesian_mm[X_AXIS] = cartesianln[0];
+  cartesian_mm[Y_AXIS] = cartesianln[1];
+  cartesian_mm[Z_AXIS] = cartesianln[2];
+  ;
 
   }
 
-  void calculate_delta_position(float cartesian[3], float actuator_mm[], float r) 
+  void calculate_delta_position(float cartesian[3], float actuator_mm[], float r)
   {
-
     float delta_tower[6];
-	calculate_delta_tower(r, delta_tower);
-	
-	actuator_mm[0] = sqrt(DELTA_DIAGONAL_ROD_2
-		- sq(delta_tower[0]-cartesian[0]) 
-		- sq(delta_tower[1]-cartesian[1])
-		) + cartesian[2];
+  calculate_delta_tower(r, delta_tower);
+ 
+  actuator_mm[0] = sqrt(DELTA_DIAGONAL_ROD_2
+    - sq(delta_tower[0]-cartesian[0]) 
+    - sq(delta_tower[1]-cartesian[1])
+    ) + cartesian[2];
 
-	actuator_mm[1] = sqrt(DELTA_DIAGONAL_ROD_2
-		- sq(delta_tower[2]-cartesian[0])
-		- sq(delta_tower[3]-cartesian[1])
-		) + cartesian[2];
+  actuator_mm[1] = sqrt(DELTA_DIAGONAL_ROD_2
+    - sq(delta_tower[2]-cartesian[0])
+    - sq(delta_tower[3]-cartesian[1])
+    ) + cartesian[2];
 
-	actuator_mm[2] = sqrt(DELTA_DIAGONAL_ROD_2
-		- sq(delta_tower[4]-cartesian[0])
-		- sq(delta_tower[5]-cartesian[1])
-		) + cartesian[2];
-	
+  actuator_mm[2] = sqrt(DELTA_DIAGONAL_ROD_2
+    - sq(delta_tower[4]-cartesian[0])
+    - sq(delta_tower[5]-cartesian[1])
+    ) + cartesian[2];
   }
 
   void error_simulation(float p0[], float p1[], float error[])
   {
-	float temp[3];
-	calculate_delta_position(p0, temp, delta_radius);
-	for (int i = 0; i < 3; i++) temp[i] += error[i];
-	calculate_cartesian_position(temp, p1, delta_radius + error[3]);
+  float temp[3];
+  calculate_delta_position(p0, temp, delta_radius);
+  for (int i = 0; i < 3; i++) temp[i] += error[i];
+  calculate_cartesian_position(temp, p1, delta_radius + error[3]);
   }
 
   int calculate_error(float p[][3], float err[], int r_en, int h_en)
   {
 
 
-	float temp[4][3];
-	float error[5] = {0};
-	for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
-	int flag = 0;
-	unsigned int count = 0;
-	do
-	{
-		flag = 0;
-		for(int i = 0; i < 3; i++)
-		{
-			float a = temp[i][2] - temp[(i + 1) % 3][2];
-			float b = temp[i][2] - temp[(i + 2) % 3][2];
+  float temp[4][3];
+  float error[5] = {0};
+  for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+  int flag = 0;
+  unsigned int count = 0;
+  do
+  {
+    flag = 0;
+    for(int i = 0; i < 3; i++)
+    {
+      float a = temp[i][2] - temp[(i + 1) % 3][2];
+      float b = temp[i][2] - temp[(i + 2) % 3][2];
 
-			if(a < -0.001 || b < -0.001)
-			{
-				error[i] += 0.001;
-				for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
-				flag++;
-			}
-		}
-
-
-		float c = 0;
-		if (r_en) c = temp[3][2] - temp[0][2];
-
-		if(c < -0.001)
-		{
-			error[3] += 0.001;
-			for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
-			flag++;
-		}
-		else if(c > 0.001)
-		{
-			error[3] -= 0.001;
-			for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
-			flag++;
-		}
-		if (count > 25530)
-		{
-			return 0;
-		}
-		count++;
-	}while (flag);
-
-	if (h_en) error[4] -= temp[3][2];
-
-	//cout << "Count:" << count << endl;
-
-	for (int i = 0; i < 5; i++) err[i] += error[i];
-	float min = err[0];
-	for (int i = 1; i < 3; i++)
-	{
-		if (err[i] < min) min = err[i];
-	}
-	for (int i = 0; i < 3; i++) err[i] -= min;
-	//cout << "M666X" << -1 * err[0] << "Y" << -1 * err[1] << "Z" <<  -1 * err[2] << "R" << err[3] << "H" << err[4] << endl;
+      if(a < -0.001 || b < -0.001)
+      {
+        error[i] += 0.001;
+        for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+        flag++;
+      }
+    }
 
 
-	return 1;
+    float c = 0;
+    if (r_en) c = temp[3][2] - temp[0][2];
+
+    if(c < -0.001)
+    {
+      error[3] += 0.001;
+      for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+      flag++;
+    }
+    else if(c > 0.001)
+    {
+      error[3] -= 0.001;
+      for(int i = 0; i < 4; i++) error_simulation(p[i], temp[i], error);
+      flag++;
+    }
+    if (count > 25530)
+    {
+      return 0;
+    }
+    count++;
+  }while (flag);
+
+  if (h_en) error[4] -= temp[3][2];
+
+  //cout << "Count:" << count << endl;
+
+  for (int i = 0; i < 5; i++) err[i] += error[i];
+  float min = err[0];
+  for (int i = 1; i < 3; i++)
+  {
+    if (err[i] < min) min = err[i];
+  }
+  for (int i = 0; i < 3; i++) err[i] -= min;
+  //cout << "M666X" << -1 * err[0] << "Y" << -1 * err[1] << "Z" <<  -1 * err[2] << "R" << err[3] << "H" << err[4] << endl;
 
 
-
+  return 1;
   }
 
   //aven_0817
-  
-
   // Adjust print surface height by linear interpolation over the bed_level array.
   void adjust_delta(float cartesian[3])
   {
@@ -2391,12 +2377,12 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     delta[Z_AXIS] += offset;
 
 #if 0
-	SerialUSB.print(" aX: ");
-	SerialUSB.print(delta[X_AXIS]);
-	SerialUSB.print(" aY: ");
-	SerialUSB.print(delta[Y_AXIS]);
-	SerialUSB.print(" aZ: ");
-	SerialUSB.println(delta[Z_AXIS]);
+  SerialUSB.print(" aX: ");
+  SerialUSB.print(delta[X_AXIS]);
+  SerialUSB.print(" aY: ");
+  SerialUSB.print(delta[Y_AXIS]);
+  SerialUSB.print(" aZ: ");
+  SerialUSB.println(delta[Z_AXIS]);
 #endif
     /*
     SERIAL_ECHOPGM("grid_x="); SERIAL_ECHO(grid_x);
@@ -2424,7 +2410,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     endstop_adj[Z_AXIS] += z_endstop;
 
     calculate_delta(current_position);
-    plan_set_position(delta[X_AXIS] - (endstop_adj[X_AXIS] - saved_endstop_adj[X_AXIS]) , delta[Y_AXIS] - (endstop_adj[Y_AXIS] - saved_endstop_adj[Y_AXIS]), delta[Z_AXIS] - (endstop_adj[Z_AXIS] - saved_endstop_adj[Z_AXIS]), current_position[E_AXIS]);  
+    plan_set_position(delta[X_AXIS] - (endstop_adj[X_AXIS] - saved_endstop_adj[X_AXIS]) , delta[Y_AXIS] - (endstop_adj[Y_AXIS] - saved_endstop_adj[Y_AXIS]), delta[Z_AXIS] - (endstop_adj[Z_AXIS] - saved_endstop_adj[Z_AXIS]), current_position[E_AXIS]);
     st_synchronize();
   }
 
@@ -2443,20 +2429,20 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       apply_endstop_adjustment(bed_level_x, bed_level_y, bed_level_z);
 
       SerialUSB.print("x:");
-	  SerialUSB.print(bed_level_x, 4);
+    SerialUSB.print(bed_level_x, 4);
       SerialUSB.print(" (adj:");
-	  SerialUSB.print(endstop_adj[0], 4);
-	  SerialUSB.print(") y:");
-	  SerialUSB.print(bed_level_y, 4);
-	  SerialUSB.print(" (adj:");
-	  SerialUSB.print(endstop_adj[1], 4);
-	  SerialUSB.print(") z:");
-	  SerialUSB.print(bed_level_z, 4);
-	  SerialUSB.print(" (adj:");
-	  SerialUSB.print(endstop_adj[2], 4);
-	  SerialUSB.println(" (adj:");
+    SerialUSB.print(endstop_adj[0], 4);
+    SerialUSB.print(") y:");
+    SerialUSB.print(bed_level_y, 4);
+    SerialUSB.print(" (adj:");
+    SerialUSB.print(endstop_adj[1], 4);
+    SerialUSB.print(") z:");
+    SerialUSB.print(bed_level_z, 4);
+    SerialUSB.print(" (adj:");
+    SerialUSB.print(endstop_adj[2], 4);
+    SerialUSB.println(" (adj:");
 
-	  #if 0
+    #if 0
       ECHO_SMV(DB, "x:", bed_level_x, 4);
       ECHO_MV(" (adj:", endstop_adj[0], 4);
       ECHO_MV(") y:", bed_level_y, 4);
@@ -2469,33 +2455,33 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       if ((bed_level_x >= -ac_prec) and (bed_level_x <= ac_prec)) {
         x_done = true;
         SerialUSB.println("X=OK ");
-		//ECHO_SM(DB, "X=OK ");
+    //ECHO_SM(DB, "X=OK ");
       }
       else {
         x_done = false;
-		SerialUSB.println("X=ERROR ");
+    SerialUSB.println("X=ERROR ");
         //ECHO_SM(DB, "X=ERROR ");
       }
 
       if ((bed_level_y >= -ac_prec) and (bed_level_y <= ac_prec)) {
         y_done = true;
-		SerialUSB.println("Y=OK ");
+    SerialUSB.println("Y=OK ");
         //ECHO_M("Y=OK ");
       }
       else {
         y_done = false;
-		SerialUSB.println("Y=ERROR ");
+    SerialUSB.println("Y=ERROR ");
         //ECHO_M("Y=ERROR ");
       }
 
       if ((bed_level_z >= -ac_prec) and (bed_level_z <= ac_prec)) {
         z_done = true;
-		SerialUSB.println("Z=OK ");
+    SerialUSB.println("Z=OK ");
         //ECHO_EM("Z=OK");
       }
       else {
         z_done = false;
-		SerialUSB.println("Z=ERROR");
+    SerialUSB.println("Z=ERROR");
         //ECHO_EM("Z=ERROR");
       }
     } while (((x_done == false) or (y_done == false) or (z_done == false)));
@@ -2509,8 +2495,8 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
     if (high_endstop > 0) {
       SerialUSB.print("Reducing Build height by ");
-	  SerialUSB.println(high_endstop);
-	  //ECHO_LMV(DB, "Reducing Build height by ", high_endstop);
+    SerialUSB.println(high_endstop);
+    //ECHO_LMV(DB, "Reducing Build height by ", high_endstop);
       for(int8_t i = 0; i < 3; i++) {
         endstop_adj[i] -= high_endstop;
       }
@@ -2522,7 +2508,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   }
 
   int adj_deltaradius()
-  { 
+  {
     float adj_r;
     float prev_c;
     int c_nochange_count = 0;
@@ -2531,12 +2517,12 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     bed_level_c = probe_bed(0.0, 0.0);
 
     if ((bed_level_c >= -ac_prec / 2) and (bed_level_c <= ac_prec / 2)) {
-	  SerialUSB.println("Delta Radius OK");	
+    SerialUSB.println("Delta Radius OK");
       //ECHO_LM(DB, "Delta Radius OK");
       return 0;
     }
     else {
-	  SerialUSB.println("Adjusting Delta Radius");
+    SerialUSB.println("Adjusting Delta Radius");
       //ECHO_LM(DB, "Adjusting Delta Radius");
       //set inital direction and magnitude for delta radius adjustment
       adj_r = 0.1;
@@ -2553,13 +2539,13 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
         //Show progress
 
-		SerialUSB.print("r:");
-		SerialUSB.print(delta_radius, 4);
-		SerialUSB.print(" (adj:");
-		SerialUSB.print(adj_r, 4);
-		SerialUSB.print(") c:");
-		SerialUSB.println(bed_level_c, 4);
-		
+    SerialUSB.print("r:");
+    SerialUSB.print(delta_radius, 4);
+    SerialUSB.print(" (adj:");
+    SerialUSB.print(adj_r, 4);
+    SerialUSB.print(") c:");
+    SerialUSB.println(bed_level_c, 4);
+
         //ECHO_SMV(DB, "r:", delta_radius, 4);
         //ECHO_MV(" (adj:", adj_r, 4);
         //ECHO_EMV(") c:",bed_level_c, 4);
@@ -2590,7 +2576,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     float adj_prv;
 
     do {
-
       tower_adj[tower - 1] += adj_val;
       set_delta_constants();
 
@@ -2615,7 +2600,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (bed_level_ox < bed_level_oy) adj_val = adj_mag;
         if (bed_level_ox > bed_level_oy) adj_val = -adj_mag;
       }
-         
+
       if ((adj_val > 0) and (adj_prv < 0)) {
         adj_mag = adj_mag / 2;
         adj_val = adj_mag;
@@ -2629,45 +2614,43 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       //Show Adjustments made
       if (tower == 1) {
 
-		SerialUSB.print("oy:");
-		SerialUSB.print(bed_level_oy, 4);
-		SerialUSB.print("oz:");
-		SerialUSB.println(bed_level_oz, 4);
-		
+        SerialUSB.print("oy:");
+        SerialUSB.print(bed_level_oy, 4);
+        SerialUSB.print("oz:");
+        SerialUSB.println(bed_level_oz, 4);
+
         //ECHO_SMV(DB, "oy:", bed_level_oy, 4);
         //ECHO_MV(" oz:", bed_level_oz, 4);
       }
 
       if (tower == 2) {
 
-		SerialUSB.print("ox:");
-		SerialUSB.print(bed_level_ox, 4);
-		SerialUSB.print("oz:");
-		SerialUSB.println(bed_level_oz, 4);
-		
+        SerialUSB.print("ox:");
+        SerialUSB.print(bed_level_ox, 4);
+        SerialUSB.print("oz:");
+        SerialUSB.println(bed_level_oz, 4);
+
         //ECHO_SMV(DB, "ox:", bed_level_ox, 4);
         //ECHO_MV(" oz:", bed_level_oz, 4);
       }
 
       if (tower == 3) {
-     
-	    SerialUSB.print("ox:");
-		SerialUSB.print(bed_level_ox, 4);
-		SerialUSB.print("oy:");
-		SerialUSB.println(bed_level_oy, 4);
-		
+        SerialUSB.print("ox:");
+        SerialUSB.print(bed_level_ox, 4);
+        SerialUSB.print("oy:");
+        SerialUSB.println(bed_level_oy, 4);
         //ECHO_SMV(DB, "ox:", bed_level_ox, 4);
         //ECHO_MV(" oy:", bed_level_oy, 4);
       }
 
       SerialUSB.print(" tower delta adj:");
-	  SerialUSB.println(adj_val, 5);
-		
+      SerialUSB.println(adj_val, 5);
+
       //ECHO_EMV(" tower delta adj:", adj_val, 5);
     } while(adj_val != 0);
+
   }
 
-  
   void adj_tower_radius(int tower)
   {
     boolean done,t1_done,t2_done,t3_done;
@@ -2730,28 +2713,27 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (bed_level_ox == adj_target) t1_done = true;
         if ((bed_level_ox + 0.0001 > prev_bed_level) and (bed_level_ox - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
         if (nochange_count > 1) {
-		  SerialUSB.println("Stuck in Loop.. Exiting");	
+      SerialUSB.println("Stuck in Loop.. Exiting");
           //ECHO_LM(DB, "Stuck in Loop.. Exiting");
           t1_done = true;
         }
 
         SerialUSB.print("target:");
-		SerialUSB.print(adj_target, 6);
-		SerialUSB.print(" ox:");
-		SerialUSB.print(bed_level_ox, 6);
-		SerialUSB.print(" tower radius adj:");
-		SerialUSB.println(tower_adj[3], 6);
-		
-		
+    SerialUSB.print(adj_target, 6);
+    SerialUSB.print(" ox:");
+    SerialUSB.print(bed_level_ox, 6);
+    SerialUSB.print(" tower radius adj:");
+    SerialUSB.println(tower_adj[3], 6);
+
         //ECHO_SMV(DB, "target:", adj_target, 6);
         //ECHO_MV(" ox:", bed_level_ox, 6);
         //ECHO_MV(" tower radius adj:", tower_adj[3], 6);
         if (t1_done == true)
-			SerialUSB.println(" done:true");
-			//ECHO_EM(" done:true"); 
-		else 
-			SerialUSB.println(" done:false");
-			//ECHO_EM(" done:false");
+      SerialUSB.println(" done:true");
+      //ECHO_EM(" done:true");
+    else
+      SerialUSB.println(" done:false");
+      //ECHO_EM(" done:false");
       }
 
       if (tower == 2) {
@@ -2771,28 +2753,28 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (bed_level_oy == adj_target) t2_done = true;
         if ((bed_level_oy + 0.0001 > prev_bed_level) and (bed_level_oy - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
         if (nochange_count > 1) {
-		  SerialUSB.println("Stuck in Loop.. Exiting");	
+      SerialUSB.println("Stuck in Loop.. Exiting");
           //ECHO_LM(DB, "Stuck in Loop.. Exiting");
           t2_done = true;
         }
 
         SerialUSB.print("target:");
-		SerialUSB.print(adj_target, 6);
-		SerialUSB.print(" oy:");
-		SerialUSB.print(bed_level_oy, 6);
-		SerialUSB.print(" tower radius adj:");
-		SerialUSB.println(tower_adj[4], 6);
-		
+    SerialUSB.print(adj_target, 6);
+    SerialUSB.print(" oy:");
+    SerialUSB.print(bed_level_oy, 6);
+    SerialUSB.print(" tower radius adj:");
+    SerialUSB.println(tower_adj[4], 6);
+
         //ECHO_SMV(DB, "target:", adj_target, 6);
         //ECHO_MV(" oy:", bed_level_oy, 6);
         //ECHO_MV(" tower radius adj:", tower_adj[4], 6);
-        
-        if (t2_done == true)
-			SerialUSB.println(" done:true");
-			//ECHO_EM(" done:true"); 
-		else
-			SerialUSB.println(" done:false");
-			//ECHO_EM(" done:false");
+
+    if (t2_done == true)
+      SerialUSB.println(" done:true");
+      //ECHO_EM(" done:true");
+    else
+      SerialUSB.println(" done:false");
+      //ECHO_EM(" done:false");
       }
 
       if (tower == 3) {
@@ -2812,27 +2794,27 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (bed_level_oz == adj_target) t3_done = true;
         if ((bed_level_oz + 0.0001 > prev_bed_level) and (bed_level_oz - 0.0001 < prev_bed_level) and (adj_target + 0.0001 > prev_target) and (adj_target - 0.0001 < prev_target)) nochange_count ++;
         if (nochange_count > 1) {
-		  SerialUSB.println("Stuck in Loop.. Exiting");	
+      SerialUSB.println("Stuck in Loop.. Exiting");
           //ECHO_LM(DB, "Stuck in Loop.. Exiting");
           t3_done = true;
         }
 
-		SerialUSB.print("target:");
-		SerialUSB.print(adj_target, 6);
-		SerialUSB.print(" oz:");
-		SerialUSB.print(bed_level_oz, 6);
-		SerialUSB.print(" tower radius adj:");
-		SerialUSB.println(tower_adj[5], 6);
-		
+    SerialUSB.print("target:");
+    SerialUSB.print(adj_target, 6);
+    SerialUSB.print(" oz:");
+    SerialUSB.print(bed_level_oz, 6);
+    SerialUSB.print(" tower radius adj:");
+    SerialUSB.println(tower_adj[5], 6);
+
         //ECHO_SMV(DB, "target:", adj_target, 6);
         //ECHO_MV(" oz:", bed_level_oz, 6);
         //ECHO_MV(" tower radius adj:", tower_adj[5], 6);
         if (t3_done == true)
-			SerialUSB.println(" done:true");
-			//ECHO_EM(" done:true"); 
-		else
-			SerialUSB.println(" done:false");
-			//ECHO_EM(" done:false");
+      SerialUSB.println(" done:true");
+      //ECHO_EM(" done:true");
+    else
+      SerialUSB.println(" done:false");
+      //ECHO_EM(" done:false");
       }
 
     } while ((t1_done == false) or (t2_done == false) or (t3_done == false));
@@ -2873,11 +2855,11 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
       SerialUSB.print("target:");
       SerialUSB.print(target, 4);
-	  SerialUSB.print(" c:");
-	  SerialUSB.print(bed_level_c, 4);
-	  SerialUSB.print(" adj:");
-	  SerialUSB.print(adj_val, 5);
-	  
+    SerialUSB.print(" c:");
+    SerialUSB.print(bed_level_c, 4);
+    SerialUSB.print(" adj:");
+    SerialUSB.print(adj_val, 5);
+
       //ECHO_SMV(DB, "target:", target, 4);
       //ECHO_MV(" c:", bed_level_c, 4);
       //ECHO_EMV(" adj:", adj_val, 5);
@@ -2885,7 +2867,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     return (delta_diagonal_rod - prev_diag_rod);
   }
 
-  
   int fix_tower_errors()
   {
     boolean t1_err, t2_err, t3_err;
@@ -2913,15 +2894,15 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     if (z_diff <= ac_prec) t3_err = false; else t3_err = true;
 
     SerialUSB.print("x_diff = ");
-	SerialUSB.print(x_diff, 5);
-	SerialUSB.print("y_diff = ");
-	SerialUSB.print(y_diff, 5);
-	SerialUSB.print("z_diff = ");
+  SerialUSB.print(x_diff, 5);
+  SerialUSB.print("y_diff = ");
+  SerialUSB.print(y_diff, 5);
+  SerialUSB.print("z_diff = ");
     SerialUSB.print(z_diff, 5);
-	SerialUSB.print("high_diff = ");
-	SerialUSB.println(high_diff, 5);
+  SerialUSB.print("high_diff = ");
+  SerialUSB.println(high_diff, 5);
 
-	#if 0
+  #if 0
     ECHO_LMV(DB, "x_diff = ", x_diff, 5);
     ECHO_LMV(DB, "y_diff = ", y_diff, 5);
     ECHO_LMV(DB, "z_diff = ", z_diff, 5);
@@ -2936,32 +2917,32 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     if (abs(x_diff - z_diff) <= ac_prec) xz_equal = true;
     if (abs(y_diff - z_diff) <= ac_prec) yz_equal = true;
 
-	SerialUSB.print("xy_equal = ");
+  SerialUSB.print("xy_equal = ");
     //ECHO_SM(DB, "xy_equal = ");
     if (xy_equal == true)
-		SerialUSB.println("true");
-		//ECHO_EM("true"); 
-	else
-		SerialUSB.println("false");
-		//ECHO_EM("false");
-		
-	SerialUSB.print("xz_equal = ");
+    SerialUSB.println("true");
+    //ECHO_EM("true");
+  else
+    SerialUSB.println("false");
+    //ECHO_EM("false");
+
+  SerialUSB.print("xz_equal = ");
     //ECHO_SM(DB, "xz_equal = ");
     if (xz_equal == true)
-		SerialUSB.println("true");
-		//ECHO_EM("true"); 
-	else 
+    SerialUSB.println("true");
+    //ECHO_EM("true");
+  else
         SerialUSB.println("false");
-	    //ECHO_EM("false");
-	    
-	SerialUSB.print("yz_equal = ");    
+      //ECHO_EM("false");
+
+  SerialUSB.print("yz_equal = ");
     //ECHO_SM(DB, "yz_equal = ");
     if (yz_equal == true)
-		SerialUSB.println("true");
-		//ECHO_EM("true");
-	else 
-        SerialUSB.println("false");
-	    //ECHO_EM("false");
+    SerialUSB.println("true");
+    //ECHO_EM("true");
+  else
+      SerialUSB.println("false");
+      //ECHO_EM("false");
 
     low_opp = bed_level_ox;
     high_opp = low_opp;
@@ -2971,11 +2952,11 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     if (bed_level_oz > high_opp) high_opp = bed_level_oz;
 
     SerialUSB.print("Opp Range = ");  
-	SerialUSB.println(high_opp - low_opp, 5);
+  SerialUSB.println(high_opp - low_opp, 5);
     //ECHO_LMV(DB, "Opp Range = ", high_opp - low_opp, 5);
 
     if (high_opp - low_opp  < ac_prec) {
-	  SerialUSB.println("Opposite Points within Limits - Adjustment not required");	
+    SerialUSB.println("Opposite Points within Limits - Adjustment not required");  
       //ECHO_LM(DB, "Opposite Points within Limits - Adjustment not required");
       t1_err = false;
       t2_err = false;
@@ -2989,14 +2970,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (abs(high_diff - x_diff) < 0.00001) err_tower = 1;
         if (abs(high_diff - y_diff) < 0.00001) err_tower = 2;
         if (abs(high_diff - z_diff) < 0.00001) err_tower = 3;
-		SerialUSB.print("Tower ");  
-	    SerialUSB.print(err_tower);
-		SerialUSB.println(" has largest error");
+    SerialUSB.print("Tower ");  
+      SerialUSB.print(err_tower);
+    SerialUSB.println(" has largest error");
         //ECHO_SMV(DB, "Tower ", err_tower);
         //ECHO_EM(" has largest error");
       }
       if ((xy_equal == true) and (xz_equal == true) and (yz_equal == true)) {
-	  	SerialUSB.println("All Towers Errors Equal");
+      SerialUSB.println("All Towers Errors Equal");
         //ECHO_LM(DB, "All Towers Errors Equal");
         t1_err = false;
         t2_err = false;
@@ -3017,58 +2998,58 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     SerialUSB.print("t1:"); 
     //ECHO_SM(DB, "t1:");
     if (t1_err == true)
-		SerialUSB.println("Err"); 
-		//ECHO_M("Err"); 
-	else 
-		SerialUSB.println("OK");
-		//ECHO_M("OK");
+    SerialUSB.println("Err"); 
+    //ECHO_M("Err"); 
+  else 
+    SerialUSB.println("OK");
+    //ECHO_M("OK");
 
-	SerialUSB.print(" t2:"); 	
+  SerialUSB.print(" t2:");   
     //ECHO_M(" t2:");
     if (t2_err == true)
-		SerialUSB.println("Err"); 
-		//ECHO_M("Err"); 
-	else 
-		SerialUSB.println("OK");
-		//ECHO_M("OK");
+    SerialUSB.println("Err"); 
+    //ECHO_M("Err"); 
+  else 
+    SerialUSB.println("OK");
+    //ECHO_M("OK");
 
-	SerialUSB.print(" t3:"); 		
+  SerialUSB.print(" t3:");     
     //ECHO_M(" t3:");
     if (t3_err == true)
-		SerialUSB.println("Err");
-		//ECHO_M("Err"); 
-	else
-		SerialUSB.println("OK");
-		//ECHO_M("OK");
-		
+    SerialUSB.println("Err");
+    //ECHO_M("Err"); 
+  else
+    SerialUSB.println("OK");
+    //ECHO_M("OK");
+    
     //ECHO_E;
 
     if (err_tower == 0) {
-	  SerialUSB.println("Tower geometry OK");	
+    SerialUSB.println("Tower geometry OK");  
       //ECHO_LM(DB, "Tower geometry OK");
     }
     else {
       //If a tower has been adjusted previously.. continue to correct by adjusting that tower! (but only if the difference between the opp points is still large)
       if (high_opp - low_opp  > ac_prec * 2) {
         if ((tower_adj[0] != 0) or (tower_adj[3] != 0)) {
-		  SerialUSB.println("Tower 1 has already been adjusted");		
+      SerialUSB.println("Tower 1 has already been adjusted");    
           //ECHO_LM(DB, "Tower 1 has already been adjusted");
           err_tower = 1;
         }
         if ((tower_adj[1] != 0) or (tower_adj[4] != 0)) {
-		  SerialUSB.println("Tower 2 has already been adjusted");		
+      SerialUSB.println("Tower 2 has already been adjusted");    
           //ECHO_LM(DB, "Tower 2 has already been adjusted");
           err_tower = 2;
         }
         if ((tower_adj[2] != 0) or (tower_adj[5] != 0)) {
-          SerialUSB.println("Tower 3 has already been adjusted");	
-		  //ECHO_LM(DB, "Tower 3 has already been adjusted");
+          SerialUSB.println("Tower 3 has already been adjusted");  
+      //ECHO_LM(DB, "Tower 3 has already been adjusted");
           err_tower = 3;
         }
       }
-	  SerialUSB.print("Tower");
-	  SerialUSB.print(int(err_tower));
-	  SerialUSB.print(" Error: Adjusting");
+    SerialUSB.print("Tower");
+    SerialUSB.print(int(err_tower));
+    SerialUSB.print(" Error: Adjusting");
       //ECHO_SMV(DB, "Tower", int(err_tower));
       //ECHO_EM(" Error: Adjusting");
       adj_tower_radius(err_tower);
@@ -3090,11 +3071,11 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     //Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
 
     //aven_0815
-	Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
+  Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
     Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
     Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
 
-	Vector3 s12 = tower1.sub(tower2);
+  Vector3 s12 = tower1.sub(tower2);
     Vector3 s23 = tower2.sub(tower3);
     Vector3 s13 = tower1.sub(tower3);
 
@@ -3111,7 +3092,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     float b = q * magsq_s13 * s12.dot(s23) * -1.0F; // negate because we use s12 instead of s21
     float c = q * magsq_s12 * s13.dot(s23);
 
-	Vector3 circumcenter( delta_tower1_x * a + delta_tower2_x * b + delta_tower3_x * c,
+  Vector3 circumcenter( delta_tower1_x * a + delta_tower2_x * b + delta_tower3_x * c,
                           delta_tower1_y * a + delta_tower2_y * b + delta_tower3_y * c,
                           delta[X_AXIS] * a + delta[Y_AXIS] * b + delta[Z_AXIS] * c );
 
@@ -3126,13 +3107,13 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     cartesian[Y_AXIS] = ROUND(cartesianln[1], 4);
     cartesian[Z_AXIS] = ROUND(cartesianln[2], 4);
 
-	//SerialUSB.print("X : ");
-	//SerialUSB.print(cartesian[X_AXIS]);
-	//SerialUSB.print(" Y : ");
-	//SerialUSB.print(cartesian[Y_AXIS]);
-	//SerialUSB.print(" Z : ");
-	//SerialUSB.print(cartesian[Z_AXIS]);
-	
+  //SerialUSB.print("X : ");
+  //SerialUSB.print(cartesian[X_AXIS]);
+  //SerialUSB.print(" Y : ");
+  //SerialUSB.print(cartesian[Y_AXIS]);
+  //SerialUSB.print(" Z : ");
+  //SerialUSB.print(cartesian[Z_AXIS]);
+  
   }
 //aven_0812
 #endif //DELTA
@@ -3141,31 +3122,31 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   void IDLE_OOZING_retract(bool retracting)
   {  
     if (retracting && !IDLE_OOZING_retracted[active_extruder]) {
-  	  //SERIAL_ECHOLN("RETRACT FOR OOZING PREVENT");
-  	  destination[X_AXIS]=current_position[X_AXIS];
-  	  destination[Y_AXIS]=current_position[Y_AXIS];
-  	  destination[Z_AXIS]=current_position[Z_AXIS];
-  	  destination[E_AXIS]=current_position[E_AXIS];
-  	  current_position[E_AXIS]+=IDLE_OOZING_LENGTH/volumetric_multiplier[active_extruder];
-  	  plan_set_e_position(current_position[E_AXIS]);
-  	  float oldFeedrate = feedrate;
-  	  feedrate=IDLE_OOZING_FEEDRATE*60;
-  	  IDLE_OOZING_retracted[active_extruder]=true;
-  	  prepare_move();
-  	  feedrate = oldFeedrate;
+      //SERIAL_ECHOLN("RETRACT FOR OOZING PREVENT");
+      destination[X_AXIS]=current_position[X_AXIS];
+      destination[Y_AXIS]=current_position[Y_AXIS];
+      destination[Z_AXIS]=current_position[Z_AXIS];
+      destination[E_AXIS]=current_position[E_AXIS];
+      current_position[E_AXIS]+=IDLE_OOZING_LENGTH/volumetric_multiplier[active_extruder];
+      plan_set_e_position(current_position[E_AXIS]);
+      float oldFeedrate = feedrate;
+      feedrate=IDLE_OOZING_FEEDRATE*60;
+      IDLE_OOZING_retracted[active_extruder]=true;
+      prepare_move();
+      feedrate = oldFeedrate;
     }
     else if(!retracting && IDLE_OOZING_retracted[active_extruder]) {
-  	  //SERIAL_ECHOLN("EXTRUDE FOR OOZING PREVENT");
-  	  destination[X_AXIS]=current_position[X_AXIS];
-  	  destination[Y_AXIS]=current_position[Y_AXIS];
-  	  destination[Z_AXIS]=current_position[Z_AXIS];
-  	  destination[E_AXIS]=current_position[E_AXIS];
-  	  current_position[E_AXIS]-=(IDLE_OOZING_LENGTH+IDLE_OOZING_RECOVER_LENGTH)/volumetric_multiplier[active_extruder];
-  	  plan_set_e_position(current_position[E_AXIS]);
-  	  float oldFeedrate = feedrate;
-  	  feedrate=IDLE_OOZING_RECOVER_FEEDRATE * 60;
-  	  IDLE_OOZING_retracted[active_extruder] = false;
-  	  prepare_move();
+      //SERIAL_ECHOLN("EXTRUDE FOR OOZING PREVENT");
+      destination[X_AXIS]=current_position[X_AXIS];
+      destination[Y_AXIS]=current_position[Y_AXIS];
+      destination[Z_AXIS]=current_position[Z_AXIS];
+      destination[E_AXIS]=current_position[E_AXIS];
+      current_position[E_AXIS]-=(IDLE_OOZING_LENGTH+IDLE_OOZING_RECOVER_LENGTH)/volumetric_multiplier[active_extruder];
+      plan_set_e_position(current_position[E_AXIS]);
+      float oldFeedrate = feedrate;
+      feedrate=IDLE_OOZING_RECOVER_FEEDRATE * 60;
+      IDLE_OOZING_retracted[active_extruder] = false;
+      prepare_move();
       feedrate = oldFeedrate;
     }
   }
@@ -3546,9 +3527,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     // take care of back off and rehome now we are all at the top
     
     HOMEAXIS(X);
-	
+  
     HOMEAXIS(Y);
-	
+  
     HOMEAXIS(Z);
 
     sync_plan_position_delta();
@@ -4617,8 +4598,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
         if (loopcount < iterations) {
 
-			//aven_0813
-		  delay(500);	
+      //aven_0813
+      delay(500);  
           home_delta_axis();
 
           //probe bed and display report
@@ -5662,7 +5643,7 @@ inline void gcode_M119() {
     //SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
     SERIAL_PROTOCOLPGM(MSG_FILAMENT_RUNOUT_PIN);
     SERIAL_PROTOCOLLN(((READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
-  	//SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
     //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FILRUNOUT_PIN_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   //#endif
 }
@@ -6534,8 +6515,8 @@ inline void gcode_M503() {
     int old_target_temperature_bed = target_temperature_bed;
     timer.set_max_delay(60000); // 1 minute
 
-#if 0	//aven_test0826
-    PRESSBUTTON:	
+#if 0  //aven_test0826
+    PRESSBUTTON:  
     LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
     while (!lcd_clicked()) {
       manage_heater();
@@ -6562,7 +6543,7 @@ inline void gcode_M503() {
 
     //reset LCD alert message
     lcd_reset_alert_level();
-#endif	
+#endif  
 
     if (sleep) {
       for(int8_t e = 0; e < HOTENDS; e++)
@@ -7181,9 +7162,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     // take care of back off and rehome now we are all at the top
     
     HOMEAXIS(X);
-	
+  
     HOMEAXIS(Y);
-	
+  
     HOMEAXIS(Z);
 
     sync_plan_position_delta();
@@ -7493,24 +7474,24 @@ inline void gcode_X1()
   if (code_seen('F')) 
   {
     pleds = code_value_short();
-	if(pleds == 1)
+  if(pleds == 1)
     {
       SerialUSB.println("LSA1 OFF");
       digitalWrite(S_LAS1, LOW);
-	  
-	}
+    
+  }
     if(pleds == 2)
     {
       SerialUSB.println("LSA2 OFF");
       digitalWrite(S_LAS2, LOW);
-	}
-	
+  }
+  
     if(pleds == 0)
     {
       SerialUSB.println("LSA1&LSA2 OFF");
       digitalWrite(S_LAS1, LOW);
-	  digitalWrite(S_LAS2, LOW);
-	}
+    digitalWrite(S_LAS2, LOW);
+  }
   }
   
   if (code_seen('O')) 
@@ -7520,18 +7501,18 @@ inline void gcode_X1()
     {
       SerialUSB.println("LSA1 ON");
       digitalWrite(S_LAS1, HIGH);
-	}
+  }
     if(pleds == 2)
     {
       SerialUSB.println("LSA2 ON");
       digitalWrite(S_LAS2, HIGH);
-	}
+  }
     if(pleds == 0)
     {
       SerialUSB.println("LSA1&LSA2 ON");
       digitalWrite(S_LAS1, HIGH);
-	  digitalWrite(S_LAS2, HIGH);
-	}
+    digitalWrite(S_LAS2, HIGH);
+  }
   }
 }
 
@@ -7551,13 +7532,13 @@ inline void gcode_X2()
       SerialUSB.print("OUT OF RANGE :");
       SerialUSB.println(pleds);
     }
-	else
-	{
-	  SerialUSB.print("PWM :");
+    else
+    {
+      SerialUSB.print("PWM :");
       SerialUSB.println(pleds);
       analogWrite(M_IO2, 255 - pleds);
-	}	
-  }	
+    }
+  }
 }
 
 inline void gcode_X3()
@@ -7625,141 +7606,124 @@ inline void gcode_X5() //Breathing LED
   {
     SerialUSB.print("LED 1 Breathing ");
     f_led1=1;
-	
+  
     cled1 = code_value_short();
     SerialUSB.print(" count:");
-	SerialUSB.print(cled1);
+    SerialUSB.print(cled1);
 
-	if(code_seen('C'))
-	{
+    if(code_seen('C'))
+    {
       fled1 = code_value_short();
-	  SerialUSB.print(" freq:");
-	  SerialUSB.println(fled1);
-	}
+      SerialUSB.print(" freq:");
+      SerialUSB.println(fled1);
+    }
 
-	
     leds1=1;
-	
-  }	
+  }
 
-
-
-  
   if (code_seen('P')) 
   {
-      SerialUSB.print("LED 2 Breathing ");
-      f_led2=1;
-	  cled2 = code_value_short();
-	  SerialUSB.print(" count:");
-	  SerialUSB.print(cled2);
+    SerialUSB.print("LED 2 Breathing ");
+    f_led2=1;
+    cled2 = code_value_short();
+    SerialUSB.print(" count:");
+    SerialUSB.print(cled2);
 
-	  if(code_seen('C'))
-	  {
-        fled2 = code_value_short();
-		SerialUSB.print(" freq:");
-	    SerialUSB.println(fled2);
-	  }
+    if(code_seen('C'))
+    {
+      fled2 = code_value_short();
+      SerialUSB.print(" freq:");
+      SerialUSB.println(fled2);
+    }
 
-      leds1=1;
-	  
+    leds1=1;
   } 
 
-  
   if (code_seen('Q')) 
   {
-	  SerialUSB.print("LED 3 Breathing ");
-	  f_led3=1;
-	  cled3 = code_value_short();
-	  SerialUSB.print(" count:");
-	  SerialUSB.print(cled3);
+    SerialUSB.print("LED 3 Breathing ");
+    f_led3=1;
+    cled3 = code_value_short();
+    SerialUSB.print(" count:");
+    SerialUSB.print(cled3);
 
-	  if(code_seen('C'))
-	  {
-        fled3 = code_value_short();
-		SerialUSB.print(" freq:");
-	    SerialUSB.println(fled3);
-	  }
+    if(code_seen('C'))
+    {
+      fled3 = code_value_short();
+      SerialUSB.print(" freq:");
+      SerialUSB.println(fled3);
+    }
 
-	 
-        leds1=1;
-	
+    leds1=1;
   } 
 
-  
   if (code_seen('R')) 
   {
-	  SerialUSB.print("ALL LED Breathing ");
-	  //SerialUSB.print("LED 2 Breathing ");
-	  //SerialUSB.print("LED 3 Breathing ");
+    SerialUSB.print("ALL LED Breathing ");
+    //SerialUSB.print("LED 2 Breathing ");
+    //SerialUSB.print("LED 3 Breathing ");
 
-	  f_led1 = 1;
-	  f_led2 = 1;
-	  f_led3 = 1;
-	  
-	  cled1 = code_value_short();
-	  cled2=cled1;
-	  cled3=cled2;
+    f_led1 = 1;
+    f_led2 = 1;
+    f_led3 = 1;
 
-	  SerialUSB.print(" count:");
-	  SerialUSB.print(cled3);
+    cled1 = code_value_short();
+    cled2=cled1;
+    cled3=cled2;
 
-	  if(code_seen('C'))
-	  {
-        fled1 = code_value_short();
-		fled2=fled1;
-		fled3=fled2;
+    SerialUSB.print(" count:");
+    SerialUSB.print(cled3);
 
-		SerialUSB.print(" freq:");
-	    SerialUSB.println(fled3);
-		
-	  }
+    if(code_seen('C'))
+    {
+      fled1 = code_value_short();
+      fled2=fled1;
+      fled3=fled2;
 
-	  
-        leds1=1;
-		leds2=1;
-		leds3=1;
-	  
-	} 
+      SerialUSB.print(" freq:");
+      SerialUSB.println(fled3);
+    }
+
+    leds1=1;
+    leds2=1;
+    leds3=1;
+  } 
 
    if (code_seen('F')) 
    {
      SerialUSB.print("LED Breathing off");
-	 fled1=0;
-	 fled2=0;
-	 fled3=0;
+     fled1=0;
+     fled2=0;
+     fled3=0;
 
-	 cled1=0;
-	 cled2=0;
-	 cled3=0;
+     cled1=0;
+     cled2=0;
+     cled3=0;
 
-	 fled1=0;
-	 fled2=0;
-	 fled3=0;
+     fled1=0;
+     fled2=0;
+     fled3=0;
 
-	 leds1=0;
-	 leds2=0;
-	 leds3=0;
+     leds1=0;
+     leds2=0;
+     leds3=0;
 
-	 dcount1=0;
-	 dcount2=0;
-	 dcount3=0;
+     dcount1=0;
+     dcount2=0;
+     dcount3=0;
 
-	 runleds1=0;
-	 runleds2=0;
-	 runleds3=0;
+     runleds1=0;
+     runleds2=0;
+     runleds3=0;
 
-     
-	 delay(100);
-	 analogWrite(LED_P2,0);
-	 delay(100);
-	 analogWrite(LED_P3,0);
-	 delay(100);
-	 analogWrite(LED_P1,255);
-	 //delay(100);
-
-	 
+     delay(100);
+     analogWrite(LED_P2,0);
+     delay(100);
+     analogWrite(LED_P3,0);
+     delay(100);
+     analogWrite(LED_P1,255);
+     //delay(100);
    }
-  
 }
 
 
@@ -7778,21 +7742,21 @@ inline void gcode_X5() //heater PID
 
     //SerialUSB.print("Setpoint 2 : ");
     //SerialUSB.println(setpoint);
-	if(setpoint >= 0 || setpoint <= 2625)
+  if(setpoint >= 0 || setpoint <= 2625)
     {
     //pbuf[0]= 'h';
-	//pbuf[1]= code_value_short();
-	
+  //pbuf[1]= code_value_short();
+  
      SerialUSB.println("Heater ON ");
-	
-	 Serial.print("h");
-	 Serial.print(setpoint);
-	}
-	else
-	{
+  
+   Serial.print("h");
+   Serial.print(setpoint);
+  }
+  else
+  {
       SerialUSB.print("Wrong Temp !!");
-	  SerialUSB.print("Range 0 ~ 2625");
-	}
+    SerialUSB.print("Range 0 ~ 2625");
+  }
   }
   
 
@@ -7800,7 +7764,7 @@ inline void gcode_X5() //heater PID
   if (code_seen('O') | code_seen('o')) 
   {
     SerialUSB.println("Heater OFF");
-	Serial.print("O");
+  Serial.print("O");
   }
 
 
@@ -7813,21 +7777,21 @@ inline void gcode_X5() //heater PID
     
     power =code_value_short();
 
-	SerialUSB.print("power 2 : ");
+  SerialUSB.print("power 2 : ");
     SerialUSB.println(power);
 
     SerialUSB.print("Set Laser power ");
-	
-	if(power>256)
-	{
+  
+  if(power>256)
+  {
       SerialUSB.print("Wrong power !!");
-	  SerialUSB.print("Range 0 ~ 255");
-	}
+    SerialUSB.print("Range 0 ~ 255");
+  }
     else
     {
-	  Serial.print("L");
-	  Serial.print(power);
-	}
+    Serial.print("L");
+    Serial.print(power);
+  }
   }*/
 
   
@@ -7838,31 +7802,29 @@ inline void gcode_X5() //heater PID
 
 inline void gcode_X11()
 {
-       gcode_G28();
-	   delay(100);
-       float x = 0;
-       float y = 0;
-	   float h_value = 0;
-  
-	   deploy_z_probe();
-	   h_value = probe_bed(x,y);
-	   SERIAL_ECHO(" h_value : ");
-	   SERIAL_PROTOCOL_F(h_value, 4);
-	   SERIAL_EOL;
-  
-	   retract_z_probe();
+  gcode_G28();
+  delay(100);
+  float x = 0;
+  float y = 0;
+  float h_value = 0;
 
-	   max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
-       set_delta_constants();
-       SERIAL_ECHO(" H : ");
-	   SERIAL_PROTOCOL_F(max_pos[Z_AXIS], 4);
+  deploy_z_probe();
+  h_value = probe_bed(x,y);
+  SERIAL_ECHO(" h_value : ");
+  SERIAL_PROTOCOL_F(h_value, 4);
+  SERIAL_EOL;
 
-	   h_offset = h_value;
-	   delay(100);
-       gcode_G28();
-	   delay(100);
-	   
-	         	      
+  retract_z_probe();
+
+  max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+  set_delta_constants();
+  SERIAL_ECHO(" H : ");
+  SERIAL_PROTOCOL_F(max_pos[Z_AXIS], 4);
+
+  h_offset = h_value;
+  delay(100);
+  gcode_G28();
+  delay(100);
 }
 
 
@@ -7879,89 +7841,85 @@ inline void gcode_X12(float kvalue)
 
   while(1)
   {
-   float x = -73.61;
-   float y = -42.5;
-   float x_value = 0;
-   deploy_z_probe();
-   x_value = probe_bed(x,y);
-   SERIAL_ECHO(" x_value : ");
-   SERIAL_PROTOCOL_F(x_value, 4);
-   SERIAL_EOL;
+    float x = -73.61;
+    float y = -42.5;
+    float x_value = 0;
+    deploy_z_probe();
+    x_value = probe_bed(x,y);
+    SERIAL_ECHO(" x_value : ");
+    SERIAL_PROTOCOL_F(x_value, 4);
+    SERIAL_EOL;
 
-   retract_z_probe();
+    retract_z_probe();
 
-       gcode_G28();
-	   delay(100);
+    gcode_G28();
+    delay(100);
 
-	   x = 73.61;
-	   y = -42.5;
-	   float y_value = 0;
-	   float vv =0;
-       deploy_z_probe();
-	   y_value = probe_bed(x,y);
-	   SERIAL_ECHO(" y_value : ");
-       SERIAL_PROTOCOL_F(y_value, 4);
-	   SERIAL_EOL;
-	   retract_z_probe();
-	   coo++;
-       SERIAL_ECHO(" count : ");
-       SERIAL_PROTOCOL_F(coo, 4);
-  
-	delay(100);
+    x = 73.61;
+    y = -42.5;
+    float y_value = 0;
+    float vv =0;
+    deploy_z_probe();
+    y_value = probe_bed(x,y);
+    SERIAL_ECHO(" y_value : ");
+    SERIAL_PROTOCOL_F(y_value, 4);
+    SERIAL_EOL;
+    retract_z_probe();
+    coo++;
+    SERIAL_ECHO(" count : ");
+    SERIAL_PROTOCOL_F(coo, 4);
 
-	if(x_value > y_value)
-	{
- 	  if(x_value - y_value < kvalue)
+    delay(100);
+
+    if(x_value > y_value)
+    {
+      if(x_value - y_value < kvalue)
       {
-               SERIAL_ECHO(" x_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[0], 4);
-		       SERIAL_ECHO(" y_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-			   gcode_G28();
-			   delay(100);
-		       break;
+        SERIAL_ECHO(" x_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[0], 4);
+        SERIAL_ECHO(" y_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        gcode_G28();
+        delay(100);
+        break;
       }
-	  else
+      else
       {
-               vv = ((y_value - x_value)*0.8);
-	           endstop_adj[1] = endstop_adj[1] + vv;
-               set_delta_constants();
-	           SERIAL_ECHO(" vv : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
-	  }
-	}  
+        vv = ((y_value - x_value)*0.8);
+        endstop_adj[1] = endstop_adj[1] + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
+    }  
     else
     {
       if(y_value - x_value < kvalue)
       {
-               SERIAL_ECHO(" x_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[0], 4);
-		       SERIAL_ECHO(" y_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-			   gcode_G28();
-			   delay(100);
-		       break;
+        SERIAL_ECHO(" x_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[0], 4);
+        SERIAL_ECHO(" y_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        gcode_G28();
+        delay(100);
+        break;
       }
-	  else
+      else
       {
-               vv = ((x_value - y_value)*0.8);
-	           endstop_adj[0] = endstop_adj[0] + vv;
-               set_delta_constants();
-	           SERIAL_ECHO(" vv : ");
-               SERIAL_PROTOCOL_F(endstop_adj[0], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
-	  }
-
+        vv = ((x_value - y_value)*0.8);
+        endstop_adj[0] = endstop_adj[0] + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(endstop_adj[0], 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
     }
-    	
-	  
-  }   
-
+  }
 }
 
 inline void gcode_X13(float kvalue)
@@ -7976,175 +7934,169 @@ inline void gcode_X13(float kvalue)
 
   while(1)
   {
-   float x = 73.61;
-   float y = -42.5;
-   float y_value = 0;
-   deploy_z_probe();
-   y_value = probe_bed(x,y);
-   SERIAL_ECHO(" y_value : ");
-   SERIAL_PROTOCOL_F(y_value, 4);
-   SERIAL_EOL;
+    float x = 73.61;
+    float y = -42.5;
+    float y_value = 0;
+    deploy_z_probe();
+    y_value = probe_bed(x,y);
+    SERIAL_ECHO(" y_value : ");
+    SERIAL_PROTOCOL_F(y_value, 4);
+    SERIAL_EOL;
 
-   retract_z_probe();
+    retract_z_probe();
 
-       gcode_G28();
-	   delay(100);
+    gcode_G28();
+    delay(100);
 
-	   x = 0;
-	   y = 85;
-	   float z_value = 0;
-	   float vv =0;
-       deploy_z_probe();
-	   z_value = probe_bed(x,y);
-	   SERIAL_ECHO(" z_value : ");
-       SERIAL_PROTOCOL_F(z_value, 4);
-	   SERIAL_EOL;
-	   retract_z_probe();
-	   coo++;
-       SERIAL_ECHO(" count : ");
-       SERIAL_PROTOCOL_F(coo, 4);
-  
-	delay(100);
+    x = 0;
+    y = 85;
+    float z_value = 0;
+    float vv =0;
+    deploy_z_probe();
+    z_value = probe_bed(x,y);
+    SERIAL_ECHO(" z_value : ");
+    SERIAL_PROTOCOL_F(z_value, 4);
+    SERIAL_EOL;
+    retract_z_probe();
+    coo++;
+    SERIAL_ECHO(" count : ");
+    SERIAL_PROTOCOL_F(coo, 4);
 
-	if(y_value > z_value)
-	{
+    delay(100);
+
+    if(y_value > z_value)
+    {
       if(y_value - z_value < kvalue)
       {
-               SERIAL_ECHO(" y_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-		       SERIAL_ECHO(" z_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[2], 4);
-			   gcode_G28();
-			   delay(100);
-		       break;
+        SERIAL_ECHO(" y_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        SERIAL_ECHO(" z_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[2], 4);
+        gcode_G28();
+        delay(100);
+        break;
       }
-	  else
+      else
       {
-               vv = ((z_value - y_value)*0.8);
-	           endstop_adj[2] = endstop_adj[2] + vv;
-               set_delta_constants();
-	           SERIAL_ECHO(" vv : ");
-               SERIAL_PROTOCOL_F(endstop_adj[2], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
-	  }
-	} 
-	else
-	{
+        vv = ((z_value - y_value)*0.8);
+        endstop_adj[2] = endstop_adj[2] + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(endstop_adj[2], 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
+    } 
+    else
+    {
       if(z_value - y_value < kvalue)
       {
-               SERIAL_ECHO(" y_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-		       SERIAL_ECHO(" z_end : ");
-               SERIAL_PROTOCOL_F(endstop_adj[2], 4);
-			   gcode_G28();
-			   delay(100);
-		       break;
+        SERIAL_ECHO(" y_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        SERIAL_ECHO(" z_end : ");
+        SERIAL_PROTOCOL_F(endstop_adj[2], 4);
+        gcode_G28();
+        delay(100);
+        break;
       }
-	  else
+      else
       {
-               vv = ((y_value - z_value)*0.8);
-	           endstop_adj[1] = endstop_adj[1] + vv;
-               set_delta_constants();
-	           SERIAL_ECHO(" vv : ");
-               SERIAL_PROTOCOL_F(endstop_adj[1], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
-	  }
-
-
-	}
-  }   
-
+        vv = ((y_value - z_value)*0.8);
+        endstop_adj[1] = endstop_adj[1] + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(endstop_adj[1], 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
+    }
+  }
 }
 
 inline void gcode_X14(float kvalue)
 {
-   
-   int coo =0;
-	 gcode_G28();
-	 delay(100);
-   
-	 while(1)
-	 {
-	  float x = 0;
-	  float y = 0;
-	  float r_value = 0;
-	  deploy_z_probe();
-	  r_value = probe_bed(x,y);
-	  SERIAL_ECHO(" r_value : ");
-	  SERIAL_PROTOCOL_F(r_value, 4);
-	  SERIAL_EOL;
-   
-	  retract_z_probe();
-   
-	  gcode_G28();
-	  delay(100);
-   
-		  x = -73.61;
-		  y = -42.5;
-		  float r1_value = 0;
-		  float vv =0;
-		  deploy_z_probe();
-		  r1_value = probe_bed(x,y);
-		  SERIAL_ECHO(" r1_value : ");
-		  SERIAL_PROTOCOL_F(r1_value, 4);
-		  SERIAL_EOL;
-		  retract_z_probe();
-		  coo++;
-		  SERIAL_ECHO(" count : ");
-		  SERIAL_PROTOCOL_F(coo, 4);
-	 
-	   delay(100);
-	   if(r_value > r1_value)
-	   {
-	     if(r1_value - r_value < kvalue)
-	     {
-				  SERIAL_ECHO(" delta_radius : ");
-				  SERIAL_PROTOCOL_F(delta_radius, 4);
-				  gcode_G28();
-				  delay(100);
-				  break;
-	     }
-	     else
-	     {
-		          vv = ((r1_value - r_value)*0.8);
-		          delta_radius = delta_radius + vv;
-		          set_delta_constants();
-		          SERIAL_ECHO(" vv : ");
-		          SERIAL_PROTOCOL_F(delta_radius, 4);
-		          delay(100);
-		          gcode_G28();
-		          delay(100);
-	     }
-	   }
-	   else
-	   {
-         if(r_value - r1_value < kvalue)
-	     {
-				  SERIAL_ECHO(" delta_radius : ");
-				  SERIAL_PROTOCOL_F(delta_radius, 4);
-				  gcode_G28();
-				  delay(100);
-				  break;
-	     }
-	     else
-	     {
-		          vv = ((r_value - r1_value)*0.8);
-		          delta_radius = delta_radius + vv;
-		          set_delta_constants();
-		          SERIAL_ECHO(" vv : ");
-		          SERIAL_PROTOCOL_F(delta_radius, 4);
-		          delay(100);
-		          gcode_G28();
-		          delay(100);
-	     }
+  int coo =0;
+  gcode_G28();
+  delay(100);
 
+  while(1)
+  {
+    float x = 0;
+    float y = 0;
+    float r_value = 0;
+    deploy_z_probe();
+    r_value = probe_bed(x,y);
+    SERIAL_ECHO(" r_value : ");
+    SERIAL_PROTOCOL_F(r_value, 4);
+    SERIAL_EOL;
 
-	   }
-	 }	 
+    retract_z_probe();
+
+    gcode_G28();
+    delay(100);
+
+    x = -73.61;
+    y = -42.5;
+    float r1_value = 0;
+    float vv =0;
+    deploy_z_probe();
+    r1_value = probe_bed(x,y);
+    SERIAL_ECHO(" r1_value : ");
+    SERIAL_PROTOCOL_F(r1_value, 4);
+    SERIAL_EOL;
+    retract_z_probe();
+    coo++;
+    SERIAL_ECHO(" count : ");
+    SERIAL_PROTOCOL_F(coo, 4);
+
+    delay(100);
+    if(r_value > r1_value)
+    {
+      if(r1_value - r_value < kvalue)
+      {
+        SERIAL_ECHO(" delta_radius : ");
+        SERIAL_PROTOCOL_F(delta_radius, 4);
+        gcode_G28();
+        delay(100);
+        break;
+      }
+      else
+      {
+        vv = ((r1_value - r_value)*0.8);
+        delta_radius = delta_radius + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(delta_radius, 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
+    }
+    else
+    {
+      if(r_value - r1_value < kvalue)
+      {
+        SERIAL_ECHO(" delta_radius : ");
+        SERIAL_PROTOCOL_F(delta_radius, 4);
+        gcode_G28();
+        delay(100);
+        break;
+      }
+      else
+      {
+        vv = ((r_value - r1_value)*0.8);
+        delta_radius = delta_radius + vv;
+        set_delta_constants();
+        SERIAL_ECHO(" vv : ");
+        SERIAL_PROTOCOL_F(delta_radius, 4);
+        delay(100);
+        gcode_G28();
+        delay(100);
+      }
+    }
+  }
 }
 
 inline void gcode_X15()
@@ -8155,19 +8107,18 @@ inline void gcode_X15()
 
     SERIAL_ECHO(" u_value : ");
     SERIAL_PROTOCOL_F(u_value, 4);
-  
+
     gcode_X11();
     gcode_X12(u_value);
     gcode_X13(u_value);
-	gcode_X14(u_value);
+    gcode_X14(u_value);
   }
-
   else
   {
     gcode_X11();
     gcode_X12(k_value);
     gcode_X13(k_value);
-	gcode_X14(k_value);
+    gcode_X14(k_value);
   }
 
   float x = 0;
@@ -8221,7 +8172,7 @@ inline void gcode_X15()
   retract_z_probe();
   delay(100);
   gcode_G28();
-  delay(100);	   
+  delay(100);
   
 }
 
@@ -8247,8 +8198,8 @@ inline void gcode_X16()
   if (code_seen('S')) 
   {
     int line_num = code_value();
-	SerialUSB.println(line_num);
-	NO = line_num;
+  SerialUSB.println(line_num);
+  NO = line_num;
   }
   
   if (code_seen('R')) 
@@ -8261,7 +8212,7 @@ inline void gcode_X16()
 inline void gcode_X18()
 {
     SerialUSB.print("FLUX Main Board Version : ");
-	SerialUSB.println(FW_V);	
+  SerialUSB.println(FW_V);  
 
 }
 
@@ -8269,26 +8220,26 @@ inline void gcode_X18()
 inline void gcode_X19()
 {
     //delta[X_AXIS]=180.04;
-	//delta[Y_AXIS]=190.87;
-	//delta[Z_AXIS]=203.30;
+  //delta[Y_AXIS]=190.87;
+  //delta[Z_AXIS]=203.30;
     //actuator_to_cartesian(delta);
     if (code_seen('A')) {
       delta[X_AXIS] = code_value();
-	  SerialUSB.println(delta[X_AXIS]);
+    SerialUSB.println(delta[X_AXIS]);
     }
 
-	if (code_seen('B')) {
+  if (code_seen('B')) {
       delta[Y_AXIS] = code_value();
-	  SerialUSB.println(delta[Y_AXIS]);
+    SerialUSB.println(delta[Y_AXIS]);
     }
 
-	if (code_seen('C')) {
+  if (code_seen('C')) {
       delta[Z_AXIS] = code_value();
-	  SerialUSB.println(delta[Z_AXIS]);
+    SerialUSB.println(delta[Z_AXIS]);
     }
-	
-	actuator_to_cartesian(delta);
-	
+  
+  actuator_to_cartesian(delta);
+  
 #if 0
   SerialUSB.print("Get Position X: ");
   SerialUSB.print(st_get_position(X_AXIS));
@@ -8322,14 +8273,14 @@ inline void gcode_X19()
 
   for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
     sync_plan_position();//X:0.00
-	
+  
     // Move all carriages up together until the first endstop is hit.
     for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
     feedrate = 1.732 * homing_feedrate[X_AXIS];
     line_to_destination();
-	
+  
     st_synchronize();
-	
+  
     endstops_hit_on_purpose(); // clear endstop hit flags
 
    
@@ -8348,7 +8299,7 @@ inline void gcode_X19()
       SERIAL_PROTOCOL(current_position[X_AXIS]);
       SerialUSB.println(" Count X: ");
       SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
-	  ASTOP = true;
+    ASTOP = true;
     }
  
     if(READ(B_STOP)==1)
@@ -8358,7 +8309,7 @@ inline void gcode_X19()
       SERIAL_PROTOCOL(current_position[Y_AXIS]);
       SerialUSB.println(" Count Y: ");
       SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
-	  BSTOP = true;
+    BSTOP = true;
     }
  
     if(READ(C_STOP)==1)
@@ -8368,10 +8319,10 @@ inline void gcode_X19()
       SERIAL_PROTOCOL(current_position[Z_AXIS]);
       SerialUSB.println(" Count Z: ");
       SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
-	  CSTOP = true;
+    CSTOP = true;
     }
- 	}
-	while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
+   }
+  while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
 #endif
 
 
@@ -8468,27 +8419,27 @@ inline void gcode_X21(boolean home_x = false, boolean home_y = false)
 
   #if 1
   for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
-	  sync_plan_position();
+    sync_plan_position();
   
-	  // Move all carriages up together until the first endstop is hit.
-	  //for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
-	  for (int i = X_AXIS; i <= Z_AXIS; i++) {destination[i] = 470;}
-	  feedrate = 1.732 * homing_feedrate[X_AXIS];
-	  line_to_destination();
-	  st_synchronize();
-	  endstops_hit_on_purpose(); // clear endstop hit flags
+    // Move all carriages up together until the first endstop is hit.
+    //for (int i = X_AXIS; i <= Z_AXIS; i++) destination[i] = 3 * Z_MAX_LENGTH;
+    for (int i = X_AXIS; i <= Z_AXIS; i++) {destination[i] = 470;}
+    feedrate = 1.732 * homing_feedrate[X_AXIS];
+    line_to_destination();
+    st_synchronize();
+    endstops_hit_on_purpose(); // clear endstop hit flags
   
-	  // Destination reached
-	  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
+    // Destination reached
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
   
       endstops_hit_on_purpose(); // clear endstop hit flags
 
 
-	  cdelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+    cdelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
       cdelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
       cdelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
 
-	  SerialUSB.print("Default X: ");
+    SerialUSB.print("Default X: ");
       SerialUSB.print(cdelta[0]);
       SerialUSB.print(" Y: ");
       SerialUSB.print(cdelta[1]);
@@ -8513,7 +8464,7 @@ inline void gcode_X21(boolean home_x = false, boolean home_y = false)
       SERIAL_PROTOCOL(current_position[X_AXIS]);
       SerialUSB.println(" Count X: ");
       SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
-	  ASTOP = true;
+    ASTOP = true;
     }
  
     if(READ(B_STOP)==1)
@@ -8523,7 +8474,7 @@ inline void gcode_X21(boolean home_x = false, boolean home_y = false)
       SERIAL_PROTOCOL(current_position[Y_AXIS]);
       SerialUSB.println(" Count Y: ");
       SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
-	  BSTOP = true;
+    BSTOP = true;
     }
  
     if(READ(C_STOP)==1)
@@ -8533,10 +8484,10 @@ inline void gcode_X21(boolean home_x = false, boolean home_y = false)
       SERIAL_PROTOCOL(current_position[Z_AXIS]);
       SerialUSB.println(" Count Z: ");
       SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
-	  CSTOP = true;
+    CSTOP = true;
     }
- 	}
-	while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
+   }
+  while((ASTOP = true) and (BSTOP = true) and (CSTOP = true));
 #endif
 
 
@@ -8586,7 +8537,6 @@ inline void gcode_X6()
   cdelta[1]= 0;
   cdelta[2]= 0;
 
-  
 #if 1
   float h_ori[3]={0,0,0};
   h_ori[2]= max_length[Z_AXIS];
@@ -8595,309 +8545,284 @@ inline void gcode_X6()
   float h_constant = h_cal[0];
 #endif  
 
-//aven_0817
+  //aven_0817
   //for(int i=0 ; i<600 ; i++)
   for(int i=0 ; i<3 ; i++)
   {
     saved_feedrate = feedrate;
-	saved_feedmultiply = feedmultiply;
-	feedmultiply = 100;
-	refresh_cmd_timeout();
-  
-	enable_endstops(true);
-  
-	set_destination_to_current();
-  
-	feedrate = 0.0;
-  
-	bool  homeX = code_seen(axis_codes[X_AXIS]),
-		  homeY = code_seen(axis_codes[Y_AXIS]),
-		  homeZ = code_seen(axis_codes[Z_AXIS]),
-		  homeE = code_seen(axis_codes[E_AXIS]);
-  
-  
-	home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
-    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
-	  sync_plan_position();
-	  
-    for (int i = X_AXIS; i <= Z_AXIS; i++) 
-	{
-//aven_0817	
-	  //destination[i] = 1;
-	  destination[i] = 600;
+    saved_feedmultiply = feedmultiply;
+    feedmultiply = 100;
+    refresh_cmd_timeout();
 
-#if 1	  
+    enable_endstops(true);
+
+    set_destination_to_current();
+
+    feedrate = 0.0;
+
+    bool  homeX = code_seen(axis_codes[X_AXIS]),
+    homeY = code_seen(axis_codes[Y_AXIS]),
+    homeZ = code_seen(axis_codes[Z_AXIS]),
+    homeE = code_seen(axis_codes[E_AXIS]);
+
+    home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+    sync_plan_position();
+
+    for (int i = X_AXIS; i <= Z_AXIS; i++) 
+    {
+      //aven_0817  
+      //destination[i] = 1;
+      destination[i] = 600;
+
+#if 1
       if(READ(A_STOP)==1)
-      {  
+      {
         //SerialUSB.println("A STOP!");
         //disable_x();
-		destination[0] = 0;	  
+        destination[0] = 0;
       }
- 
+
       if(READ(B_STOP)==1)
       {
         //SerialUSB.println("B STOP!");
         //disable_y();
-		destination[1] = 0;
+        destination[1] = 0;
       }
- 
+
       if(READ(C_STOP)==1)
       {
         //SerialUSB.println("C STOP!");
         //disable_e();
-		destination[2] = 0;
+        destination[2] = 0;
       }
 #endif
       check_axes_activity();
 
 
-	 }
-//aven_0817	
-	  //feedrate = 1.732 * homing_feedrate[X_AXIS];
-	  feedrate = 1 * homing_feedrate[X_AXIS];
+    }
+    //aven_0817  
+    //feedrate = 1.732 * homing_feedrate[X_AXIS];
+    feedrate = 1 * homing_feedrate[X_AXIS];
 
-	  line_to_destination();
-	  st_synchronize();
+    line_to_destination();
+    st_synchronize();
 
-       odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
-       odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
-       odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+    odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
+    odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
+    odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
 
-       
+    //odelta[0] = st_get_position(X_AXIS);
+    //odelta[1] = st_get_position(Y_AXIS);
+    //odelta[2] = st_get_position(Z_AXIS);
+    cdelta[0] = cdelta[0] + odelta[0];
+    cdelta[1] = cdelta[1] + odelta[1];
+    cdelta[2] = cdelta[2] + odelta[2];
 
-	   //odelta[0] = st_get_position(X_AXIS);
-	   //odelta[1] = st_get_position(Y_AXIS);
-	   //odelta[2] = st_get_position(Z_AXIS);
-      
-	  cdelta[0] = cdelta[0] + odelta[0];
-      cdelta[1] = cdelta[1] + odelta[1];
-      cdelta[2] = cdelta[2] + odelta[2];
+#if 0
+    SerialUSB.print(i);
+    SerialUSB.print(" X: ");
+    SerialUSB.print(cdelta[0]);
+    SerialUSB.print(" Y: ");
+    SerialUSB.print(cdelta[1]);
+    SerialUSB.print(" Z: ");
+    SerialUSB.println(cdelta[2]);
+#endif
+  }
 
-      #if 0
-      SerialUSB.print(i);
-	  SerialUSB.print(" X: ");
-      SerialUSB.print(cdelta[0]);
-      SerialUSB.print(" Y: ");
-      SerialUSB.print(cdelta[1]);
-      SerialUSB.print(" Z: ");
-      SerialUSB.println(cdelta[2]);
-      #endif
+  //cdelta[0] = (cdelta[0]/80) - 403.23;
+  //cdelta[1] = (cdelta[1]/80) - 403.23;
+  //cdelta[2] = (cdelta[2]/80) - 403.23;
+  enable_endstops(false);
 
-	  
-	  
+  cdelta[0] = h_constant - cdelta[0];
+  cdelta[1] = h_constant - cdelta[1];
+  cdelta[2] = h_constant - cdelta[2];
 
-  	}
+  SerialUSB.print("h_constant: ");
+  SerialUSB.println(h_constant);
 
-    //cdelta[0] = (cdelta[0]/80) - 403.23;
-	//cdelta[1] = (cdelta[1]/80) - 403.23;
-	//cdelta[2] = (cdelta[2]/80) - 403.23;
+  //cdelta[0] = 403.23 - cdelta[0];
+  //cdelta[1] = 403.23 - cdelta[1];
+  //cdelta[2] = 403.23 - cdelta[2];
 
-	enable_endstops(false);
+  //SerialUSB.print(i);
+  //SerialUSB.print("X: ");
+  //SerialUSB.print(cdelta[0]);
+  //SerialUSB.print(" Y: ");
+  //SerialUSB.print(cdelta[1]);
+  //SerialUSB.print(" Z: ");
+  //SerialUSB.println(cdelta[2]);
 
-	cdelta[0] = h_constant - cdelta[0];
-	cdelta[1] = h_constant - cdelta[1];
-	cdelta[2] = h_constant - cdelta[2];
+  //gcode_X19(cdelta);
 
-	SerialUSB.print("h_constant: ");
-	SerialUSB.println(h_constant);
+  actuator_to_cartesian(cdelta);
 
-    //cdelta[0] = 403.23 - cdelta[0];
-	//cdelta[1] = 403.23 - cdelta[1];
-	//cdelta[2] = 403.23 - cdelta[2];
+  SerialUSB.println("@X22:");
+  SerialUSB.print("X:");
+  SerialUSB.print(cartesian[X_AXIS]);
+  SerialUSB.print(" Y:");
+  SerialUSB.print(cartesian[Y_AXIS]);
+  SerialUSB.print(" Z:");
+  SerialUSB.print(cartesian[Z_AXIS]);
 
-    //SerialUSB.print(i);
-	//SerialUSB.print("X: ");
-    //SerialUSB.print(cdelta[0]);
-    //SerialUSB.print(" Y: ");
-    //SerialUSB.print(cdelta[1]);
-    //SerialUSB.print(" Z: ");
-    //SerialUSB.println(cdelta[2]);
+  SerialUSB.print(" Count X:");
+  SerialUSB.print(cdelta[X_AXIS]);
+  SerialUSB.print(" Y:");
+  SerialUSB.print(cdelta[Y_AXIS]);
+  SerialUSB.print(" Z:");
+  SerialUSB.println(cdelta[Z_AXIS]);
 
-	//gcode_X19(cdelta);
-
-	actuator_to_cartesian(cdelta);
-
-    SerialUSB.println("@X22:");
-	SerialUSB.print("X:");
-	SerialUSB.print(cartesian[X_AXIS]);
-	SerialUSB.print(" Y:");
-	SerialUSB.print(cartesian[Y_AXIS]);
-	SerialUSB.print(" Z:");
-	SerialUSB.print(cartesian[Z_AXIS]);
-
-	SerialUSB.print(" Count X:");
-	SerialUSB.print(cdelta[X_AXIS]);
-	SerialUSB.print(" Y:");
-	SerialUSB.print(cdelta[Y_AXIS]);
-	SerialUSB.print(" Z:");
-	SerialUSB.println(cdelta[Z_AXIS]);
-
-    delay(100);
-	gcode_G28();
-	delay(500);
-
-	
-
+  delay(100);
+  gcode_G28();
+  delay(500);
 }
 
 void step(int num,boolean dir,int steps)
 {
-	  
-	  if(num == 1)
-	  {
-	  
-		  digitalWrite(EN1,LOW);
-		  delay(100);
-		  SerialUSB.print("Motor :");
-		  SerialUSB.print(num);
-		  SerialUSB.print("  steps :");
-		  SerialUSB.print(steps);
-		  
-		  digitalWrite(DIR1,dir);
-		  delay(50);
-		  for(int i=0;i<steps;i++)
-		  {
-			  digitalWrite(STP1, HIGH);
-			  delayMicroseconds(800);
-			  digitalWrite(STP1, LOW);
-			  delayMicroseconds(800);
-		   }
-		   digitalWrite(EN1,HIGH);
-	  }
-	  
-	  if(num == 2)
-	  {
-	  
-		  digitalWrite(EN2,LOW);
-		  delay(100);
-		  SerialUSB.print("Motor :");
-		  SerialUSB.print(num);
-		  SerialUSB.print("  steps :");
-		  SerialUSB.print(steps);
-		  
-		  digitalWrite(DIR2,dir);
-		  delay(50);
-		  for(int i=0;i<steps;i++)
-		  {
-			  digitalWrite(STP2, HIGH);
-			  delayMicroseconds(800);
-			  digitalWrite(STP2, LOW);
-			  delayMicroseconds(800);
-		   }
-		   digitalWrite(EN2,HIGH);
-	  } 
-	
-	  if(num == 3)
-	  {
-	  
-		  digitalWrite(EN3,LOW);
-		  delay(100);
-		  SerialUSB.print("Motor :");
-		  SerialUSB.print(num);
-		  SerialUSB.print("  steps :");
-		  SerialUSB.print(steps);
-		  
-		  digitalWrite(DIR3,dir);
-		  delay(50);
-		  for(int i=0;i<steps;i++)
-		  {
-			  digitalWrite(STP3, HIGH);
-			  delayMicroseconds(800);
-			  digitalWrite(STP3, LOW);
-			  delayMicroseconds(800);
-		   }
-		   digitalWrite(EN3,HIGH);
-	  } 
-	
-	  if(num == 4)
-	  {
-	  
-		  digitalWrite(EN4,LOW);
-		  delay(100);
-		  SerialUSB.print("Motor :");
-		  SerialUSB.print(num);
-		  SerialUSB.print("  steps :");
-		  SerialUSB.print(steps);
-		  
-		  digitalWrite(DIR4,dir);
-		  delay(50);
-		  for(int i=0;i<steps;i++)
-		  {
-			  digitalWrite(STP4, HIGH);
-			  delayMicroseconds(800);
-			  digitalWrite(STP4, LOW);
-			  delayMicroseconds(800);
-		   }
-		   digitalWrite(EN4,HIGH);
-	  } 
-	   
-	
-	
-	  if(num == 5)
-	  {
-	
-		digitalWrite(EN5,LOW);
-		delay(100);
-		SerialUSB.print("Motor :");
-		SerialUSB.print(num);
-		SerialUSB.print("  steps :");
-		SerialUSB.print(steps);
-		
-		digitalWrite(DIR5,dir);
-		delay(50);
-		for(int i=0;i<steps;i++)
-		{
-			digitalWrite(STP5, HIGH);
-			delayMicroseconds(800);
-			digitalWrite(STP5, LOW);
-			delayMicroseconds(800);
-		 }
-		 digitalWrite(EN5,HIGH);
-	  } 
-	
-	
-	
-	  if(num == 6)
-	  {
-	
-		digitalWrite(EN6,LOW);
-		delay(100);
-		SerialUSB.print("Motor :");
-		SerialUSB.print(num);
-		SerialUSB.print("  steps :");
-		SerialUSB.print(steps);
-		
-		digitalWrite(DIR6,dir);
-		delay(50);
-		for(int i=0;i<steps;i++)
-		{
-			digitalWrite(STP6, HIGH);
-			delayMicroseconds(800);
-			digitalWrite(STP6, LOW);
-			delayMicroseconds(800);
-		 }
-		 digitalWrite(EN6,HIGH);
-	  }
+  if(num == 1)
+  {
+    digitalWrite(EN1,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR1,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP1, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP1, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN1,HIGH);
+  }
+
+  if(num == 2)
+  {
+
+    digitalWrite(EN2,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR2,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP2, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP2, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN2,HIGH);
+  } 
+
+  if(num == 3)
+  {
+    digitalWrite(EN3,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR3,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP3, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP3, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN3,HIGH);
+  } 
+
+  if(num == 4)
+  {
+    digitalWrite(EN4,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR4,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP4, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP4, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN4,HIGH);
+  }
+
+  if(num == 5)
+  {
+    digitalWrite(EN5,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR5,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP5, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP5, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN5,HIGH);
+  }
+
+  if(num == 6)
+  {
+    digitalWrite(EN6,LOW);
+    delay(100);
+    SerialUSB.print("Motor :");
+    SerialUSB.print(num);
+    SerialUSB.print("  steps :");
+    SerialUSB.print(steps);
+
+    digitalWrite(DIR6,dir);
+    delay(50);
+    for(int i=0;i<steps;i++)
+    {
+      digitalWrite(STP6, HIGH);
+      delayMicroseconds(800);
+      digitalWrite(STP6, LOW);
+      delayMicroseconds(800);
+    }
+    digitalWrite(EN6,HIGH);
+  }
 }
-
-
 
 inline void gcode_X7()
 {
-  if (code_seen('R')) 
+  if (code_seen('R'))
   {
     motors = code_value_short();
 
-	if (code_seen('C')) 
+    if (code_seen('C'))
     {
       motorc = code_value_short();
-	}
-	
+    }
+  
     step(motors,true,motorc);
     delay(500);
     step(motors,false,motorc*5);
     delay(500);
-	
   }
 }
 
@@ -8908,34 +8833,34 @@ inline void gcode_X23()
   bool r_en = true; // enable R modification
   bool h_en = true; // enable H modification
 
-	/* 4 or 3 points input. If r_en == false && h_en == false, only 3 points needed.
-	float p[4][3] = 
-	{
-		{x0, y0, z0},  	1st point should near {-73.61, -42.5, z0}
-		{x1, y1, z1},	2nd point should near {73.61 , -42.5, z1}
-		{x2, y2, z2},   3rd point should near {0	 , 0	, z2}
-		{x3, y3, z3}    4th point should near the center
-	};
-	*/
-	float p[4][3];
+  /* 4 or 3 points input. If r_en == false && h_en == false, only 3 points needed.
+  float p[4][3] = 
+  {
+    {x0, y0, z0},    1st point should near {-73.61, -42.5, z0}
+    {x1, y1, z1},  2nd point should near {73.61 , -42.5, z1}
+    {x2, y2, z2},   3rd point should near {0   , 0  , z2}
+    {x3, y3, z3}    4th point should near the center
+  };
+  */
+  float p[4][3];
 
 
-	float error[5];
-	for (int i = 0; i < 3; i++) error[i] = -1 * endstop_adj[i];
-	error[3] = delta_radius;
-	error[4] = max_pos[Z_AXIS];
+  float error[5];
+  for (int i = 0; i < 3; i++) error[i] = -1 * endstop_adj[i];
+  error[3] = delta_radius;
+  error[4] = max_pos[Z_AXIS];
 
-	if(calculate_error(p, error, r_en, h_en))
-	{
-		//cout << "OK" << endl;
-		for (int i = 0; i < 3; i++) endstop_adj[i] = -1 * error[i];
-		if (r_en) delta_radius = error[3];
-		if (h_en) max_pos[Z_AXIS] = error[4];
-		set_delta_constants();
-	}
+  if(calculate_error(p, error, r_en, h_en))
+  {
+    //cout << "OK" << endl;
+    for (int i = 0; i < 3; i++) endstop_adj[i] = -1 * error[i];
+    if (r_en) delta_radius = error[3];
+    if (h_en) max_pos[Z_AXIS] = error[4];
+    set_delta_constants();
+  }
 
-	
-	//return 0;
+  
+  //return 0;
 }
 
 
@@ -8962,60 +8887,60 @@ inline void gcode_X23()
   for(int i=245 ; i>0 ; i--)
   {
     saved_feedrate = feedrate;
-	saved_feedmultiply = feedmultiply;
-	feedmultiply = 100;
-	refresh_cmd_timeout();
+  saved_feedmultiply = feedmultiply;
+  feedmultiply = 100;
+  refresh_cmd_timeout();
   
-	enable_endstops(true);
+  enable_endstops(true);
   
-	set_destination_to_current();
+  set_destination_to_current();
   
-	feedrate = 0.0;
+  feedrate = 0.0;
   
-	bool  homeX = code_seen(axis_codes[X_AXIS]),
-		  homeY = code_seen(axis_codes[Y_AXIS]),
-		  homeZ = code_seen(axis_codes[Z_AXIS]),
-		  homeE = code_seen(axis_codes[E_AXIS]);
+  bool  homeX = code_seen(axis_codes[X_AXIS]),
+      homeY = code_seen(axis_codes[Y_AXIS]),
+      homeZ = code_seen(axis_codes[Z_AXIS]),
+      homeE = code_seen(axis_codes[E_AXIS]);
   
   
-	home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
     for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
-	  sync_plan_position();
-	  
+    sync_plan_position();
+    
     for (int i = X_AXIS; i <= Z_AXIS; i++) 
-	{
-	  destination[i] = -1;
+  {
+    destination[i] = -1;
 
-#if 0	  
+#if 0    
       if(READ(A_STOP)==1)
       {  
         //SerialUSB.println("A STOP!");
         //disable_x();
-		destination[0] = 0;	  
+    destination[0] = 0;    
       }
  
       if(READ(B_STOP)==1)
       {
         //SerialUSB.println("B STOP!");
         //disable_y();
-		destination[1] = 0;
+    destination[1] = 0;
       }
  
       if(READ(C_STOP)==1)
       {
         //SerialUSB.println("C STOP!");
         //disable_e();
-		destination[2] = 0;
+    destination[2] = 0;
       }
 #endif
       check_axes_activity();
 
 
-	 }
-	
-	  feedrate = 1.732 * homing_feedrate[X_AXIS];
-	  line_to_destination();
-	  st_synchronize();
+   }
+  
+    feedrate = 1.732 * homing_feedrate[X_AXIS];
+    line_to_destination();
+    st_synchronize();
 
        odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
        odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
@@ -9023,16 +8948,16 @@ inline void gcode_X23()
 
        
 
-	   //odelta[0] = st_get_position(X_AXIS);
-	   //odelta[1] = st_get_position(Y_AXIS);
-	   //odelta[2] = st_get_position(Z_AXIS);
+     //odelta[0] = st_get_position(X_AXIS);
+     //odelta[1] = st_get_position(Y_AXIS);
+     //odelta[2] = st_get_position(Z_AXIS);
       
-	  cdelta[0] = cdelta[0] + odelta[0];
+    cdelta[0] = cdelta[0] + odelta[0];
       cdelta[1] = cdelta[1] + odelta[1];
       cdelta[2] = cdelta[2] + odelta[2];
 
       //SerialUSB.print(i);
-	  //SerialUSB.print(" X: ");
+    //SerialUSB.print(" X: ");
       //SerialUSB.print(cdelta[0]);
       //SerialUSB.print(" Y: ");
       //SerialUSB.print(cdelta[1]);
@@ -9040,56 +8965,56 @@ inline void gcode_X23()
       //SerialUSB.println(cdelta[2]);
 
 
-	  
-	  
+    
+    
 
-  	}
+    }
 
     //cdelta[0] = (cdelta[0]/80) - 403.23;
-	//cdelta[1] = (cdelta[1]/80) - 403.23;
-	//cdelta[2] = (cdelta[2]/80) - 403.23;
+  //cdelta[1] = (cdelta[1]/80) - 403.23;
+  //cdelta[2] = (cdelta[2]/80) - 403.23;
 
-	cdelta[0] = cdelta[0] + (403.23-h_offset);
-	cdelta[1] = cdelta[1] + (403.23-h_offset);
-	cdelta[2] = cdelta[2] + (403.23-h_offset);
+  cdelta[0] = cdelta[0] + (403.23-h_offset);
+  cdelta[1] = cdelta[1] + (403.23-h_offset);
+  cdelta[2] = cdelta[2] + (403.23-h_offset);
 
     //cdelta[0] = 403.23 - cdelta[0];
-	//cdelta[1] = 403.23 - cdelta[1];
-	//cdelta[2] = 403.23 - cdelta[2];
+  //cdelta[1] = 403.23 - cdelta[1];
+  //cdelta[2] = 403.23 - cdelta[2];
 
     //SerialUSB.print(i);
-	//SerialUSB.print(" X: ");
+  //SerialUSB.print(" X: ");
     //SerialUSB.print(cdelta[0]);
     //SerialUSB.print(" Y: ");
     //SerialUSB.print(cdelta[1]);
     //SerialUSB.print(" Z: ");
     //SerialUSB.println(cdelta[2]);
 
-	//gcode_X19(cdelta);
+  //gcode_X19(cdelta);
 
-	actuator_to_cartesian(cdelta);
+  actuator_to_cartesian(cdelta);
 
-	delay(500);
+  delay(500);
 
-	gcode_X22();
+  gcode_X22();
 
-	h_value = cartesian[Z_AXIS];
-	
+  h_value = cartesian[Z_AXIS];
+  
 
-	max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+  max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
     set_delta_constants();
-	SerialUSB.println("");
+  SerialUSB.println("");
     SerialUSB.print(" H : ");
-	SerialUSB.println(max_pos[Z_AXIS], 4);
+  SerialUSB.println(max_pos[Z_AXIS], 4);
 
-	delay(500);
+  delay(500);
 
-	gcode_G28();
+  gcode_G28();
 
-	delay(500);
+  delay(500);
 
-	
-	
+  
+  
 
 }
 #endif
@@ -9126,15 +9051,15 @@ inline void gcode_X24()
   gcode_X22();
 
   x_value = cartesian[Z_AXIS];
-  SerialUSB.println("");	
-  SerialUSB.print("x_value : ");	
-  SerialUSB.println(x_value);	
+  SerialUSB.println("");  
+  SerialUSB.print("x_value : ");  
+  SerialUSB.println(x_value);  
 
-	//max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+  //max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
     //set_delta_constants();
-	//SerialUSB.println("");
+  //SerialUSB.println("");
     //SerialUSB.print(" H : ");
-	//SerialUSB.println(max_pos[Z_AXIS], 4);
+  //SerialUSB.println(max_pos[Z_AXIS], 4);
 
   
   delay(500);
@@ -9161,43 +9086,43 @@ inline void gcode_X24()
 
   y_value = cartesian[Z_AXIS];
 
-  //SerialUSB.println("");	
-  SerialUSB.print("y_value : ");	
-  SerialUSB.println(y_value);	 
+  //SerialUSB.println("");  
+  SerialUSB.print("y_value : ");  
+  SerialUSB.println(y_value);   
   
   v_value = abs(x_value - y_value);
-  SerialUSB.print("v_value : ");	
-  SerialUSB.println(v_value);	
+  SerialUSB.print("v_value : ");  
+  SerialUSB.println(v_value);  
 
   if(x_value > y_value)
   {
     if(v_value < k_value)
     {
       endstop_adj[0] = x_value;
-	  endstop_adj[1] = y_value;
+    endstop_adj[1] = y_value;
 
-	  set_delta_constants();
-	  SerialUSB.println("");
+    set_delta_constants();
+    SerialUSB.println("");
       SerialUSB.print(" X : ");
-	  SerialUSB.println(endstop_adj[0], 4);
-	  SerialUSB.print(" Y : ");
-	  SerialUSB.println(endstop_adj[1], 4);
-	  break;
-	
+    SerialUSB.println(endstop_adj[0], 4);
+    SerialUSB.print(" Y : ");
+    SerialUSB.println(endstop_adj[1], 4);
+    break;
+  
     }
     else
     {
       vv = ((y_value - x_value) * 0.8);
-	           endstop_adj[1] = endstop_adj[1] - vv;
-	           //endstop_adj[1] =  vv;
+             endstop_adj[1] = endstop_adj[1] - vv;
+             //endstop_adj[1] =  vv;
                set_delta_constants();
-	           SerialUSB.print(" vv : ");
-			   SerialUSB.println(vv);
-			   SerialUSB.print("end_y : ");
+             SerialUSB.print(" vv : ");
+         SerialUSB.println(vv);
+         SerialUSB.print("end_y : ");
                SerialUSB.println(endstop_adj[1], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
+             delay(100);
+             gcode_G28();
+             delay(100);
     }
   }
   
@@ -9206,30 +9131,30 @@ inline void gcode_X24()
     if(v_value < k_value)
     {
       endstop_adj[0] = x_value;
-	  endstop_adj[1] = y_value;
+    endstop_adj[1] = y_value;
 
-	  set_delta_constants();
-	  SerialUSB.println("");
+    set_delta_constants();
+    SerialUSB.println("");
       SerialUSB.print(" X : ");
-	  SerialUSB.println(endstop_adj[0], 4);
-	  SerialUSB.print(" Y : ");
-	  SerialUSB.println(endstop_adj[1], 4);
-	  break;
-	
+    SerialUSB.println(endstop_adj[0], 4);
+    SerialUSB.print(" Y : ");
+    SerialUSB.println(endstop_adj[1], 4);
+    break;
+  
     }
     else
     {
       vv = ((x_value - y_value) * 0.8);
-	           endstop_adj[0] = endstop_adj[0] - vv;
-	           //endstop_adj[0] =  vv;
+             endstop_adj[0] = endstop_adj[0] - vv;
+             //endstop_adj[0] =  vv;
                set_delta_constants();
-	           SerialUSB.print(" vv : ");
-			   SerialUSB.println(vv);
-			   SerialUSB.print("end_x : ");
+             SerialUSB.print(" vv : ");
+         SerialUSB.println(vv);
+         SerialUSB.print("end_x : ");
                SerialUSB.println(endstop_adj[0], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
+             delay(100);
+             gcode_G28();
+             delay(100);
     }
   }
 }
@@ -9269,15 +9194,15 @@ inline void gcode_X25()
   gcode_X22();
 
   y_value = cartesian[Z_AXIS];
-  SerialUSB.println("");	
-  SerialUSB.print("y_value : ");	
-  SerialUSB.println(y_value);	
+  SerialUSB.println("");  
+  SerialUSB.print("y_value : ");  
+  SerialUSB.println(y_value);  
 
-	//max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
+  //max_pos[Z_AXIS]= max_pos[Z_AXIS] - h_value;
     //set_delta_constants();
-	//SerialUSB.println("");
+  //SerialUSB.println("");
     //SerialUSB.print(" H : ");
-	//SerialUSB.println(max_pos[Z_AXIS], 4);
+  //SerialUSB.println(max_pos[Z_AXIS], 4);
 
   
   delay(500);
@@ -9304,43 +9229,43 @@ inline void gcode_X25()
 
   z_value = cartesian[Z_AXIS];
 
-  //SerialUSB.println("");	
-  SerialUSB.print("z_value : ");	
-  SerialUSB.println(z_value);	 
+  //SerialUSB.println("");  
+  SerialUSB.print("z_value : ");  
+  SerialUSB.println(z_value);   
   
   v_value = abs(z_value - y_value);
-  SerialUSB.print("v_value : ");	
-  SerialUSB.println(v_value);	
+  SerialUSB.print("v_value : ");  
+  SerialUSB.println(v_value);  
 
   if(y_value > z_value)
   {
     if(v_value < k_value)
     {
       endstop_adj[1] = y_value;
-	  endstop_adj[2] = z_value;
+    endstop_adj[2] = z_value;
 
-	  set_delta_constants();
-	  SerialUSB.println("");
+    set_delta_constants();
+    SerialUSB.println("");
       SerialUSB.print(" Y : ");
-	  SerialUSB.println(endstop_adj[1], 4);
-	  SerialUSB.print(" Z : ");
-	  SerialUSB.println(endstop_adj[2], 4);
-	  break;
-	
+    SerialUSB.println(endstop_adj[1], 4);
+    SerialUSB.print(" Z : ");
+    SerialUSB.println(endstop_adj[2], 4);
+    break;
+  
     }
     else
     {
       vv = ((z_value - y_value) * 0.8);
-	           endstop_adj[2] = endstop_adj[2] - vv;
-	           //endstop_adj[2] =   vv;
+             endstop_adj[2] = endstop_adj[2] - vv;
+             //endstop_adj[2] =   vv;
                set_delta_constants();
-	           SerialUSB.print(" vv : ");
-			   SerialUSB.println(vv);
-			   SerialUSB.print("end_z : ");
+             SerialUSB.print(" vv : ");
+         SerialUSB.println(vv);
+         SerialUSB.print("end_z : ");
                SerialUSB.println(endstop_adj[2], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
+             delay(100);
+             gcode_G28();
+             delay(100);
     }
   }
   
@@ -9349,30 +9274,30 @@ inline void gcode_X25()
     if(v_value < k_value)
     {
       endstop_adj[1] = y_value;
-	  endstop_adj[2] = z_value;
+    endstop_adj[2] = z_value;
 
-	  set_delta_constants();
-	  SerialUSB.println("");
+    set_delta_constants();
+    SerialUSB.println("");
       SerialUSB.print(" Y : ");
-	  SerialUSB.println(endstop_adj[1], 4);
-	  SerialUSB.print(" Z : ");
-	  SerialUSB.println(endstop_adj[2], 4);
-	  break;
-	
+    SerialUSB.println(endstop_adj[1], 4);
+    SerialUSB.print(" Z : ");
+    SerialUSB.println(endstop_adj[2], 4);
+    break;
+  
     }
     else
     {
       vv = ((y_value - z_value) * 0.8);
-	           endstop_adj[1] = endstop_adj[1] - vv;
-	           //endstop_adj[1] =  vv;
+             endstop_adj[1] = endstop_adj[1] - vv;
+             //endstop_adj[1] =  vv;
                set_delta_constants();
-	           SerialUSB.print(" vv : ");
-			   SerialUSB.println(vv);
-			   SerialUSB.print("end_y : ");
+             SerialUSB.print(" vv : ");
+         SerialUSB.println(vv);
+         SerialUSB.print("end_y : ");
                SerialUSB.println(endstop_adj[1], 4);
-	           delay(100);
-	           gcode_G28();
-	           delay(100);
+             delay(100);
+             gcode_G28();
+             delay(100);
     }
   }
 }
@@ -9380,91 +9305,91 @@ inline void gcode_X25()
 
 inline void gcode_X26()
 {
-	  float x = 0;
-	  float y = 0;
-	  float z = 0;
-	
-	  gcode_G28();
-	  delay(100);
-	  
-	  if (code_seen('P'))
-	  {
-		x = -73.61;
-		y = -42.5;
-		z = 0;
-	  }
-	  
-	  if (code_seen('Q'))
-	  {
-		x = 73.61;
-		y = -42.5;
-		z = 0;
-	  }
-	
-	  if (code_seen('S'))
-	  {
-		x = 0;
-		y = 85;
-		z = 0;
-	  }
-	
-	
-	  
-	  
-	  float x_value = 0;
-	  float vv=0;
-	  deploy_z_probe();
-	
-	  destination[X_AXIS]= x;
-	  destination[Y_AXIS]= y;
-	  destination[Z_AXIS]= z;
-	  prepare_move();
-	  st_synchronize();
-	
-	  SERIAL_PROTOCOLPGM("X:");
-	  SERIAL_PROTOCOL(current_position[X_AXIS]);
-	  SERIAL_PROTOCOLPGM(" Y:");
-	  SERIAL_PROTOCOL(current_position[Y_AXIS]);
-	  SERIAL_PROTOCOLPGM(" Z:");
-	  SERIAL_PROTOCOL(current_position[Z_AXIS]);
-	  //SERIAL_PROTOCOLPGM(" E:");
-	  //SERIAL_PROTOCOL(current_position[E_AXIS]);
-	
-	  SERIAL_PROTOCOLPGM(MSG_COUNT_X);
-	  SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
-	  SERIAL_PROTOCOLPGM(" Y:");
-	  SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
-	  SERIAL_PROTOCOLPGM(" Z:");
-	  SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
-	
-	  SERIAL_EOL;
-	
-	  delay(3000);
-	
-	  gcode_X22();
-	
-	
-	  actuator_to_cartesian(cdelta);
-	
-	  SerialUSB.print("X:");
-	  SerialUSB.print(cartesian[X_AXIS]);
-	  SerialUSB.print(" Y:");
-	  SerialUSB.print(cartesian[Y_AXIS]);
-	  SerialUSB.print(" Z:");
-	  SerialUSB.print(cartesian[Z_AXIS]);
-	
-	  SerialUSB.print("Count X:");
-	  SerialUSB.print(cdelta[X_AXIS]);
-	  SerialUSB.print(" Y:");
-	  SerialUSB.print(cdelta[Y_AXIS]);
-	  SerialUSB.print(" Z:");
-	  SerialUSB.println(cdelta[Z_AXIS]);
-	
-	  delay(500);
-	  gcode_G28();
-	  delay(500);
-	
-	  
+    float x = 0;
+    float y = 0;
+    float z = 0;
+  
+    gcode_G28();
+    delay(100);
+    
+    if (code_seen('P'))
+    {
+    x = -73.61;
+    y = -42.5;
+    z = 0;
+    }
+    
+    if (code_seen('Q'))
+    {
+    x = 73.61;
+    y = -42.5;
+    z = 0;
+    }
+  
+    if (code_seen('S'))
+    {
+    x = 0;
+    y = 85;
+    z = 0;
+    }
+  
+  
+    
+    
+    float x_value = 0;
+    float vv=0;
+    deploy_z_probe();
+  
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();
+  
+    SERIAL_PROTOCOLPGM("X:");
+    SERIAL_PROTOCOL(current_position[X_AXIS]);
+    SERIAL_PROTOCOLPGM(" Y:");
+    SERIAL_PROTOCOL(current_position[Y_AXIS]);
+    SERIAL_PROTOCOLPGM(" Z:");
+    SERIAL_PROTOCOL(current_position[Z_AXIS]);
+    //SERIAL_PROTOCOLPGM(" E:");
+    //SERIAL_PROTOCOL(current_position[E_AXIS]);
+  
+    SERIAL_PROTOCOLPGM(MSG_COUNT_X);
+    SERIAL_PROTOCOL(float(st_get_position(X_AXIS))/axis_steps_per_unit[X_AXIS]);
+    SERIAL_PROTOCOLPGM(" Y:");
+    SERIAL_PROTOCOL(float(st_get_position(Y_AXIS))/axis_steps_per_unit[Y_AXIS]);
+    SERIAL_PROTOCOLPGM(" Z:");
+    SERIAL_PROTOCOL(float(st_get_position(Z_AXIS))/axis_steps_per_unit[Z_AXIS]);
+  
+    SERIAL_EOL;
+  
+    delay(3000);
+  
+    gcode_X22();
+  
+  
+    actuator_to_cartesian(cdelta);
+  
+    SerialUSB.print("X:");
+    SerialUSB.print(cartesian[X_AXIS]);
+    SerialUSB.print(" Y:");
+    SerialUSB.print(cartesian[Y_AXIS]);
+    SerialUSB.print(" Z:");
+    SerialUSB.print(cartesian[Z_AXIS]);
+  
+    SerialUSB.print("Count X:");
+    SerialUSB.print(cdelta[X_AXIS]);
+    SerialUSB.print(" Y:");
+    SerialUSB.print(cdelta[Y_AXIS]);
+    SerialUSB.print(" Z:");
+    SerialUSB.println(cdelta[Z_AXIS]);
+  
+    delay(500);
+    gcode_G28();
+    delay(500);
+  
+    
 }
 
 inline void gcode_X27()
@@ -9484,112 +9409,112 @@ inline void gcode_X27()
 
 inline void gcode_X28()
 {
-	  int i=0;
-	
-	  if (code_seen('A'))
-	  {
-		gcode_G28();
-		delay(500);
-		gcode_X23();
-		delay(500);
-		gcode_G28();
-		delay(500);
-		gcode_G29();
-		delay(500);
-		gcode_G28();
-		delay(500);
-		gcode_G30();
-		delay(500);
-		gcode_G28();
-		delay(500);
-	  }
-	
-	  if (code_seen('B'))
-	  {
-		gcode_G28();
-		delay(500);
-		gcode_X11();
-		delay(500);
-		gcode_X12(k_value);
-		delay(500);
-		gcode_X13(k_value);
-		delay(500);
-		gcode_X14(k_value);
-		delay(500);
-	  }
-	  
-	
-	  for(i=0; i<10;i++)
-	  {
-	  float x = 0;
-	  float y = 0;
-	  float z = 0;
-	  float x_value = 0;
-	  float vv=0;
-	  deploy_z_probe();
-	
-	  destination[X_AXIS]= x;
-	  destination[Y_AXIS]= y;
-	  destination[Z_AXIS]= z;
-	  prepare_move();
-	  st_synchronize();
-	
-	  delay(500);
-	
-	  destination[X_AXIS]= 30;
-	  destination[Y_AXIS]= -30;
-	  destination[Z_AXIS]= 0;
-	  prepare_move();
-	  st_synchronize();
-	  
-	  
-	  for(y=-30; y<31 ;y++)
-	  {
-		destination[X_AXIS]= x;
-		destination[Y_AXIS]= y;
-		destination[Z_AXIS]= z;
-		prepare_move();
-		st_synchronize();
-	  }
-	
-	  delay(500);
-	  
-	  for(x=30; x>-31 ;x--)
-	  {
-		destination[X_AXIS]= x;
-		destination[Y_AXIS]= y;
-		destination[Z_AXIS]= z;
-		prepare_move();
-		st_synchronize();  
-	  }
-	
-	  delay(500);
-	
-	  for(y=30; y>-31 ;y--)
-	  {
-		destination[X_AXIS]= x;
-		destination[Y_AXIS]= y;
-		destination[Z_AXIS]= z;
-		prepare_move();
-		st_synchronize();  
-	  }
-	
-	  delay(500);
-	
-	  for(x=-30; x<31 ;x++)
-	  {
-		destination[X_AXIS]= x;
-		destination[Y_AXIS]= y;
-		destination[Z_AXIS]= z;
-		prepare_move();
-		st_synchronize();  
-	  }
-	
-	  delay(100);
-	  gcode_G28();
-	  delay(500);
-		}
-	  
+    int i=0;
+  
+    if (code_seen('A'))
+    {
+    gcode_G28();
+    delay(500);
+    gcode_X23();
+    delay(500);
+    gcode_G28();
+    delay(500);
+    gcode_G29();
+    delay(500);
+    gcode_G28();
+    delay(500);
+    gcode_G30();
+    delay(500);
+    gcode_G28();
+    delay(500);
+    }
+  
+    if (code_seen('B'))
+    {
+    gcode_G28();
+    delay(500);
+    gcode_X11();
+    delay(500);
+    gcode_X12(k_value);
+    delay(500);
+    gcode_X13(k_value);
+    delay(500);
+    gcode_X14(k_value);
+    delay(500);
+    }
+    
+  
+    for(i=0; i<10;i++)
+    {
+    float x = 0;
+    float y = 0;
+    float z = 0;
+    float x_value = 0;
+    float vv=0;
+    deploy_z_probe();
+  
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();
+  
+    delay(500);
+  
+    destination[X_AXIS]= 30;
+    destination[Y_AXIS]= -30;
+    destination[Z_AXIS]= 0;
+    prepare_move();
+    st_synchronize();
+    
+    
+    for(y=-30; y<31 ;y++)
+    {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();
+    }
+  
+    delay(500);
+    
+    for(x=30; x>-31 ;x--)
+    {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+    }
+  
+    delay(500);
+  
+    for(y=30; y>-31 ;y--)
+    {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+    }
+  
+    delay(500);
+  
+    for(x=-30; x<31 ;x++)
+    {
+    destination[X_AXIS]= x;
+    destination[Y_AXIS]= y;
+    destination[Z_AXIS]= z;
+    prepare_move();
+    st_synchronize();  
+    }
+  
+    delay(100);
+    gcode_G28();
+    delay(500);
+    }
+    
 }
 
 inline void gcode_X29()
@@ -9666,7 +9591,7 @@ inline void gcode_X29()
   delay(500);
   gcode_G28();
   delay(500);
-  	}
+    }
   
 }
 
@@ -9703,7 +9628,7 @@ inline void gcode_X30()
   for (int y = 0; y < 7; y++) 
   {
     for (int x = 0; x < 7; x++) 
-	{
+  {
       bed_level[x][y] = 0.0;
     }
   }
@@ -9736,71 +9661,71 @@ inline void gcode_X30()
 
   if (code_seen('E')) 
   {
-		int iteration = 0;
-		do {
-		  iteration ++;
-		  SerialUSB.print("Iteration: ");
-		  SerialUSB.println(iteration);
-		  //ECHO_LMV(DB, "Iteration: ", iteration);
+    int iteration = 0;
+    do {
+      iteration ++;
+      SerialUSB.print("Iteration: ");
+      SerialUSB.println(iteration);
+      //ECHO_LMV(DB, "Iteration: ", iteration);
 
-		  SerialUSB.println("Checking/Adjusting endstop offsets");  
-		  //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
-		  adj_endstops();
+      SerialUSB.println("Checking/Adjusting endstop offsets");  
+      //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
+      adj_endstops();
   
-		  bed_probe_all();
-		  calibration_report();
-		} while ((bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
-			  or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
-			  or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
+      bed_probe_all();
+      calibration_report();
+    } while ((bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+        or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+        or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
         SerialUSB.println("Endstop adjustment complete");
-		//ECHO_LM(DB, "Endstop adjustment complete");
+    //ECHO_LM(DB, "Endstop adjustment complete");
   }
 
   
   if (code_seen('R')) 
   {  
-		int iteration = 0;
-		do {
-		  iteration ++;
-		  SerialUSB.print("Iteration: ");
-		  SerialUSB.println(iteration);
-		  //ECHO_LMV(DB, "Iteration: ", iteration);
+    int iteration = 0;
+    do {
+      iteration ++;
+      SerialUSB.print("Iteration: ");
+      SerialUSB.println(iteration);
+      //ECHO_LMV(DB, "Iteration: ", iteration);
 
-		  SerialUSB.println("Checking/Adjusting endstop offsets"); 
-		  //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
-		  adj_endstops();
+      SerialUSB.println("Checking/Adjusting endstop offsets"); 
+      //ECHO_LM(DB, "Checking/Adjusting endstop offsets");
+      adj_endstops();
   
-		  bed_probe_all();
-		  calibration_report();
+      bed_probe_all();
+      calibration_report();
 
           SerialUSB.println("Checking delta radius"); 
-		  //ECHO_LM(DB, "Checking delta radius");
-		  adj_deltaradius();
+      //ECHO_LM(DB, "Checking delta radius");
+      adj_deltaradius();
   
-		} while ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)
-			  or (bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
-			  or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
-			  or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
+    } while ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)
+        or (bed_level_x < -ac_prec) or (bed_level_x > ac_prec)
+        or (bed_level_y < -ac_prec) or (bed_level_y > ac_prec)
+        or (bed_level_z < -ac_prec) or (bed_level_z > ac_prec));
    }
-	   
+     
    if (code_seen('I')) 
    {
         SerialUSB.print("Adjusting Tower Delta for tower");
-		SerialUSB.println(code_value());
-		//ECHO_LMV(DB, "Adjusting Tower Delta for tower", code_value());
-		adj_tower_delta(code_value());
+    SerialUSB.println(code_value());
+    //ECHO_LMV(DB, "Adjusting Tower Delta for tower", code_value());
+    adj_tower_delta(code_value());
 
-		SerialUSB.print("Tower Delta adjustment complete");
-		//ECHO_LM(DB, "Tower Delta adjustment complete");
+    SerialUSB.print("Tower Delta adjustment complete");
+    //ECHO_LM(DB, "Tower Delta adjustment complete");
    }
   
    if (code_seen('D')) {
-   	    SerialUSB.print("Adjusting Diagonal Rod Length");
-		//ECHO_LM(DB, "Adjusting Diagonal Rod Length");
-		adj_diagrod_length();
-		SerialUSB.print("Diagonal Rod Length adjustment complete");
-		//ECHO_LM(DB, "Diagonal Rod Length adjustment complete");
-	  }
+         SerialUSB.print("Adjusting Diagonal Rod Length");
+    //ECHO_LM(DB, "Adjusting Diagonal Rod Length");
+    adj_diagrod_length();
+    SerialUSB.print("Diagonal Rod Length adjustment complete");
+    //ECHO_LM(DB, "Diagonal Rod Length adjustment complete");
+    }
 
   if (code_seen('A')) 
   {
@@ -9810,8 +9735,8 @@ inline void gcode_X30()
       do {
         do {
           iteration ++;
-		  SerialUSB.print("Iteration: ");
-		  SerialUSB.println(iteration);
+      SerialUSB.print("Iteration: ");
+      SerialUSB.println(iteration);
           //ECHO_LMV(DB, "Iteration: ", iteration);
           SerialUSB.println("Checking/Adjusting endstop offsets");
          // ECHO_LM(DB, "Checking/Adjusting endstop offsets");
@@ -9821,7 +9746,7 @@ inline void gcode_X30()
           calibration_report();
 
           if ((bed_level_c < -ac_prec) or (bed_level_c > ac_prec)) {
-		  	SerialUSB.println("Checking delta radius");
+        SerialUSB.println("Checking delta radius");
             //ECHO_LM(DB, "Checking delta radius");
             dr_adjusted = adj_deltaradius();
           }
@@ -9851,7 +9776,7 @@ inline void gcode_X30()
             bed_safe_z = Z_RAISE_BETWEEN_PROBINGS - z_probe_offset[Z_AXIS];
           }
           else {
-		  	SerialUSB.println("Checking DiagRod Length");
+        SerialUSB.println("Checking DiagRod Length");
             //ECHO_LM(DB, "Checking DiagRod Length");
             if (adj_diagrod_length() != 0) { 
               //If diag rod length has been changed .. home to endstops
@@ -9930,7 +9855,7 @@ inline void gcode_X30()
       }
 
      
-	 do {
+   do {
         SERIAL_ECHO("Iteration: ");
         SERIAL_ECHO(loopcount);
         SERIAL_EOL;
@@ -9964,7 +9889,7 @@ inline void gcode_X30()
               set_delta_constants();
               SERIAL_ECHOPAIR("Adjusting Z-Height to: ", max_pos[Z_AXIS]);
               SERIAL_ECHOLN(" mm..");
-			  
+        
             }
           }
           else {
@@ -10209,7 +10134,7 @@ inline void gcode_X30()
           //probe bed and display report
           bed_probe_all();
 
-		  
+      
           calibration_report();
           
           //Check to see if autocalc is complete to within limits..
@@ -10256,11 +10181,11 @@ inline void gcode_X30()
 
     delay(500);
     gcode_G28();
-	delay(500);
-	gcode_X29();
-	delay(500);
+  delay(500);
+  gcode_X29();
+  delay(500);
   }
-}	
+}  
 
 #endif
 
@@ -10269,13 +10194,13 @@ inline void gcode_X8()
   if (code_seen('O')) 
   {
     filrunout_flag = 1;
-	filrunout_info_count=0;
+  filrunout_info_count=0;
   }
 
   if (code_seen('F')) 
   {
     filrunout_flag = 0;
-	filrunout_info_count=0;
+  filrunout_info_count=0;
   }
 }
 
@@ -10306,64 +10231,66 @@ void process_commands()
         break;
 
       // G2, G3
-      #ifndef SCARA
-        case 2: // G2  - CW ARC
-        case 3: // G3  - CCW ARC
-          gcode_G2_G3(gCode == 2);
-          break;
-      #endif
+#ifndef SCARA
+      case 2: // G2  - CW ARC
+      case 3: // G3  - CCW ARC
+        gcode_G2_G3(gCode == 2);
+        break;
+#endif
 
       // G4 Dwell
       case 4:
         gcode_G4(); 
         break;
 
-      #ifdef FWRETRACT
-        case 10: // G10: retract
-        case 11: // G11: retract_recover
-          gcode_G10_G11(gCode == 10);
-          break;
-      #endif //FWRETRACT
+#ifdef FWRETRACT
+      case 10: // G10: retract
+      case 11: // G11: retract_recover
+        gcode_G10_G11(gCode == 10);
+        break;
+#endif //FWRETRACT
 
       case 28: //G28: Home all axes, one at a time
         gcode_G28(); 
         break;
 
-      #ifdef ENABLE_AUTO_BED_LEVELING
+#ifdef ENABLE_AUTO_BED_LEVELING
 
 #if 1 //aven 0724 Mark as not used
-		case 29: // G29 Detailed Z-Probe, probes the bed at 3 or more points.
-          gcode_G29();
-		  break;
+      case 29: // G29 Detailed Z-Probe, probes the bed at 3 or more points.
+        gcode_G29();
+        break;
 #endif
 
-        #ifndef Z_PROBE_SLED
-          case 30: // G30 Single Z Probe
-            gcode_G30();
-            break;
-        #else // Z_PROBE_SLED
-          case 31: // G31: dock the sled
-          case 32: // G32: undock the sled
-            dock_sled(gCode == 31);
-        #endif // Z_PROBE_SLED
-      #endif // ENABLE_AUTO_BED_LEVELING
+#ifndef Z_PROBE_SLED
+      case 30: // G30 Single Z Probe
+        gcode_G30();
+        break;
+#else // Z_PROBE_SLED
+      case 31: // G31: dock the sled
+      case 32: // G32: undock the sled
+        dock_sled(gCode == 31);
+#endif // Z_PROBE_SLED
+#endif // ENABLE_AUTO_BED_LEVELING
 
-      #ifdef DELTA
+#ifdef DELTA
 
-#if 1 //aven 0724 Mark as not used	  
-        case 29: // G29 Detailed Z-Probe, probes the bed at more points.
-          gcode_G29(); break;
-        case 30:  // G30 Delta AutoCalibration
-          gcode_G30(); break;
+#if 1 //aven 0724 Mark as not used    
+      case 29: // G29 Detailed Z-Probe, probes the bed at more points.
+        gcode_G29();
+        break;
+      case 30:  // G30 Delta AutoCalibration
+        gcode_G30();
+        break;
 #endif
-		  
-      #endif //DELTA
+      
+#endif //DELTA
 
       case 60: // G60 Store in memory actual position
-        gcode_G60(); 
+        gcode_G60();
         break;
       case 61: // G61 move to X Y Z in memory
-        gcode_G61(); 
+        gcode_G61();
         break;
       case 90: // G90
         relative_mode = false;
@@ -10381,97 +10308,54 @@ void process_commands()
 
   else if(code_seen('M')) 
   {
-    int gCode = code_value_short();	
-	  //SerialUSB.print("ok@M");
-	  //SerialUSB.println(gCode);
-
-	
-    //switch(code_value_short()) {
+    int gCode = code_value_short();  
     switch(gCode) 
     {
-        #ifdef ULTIPANEL
-        case 0: //M0 - Unconditional stop - Wait for user button press on LCD
-        case 1: //M1 - Conditional stop - Wait for user button press on LCD
-          gcode_M0_M1();
-          break;
-        #endif //ULTIPANEL
+#ifdef ULTIPANEL
+      case 0: //M0 - Unconditional stop - Wait for user button press on LCD
+      case 1: //M1 - Conditional stop - Wait for user button press on LCD
+        gcode_M0_M1();
+        break;
+#endif //ULTIPANEL
 
-        #ifdef LASERBEAM
-        case 3: // M03 S - Setting laser beam
-          gcode_M3();
-          break;
-        case 4: // M04 - Turn on laser beam
-          gcode_M4();
-          break;
-        case 5: // M05 - Turn off laser beam
-          gcode_M5();
-          break;
-        #endif //LASERBEAM
+#ifdef LASERBEAM
+      case 3: // M03 S - Setting laser beam
+        gcode_M3();
+        break;
+      case 4: // M04 - Turn on laser beam
+        gcode_M4();
+        break;
+      case 5: // M05 - Turn off laser beam
+        gcode_M5();
+        break;
+#endif //LASERBEAM
 
-      #ifdef FILAMENT_END_SWITCH
-        case 11: //M11 - Start printing
-          gcode_M11();
-          break;
-      #endif
+#ifdef FILAMENT_END_SWITCH
+      case 11: //M11 - Start printing
+        gcode_M11();
+        break;
+#endif
 
       case 17: //M17 - Enable/Power all stepper motors
         gcode_M17();
         break;
-
-#if 0 //aven 0724 Mark as not used
-      #ifdef SDSUPPORT
-        case 20: // M20 - list SD card
-          gcode_M20(); 
-		  break;
-        case 21: // M21 - init SD card
-          gcode_M21(); break;
-        case 22: //M22 - release SD card
-          gcode_M22(); break;
-        case 23: //M23 - Select file
-          gcode_M23(); break;
-        case 24: //M24 - Start SD print
-          gcode_M24(); break;
-        case 25: //M25 - Pause SD print
-          gcode_M25(); break;
-        case 26: //M26 - Set SD index
-          gcode_M26(); break;
-        case 27: //M27 - Get SD status
-          gcode_M27(); break;
-        case 28: //M28 - Start SD write
-          gcode_M28(); break;
-        case 29: //M29 - Stop SD write
-          gcode_M29(); break;
-        case 30: //M30 <filename> Delete File
-          gcode_M30(); break;
-        case 32: //M32 - Select file and start SD print
-          gcode_M32(); break;
-        case 928: //M928 - Start SD write
-          gcode_M928(); break;
-      #endif //SDSUPPORT
-#endif
-
       case 31: //M31 take time since the start of the SD print or an M109 command
         gcode_M31();
-		break;
-		
+        break;
       case 42: //M42 -Change pin status via gcode
         gcode_M42();
-		break;
+        break;
+#if defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
+      case 49: //M49 Z-Probe repeatability
+        gcode_M49();
+        break;
+#endif //defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
 
-      #if defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
-        case 49: //M49 Z-Probe repeatability
-          gcode_M49();
-		  break;
-		  
-      #endif //defined(ENABLE_AUTO_BED_LEVELING) && defined(Z_PROBE_REPEATABILITY_TEST)
-
-      #if HAS_POWER_SWITCH
-        case 80: //M80 - Turn on Power Supply
-          gcode_M80();
-		  break;
-		  
-      #endif //HAS_POWER_SWITCH
-      
+#if HAS_POWER_SWITCH
+      case 80: //M80 - Turn on Power Supply
+        gcode_M80();
+        break;
+#endif //HAS_POWER_SWITCH
       case 81: // M81 - Turn off Power, including Power Supply, if possible
         gcode_M81();
         break;
@@ -10498,14 +10382,14 @@ void process_commands()
       //   gcode_M105()
       //   break;
       //
-      #if HAS_FAN
-        case 106: //M106 Fan On
-          gcode_M106();
-          break;
-        case 107: //M107 Fan Off
-          gcode_M107();
-          break;
-      #endif //FAN_PIN
+#if HAS_FAN
+      case 106: //M106 Fan On
+        gcode_M106();
+        break;
+      case 107: //M107 Fan Off
+        gcode_M107();
+        break;
+#endif //FAN_PIN
 
       case 109: // M109 Wait for temperature
         gcode_M109(); 
@@ -10535,43 +10419,43 @@ void process_commands()
         gcode_M121();
         break;  
 
-      #ifdef BARICUDA
-        // PWM for HEATER_1_PIN
-        #if defined(HEATER_1_PIN) && HEATER_1_PIN > -1
-          case 126: // M126 valve open
-            gcode_M126();
-            break;
-          case 127: // M127 valve closed
-            gcode_M127();
-            break;
-        #endif //HEATER_1_PIN
+#ifdef BARICUDA
+      // PWM for HEATER_1_PIN
+#if defined(HEATER_1_PIN) && HEATER_1_PIN > -1
+      case 126: // M126 valve open
+        gcode_M126();
+        break;
+      case 127: // M127 valve closed
+        gcode_M127();
+        break;
+#endif //HEATER_1_PIN
 
-        // PWM for HEATER_2_PIN
-        #if defined(HEATER_2_PIN) && HEATER_2_PIN > -1
-          case 128: // M128 valve open
-            gcode_M128();
-            break;
-          case 129: // M129 valve closed
-            gcode_M129();
-            break;
-        #endif //HEATER_2_PIN
-      #endif //BARICUDA
+      // PWM for HEATER_2_PIN
+#if defined(HEATER_2_PIN) && HEATER_2_PIN > -1
+      case 128: // M128 valve open
+        gcode_M128();
+        break;
+      case 129: // M129 valve closed
+        gcode_M129();
+        break;
+#endif //HEATER_2_PIN
+#endif //BARICUDA
 
       case 140: // M140 Set bed temp
         gcode_M140();
         break;
 
-      #ifdef BLINKM
-        case 150: // M150
-          gcode_M150();
-          break;
-      #endif //BLINKM
+#ifdef BLINKM
+      case 150: // M150
+        gcode_M150();
+        break;
+#endif //BLINKM
 
-      #if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
-        case 190: // M190 - Wait for bed heater to reach target.
-          gcode_M190();
-          break;
-      #endif //TEMP_BED_PIN
+#if defined(TEMP_BED_PIN) && TEMP_BED_PIN > -1
+      case 190: // M190 - Wait for bed heater to reach target.
+        gcode_M190();
+        break;
+#endif //TEMP_BED_PIN
 
       case 200: // M200 D<millimetres> set filament diameter and set E axis units to cubic millimetres (use S0 to set back to millimeters).
         gcode_M200();
@@ -10592,27 +10476,27 @@ void process_commands()
         gcode_M206();
         break;
 
-      #ifdef FWRETRACT
-        case 207: //M207 - set retract length S[positive mm] F[feedrate mm/min] Z[additional zlift/hop]
-          gcode_M207();
-          break;
-        case 208: // M208 - set retract recover length S[positive mm surplus to the M207 S*] F[feedrate mm/min]
-          gcode_M208();
-          break;
-        case 209: // M209 - S<1=true/0=false> enable automatic retract detect if the slicer did not support G10/11: every normal extrude-only move will be classified as retract depending on the direction.
-          gcode_M209();
-          break;
-      #endif // FWRETRACT
+#ifdef FWRETRACT
+      case 207: //M207 - set retract length S[positive mm] F[feedrate mm/min] Z[additional zlift/hop]
+        gcode_M207();
+        break;
+      case 208: // M208 - set retract recover length S[positive mm surplus to the M207 S*] F[feedrate mm/min]
+        gcode_M208();
+        break;
+      case 209: // M209 - S<1=true/0=false> enable automatic retract detect if the slicer did not support G10/11: every normal extrude-only move will be classified as retract depending on the direction.
+        gcode_M209();
+        break;
+#endif // FWRETRACT
 
-      #if HOTENDS > 1
-        case 218: // M218 - set hotend offset (in mm), T<extruder_number> X<offset_on_X> Y<offset_on_Y>
-          gcode_M218();
-          break;
-      #endif
+#if HOTENDS > 1
+      case 218: // M218 - set hotend offset (in mm), T<extruder_number> X<offset_on_X> Y<offset_on_Y>
+        gcode_M218();
+        break;
+#endif
 
       case 220: // M220 S<factor in percent>- set speed factor override percentage
         gcode_M220();
-          break;
+        break;
       case 221: // M221 S<factor in percent>- set extrude factor override percentage
         gcode_M221();
         break;
@@ -10620,103 +10504,103 @@ void process_commands()
         gcode_M226();
         break;
 
-      #if defined(CHDK) || (defined(PHOTOGRAPH_PIN) && PHOTOGRAPH_PIN > -1)
-        case 240: // M240  Triggers a camera by emulating a Canon RC-1 : http://www.doc-diy.net/photo/rc-1_hacked/
+#if defined(CHDK) || (defined(PHOTOGRAPH_PIN) && PHOTOGRAPH_PIN > -1)
+      case 240: // M240  Triggers a camera by emulating a Canon RC-1 : http://www.doc-diy.net/photo/rc-1_hacked/
         gcode_M240();
         break;
-      #endif // CHDK || PHOTOGRAPH_PIN
+#endif // CHDK || PHOTOGRAPH_PIN
 
-      #if defined(DOGLCD) && LCD_CONTRAST >= 0
-        case 250: // M250  Set LCD contrast value: C<value> (value 0..63)
-          gcode_M250();
-          break;
-      #endif // DOGLCD
+#if defined(DOGLCD) && LCD_CONTRAST >= 0
+      case 250: // M250  Set LCD contrast value: C<value> (value 0..63)
+        gcode_M250();
+        break;
+#endif // DOGLCD
 
-      #if NUM_SERVOS > 0
-        case 280: // M280 - set servo position absolute. P: servo index, S: angle or microseconds
-          gcode_M280();
-          break;
-      #endif // NUM_SERVOS > 0
+#if NUM_SERVOS > 0
+      case 280: // M280 - set servo position absolute. P: servo index, S: angle or microseconds
+        gcode_M280();
+        break;
+#endif // NUM_SERVOS > 0
 
-      #if defined(LARGE_FLASH) && (BEEPER > 0 || defined(ULTRALCD) || defined(LCD_USE_I2C_BUZZER))
-        case 300: // M300 - Play beep tone
-          gcode_M300();
-          break;
-      #endif // LARGE_FLASH && (BEEPER>0 || ULTRALCD || LCD_USE_I2C_BUZZER)
+#if defined(LARGE_FLASH) && (BEEPER > 0 || defined(ULTRALCD) || defined(LCD_USE_I2C_BUZZER))
+      case 300: // M300 - Play beep tone
+        gcode_M300();
+        break;
+#endif // LARGE_FLASH && (BEEPER>0 || ULTRALCD || LCD_USE_I2C_BUZZER)
 
-      #ifdef PIDTEMP
-        case 301: // M301
-          gcode_M301();
-          break;
-      #endif // PIDTEMP
+#ifdef PIDTEMP
+      case 301: // M301
+        gcode_M301();
+        break;
+#endif // PIDTEMP
 
-      #ifdef PREVENT_DANGEROUS_EXTRUDE
-        case 302: // allow cold extrudes, or set the minimum extrude temperature
-          gcode_M302();
-          break;
-      #endif // PREVENT_DANGEROUS_EXTRUDE
+#ifdef PREVENT_DANGEROUS_EXTRUDE
+      case 302: // allow cold extrudes, or set the minimum extrude temperature
+        gcode_M302();
+        break;
+#endif // PREVENT_DANGEROUS_EXTRUDE
 
       case 303: // M303 PID autotune
         gcode_M303();
         break;
 
-      #ifdef PIDTEMPBED
-        case 304: // M304
-          gcode_M304();
-          break;
-      #endif // PIDTEMPBED
+#ifdef PIDTEMPBED
+      case 304: // M304
+        gcode_M304();
+        break;
+#endif // PIDTEMPBED
 
-      #if HAS_MICROSTEPS
-        case 350: // M350 Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
-          gcode_M350();
-          break;
-        case 351: // M351 Toggle MS1 MS2 pins directly, S# determines MS1 or MS2, X# sets the pin high/low.
-          gcode_M351();
-          break;
-      #endif // HAS_MICROSTEPS
+#if HAS_MICROSTEPS
+      case 350: // M350 Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
+        gcode_M350();
+        break;
+      case 351: // M351 Toggle MS1 MS2 pins directly, S# determines MS1 or MS2, X# sets the pin high/low.
+        gcode_M351();
+        break;
+#endif // HAS_MICROSTEPS
 
-      #ifdef SCARA
-        case 360:  // M360 SCARA Theta pos1
-          if (gcode_M360()) return; break;
-        case 361:  // M361 SCARA Theta pos2
-          if (gcode_M361()) return; break;
-        case 362:  // M362 SCARA Psi pos1
-          if (gcode_M362()) return; break;
-        case 363:  // M363 SCARA Psi pos2
-          if (gcode_M363()) return; break;
-        case 364:  // M364 SCARA Psi pos3 (90 deg to Theta)
-          if (gcode_M364()) return; break;
-        case 365: // M365 Set SCARA scaling for X Y Z
-          gcode_M365(); break;
-      #endif // SCARA
+#ifdef SCARA
+      case 360:  // M360 SCARA Theta pos1
+      if (gcode_M360()) return; break;
+      case 361:  // M361 SCARA Theta pos2
+      if (gcode_M361()) return; break;
+      case 362:  // M362 SCARA Psi pos1
+      if (gcode_M362()) return; break;
+      case 363:  // M363 SCARA Psi pos2
+      if (gcode_M363()) return; break;
+      case 364:  // M364 SCARA Psi pos3 (90 deg to Theta)
+      if (gcode_M364()) return; break;
+      case 365: // M365 Set SCARA scaling for X Y Z
+      gcode_M365(); break;
+#endif // SCARA
 
       case 400: // M400 finish all moves
         gcode_M400();
         break;
 
-      #if defined(ENABLE_AUTO_BED_LEVELING) && (defined(SERVO_ENDSTOPS) || defined(Z_PROBE_ALLEN_KEY)) && not defined(Z_PROBE_SLED)
-        case 401:
-          gcode_M401();
-          break;
-        case 402:
-          gcode_M402();
-          break;
-      #endif
+#if defined(ENABLE_AUTO_BED_LEVELING) && (defined(SERVO_ENDSTOPS) || defined(Z_PROBE_ALLEN_KEY)) && not defined(Z_PROBE_SLED)
+      case 401:
+        gcode_M401();
+        break;
+      case 402:
+        gcode_M402();
+        break;
+#endif
 
-       #ifdef FILAMENT_SENSOR
-        case 404:  //M404 Enter the nominal filament width (3mm, 1.75mm ) N<3.0> or display nominal filament width
-          gcode_M404();
-          break;
-        case 405:  //M405 Turn on filament sensor for control
-          gcode_M405();
-          break;
-        case 406:  //M406 Turn off filament sensor for control
-          gcode_M406();
-          break;
-        case 407:   //M407 Display measured filament diameter
-          gcode_M407();
-          break;
-      #endif // FILAMENT_SENSOR 
+#ifdef FILAMENT_SENSOR
+      case 404:  //M404 Enter the nominal filament width (3mm, 1.75mm ) N<3.0> or display nominal filament width
+        gcode_M404();
+        break;
+      case 405:  //M405 Turn on filament sensor for control
+        gcode_M405();
+        break;
+      case 406:  //M406 Turn off filament sensor for control
+        gcode_M406();
+        break;
+      case 407:   //M407 Display measured filament diameter
+        gcode_M407();
+        break;
+#endif // FILAMENT_SENSOR 
 
       case 500: // M500 Store settings in EEPROM
         gcode_M500();
@@ -10731,55 +10615,55 @@ void process_commands()
         gcode_M503();
         break;
 
-      #ifdef ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
-        case 540:
-          gcode_M540();
-          break;
-      #endif
+#ifdef ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
+      case 540:
+        gcode_M540();
+        break;
+#endif
 
-       #ifdef FILAMENTCHANGEENABLE
-        case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
-          gcode_M600();
-          break;
-      #endif // FILAMENTCHANGEENABLE
+#ifdef FILAMENTCHANGEENABLE
+      case 600: //Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
+        gcode_M600();
+        break;
+#endif // FILAMENTCHANGEENABLE
 
-      #ifdef DUAL_X_CARRIAGE
-        case 605:
-          gcode_M605();
-          break;
-      #endif // DUAL_X_CARRIAGE
+#ifdef DUAL_X_CARRIAGE
+      case 605:
+        gcode_M605();
+        break;
+#endif // DUAL_X_CARRIAGE
 
-      #if defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
-        case 666: //M666 Set Z probe offset or set delta endstop and geometry adjustment
-          gcode_M666();
-          break;
-      #endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
+#if defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
+      case 666: //M666 Set Z probe offset or set delta endstop and geometry adjustment
+        gcode_M666();
+        break;
+#endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
 
       case 907: // M907 Set digital trimpot motor current using axis codes.
         gcode_M907();
         break;
 
-      #if HAS_DIGIPOTSS
-        case 908: // M908 Control digital trimpot directly.
-          gcode_M908();
-          break;
-      #endif // HAS_DIGIPOTSS
+#if HAS_DIGIPOTSS
+      case 908: // M908 Control digital trimpot directly.
+        gcode_M908();
+        break;
+#endif // HAS_DIGIPOTSS
 
-      #ifdef NPR2
-        case 997: // M997 Cxx Move Carter xx gradi
-          gcode_M997();
-          break;
-      #endif // NPR2
+#ifdef NPR2
+      case 997: // M997 Cxx Move Carter xx gradi
+        gcode_M997();
+        break;
+#endif // NPR2
 
-       case 999: // M999: Restart after being Stopped
-         gcode_M999();
-         break;
+      case 999: // M999: Restart after being Stopped
+        gcode_M999();
+        break;
 
-        #ifdef CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
-        case CUSTOM_M_CODE_SET_Z_PROBE_OFFSET:
-          gcode_SET_Z_PROBE_OFFSET();
-          break;
-      #endif // CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
+#ifdef CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
+      case CUSTOM_M_CODE_SET_Z_PROBE_OFFSET:
+        gcode_SET_Z_PROBE_OFFSET();
+        break;
+#endif // CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
     }
 
     SERIAL_PROTOCOLLN(MSG_OK);
@@ -10787,140 +10671,137 @@ void process_commands()
 
   else if (code_seen('T')) 
   {
-     gcode_T();
-     SERIAL_PROTOCOLLN(MSG_OK);
+    gcode_T();
+    SERIAL_PROTOCOLLN(MSG_OK);
   }
 
 
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
+  //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
   else if (code_seen('X')) 
   {
-    //SerialUSB.print("ok");
-      int gCode = code_value_short();	
-	  //SerialUSB.print("ok@X");
-	  //SerialUSB.println(gCode);
-    //switch(code_value_short()) 
-      switch(gCode) 
-      {
-        case 0: 
-        case 1: 
-          gcode_X1();
-		  break;
-		case 2:   
-          gcode_X2();
-		  break;
-        case 3:   
-          gcode_X3();
-		  break;
-		case 4:   
-          gcode_X4();
-		  break;
-		case 5:   
-          gcode_X5();
-		  break; //heater PID on/off 
-        case 6:   
-          gcode_X6();
-		  break;
-		case 7:   
-          gcode_X7();
-		  break;		  
-		case 8:   
-          gcode_X8();
-		  break;		  
-        case 111:   
-          gcode_X111();
-		  break;
- #if 0		  
-		case 10:   
-          gcode_X10();
-		  break; 
-		case 11:   
-          gcode_X11();
-		  break;
-		case 12:   
-          gcode_X12(k_value);
-		  break;  
-		case 13:   
-          gcode_X13(k_value);
-		  break;
-		case 14:   
-          gcode_X14(k_value);
-		  break;
-		case 15:   
-          gcode_X15();
-		  break;
-		case 17:   
-      gcode_X17();
-		  break;
-        case 18:   
-          gcode_X18();
-          break;
-		 case 19:   
-          gcode_X19();
-          break; 
-		  case 20:
-          gcode_X20();
-		  break; 
-		  case 21:   
-          gcode_X21();
-		  break; 
-
-		  case 22:   
-          gcode_X22();
-		  break; 
-
-		  case 23:   
-          gcode_X23();
-		  break; 
-
-		  case 24:   
-          gcode_X24();
-		  break; 
-
-		  case 25:   
-          gcode_X25();
-		  break;
-
-		  case 26:   
-          gcode_X26();
-		  break; 
-
-		  case 27:   
-          gcode_X27();
-		  break; 
-
-		  case 28:   
-          gcode_X28();
-		  break; 
-
-		  case 29:   
-          gcode_X29();
-		  break; 
-
-		  case 30:   
-          gcode_X30();
-		  break; 
-		#endif  
-
-		default:
-      SERIAL_ECHO_START;
-      SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
-      SERIAL_ECHO(cmdbuffer[bufindr]);
-      SERIAL_ECHOLNPGM("\"");
-
-      SERIAL_PROTOCOLLN("ER BAD_CMD");
+    int gCode = code_value_short();  
+    switch(gCode) 
+    {
+      case 0:
+        break;
+      case 1: 
+        gcode_X1();
+        break;
+      case 2:   
+        gcode_X2();
+        break;
+      case 3:   
+        gcode_X3();
+        break;
+      case 4:   
+        gcode_X4();
+        break;
+      case 5:   
+        gcode_X5();
+        break; //heater PID on/off 
+      case 6:   
+        gcode_X6();
+        break;
+      case 7:   
+        gcode_X7();
+        break;      
+      case 8:   
+        gcode_X8();
+        break;      
+      case 111:   
+        gcode_X111();
+        break;
+#if 0      
+      case 10:   
+      gcode_X10();
+      break; 
+      case 11:   
+      gcode_X11();
       break;
+      case 12:   
+      gcode_X12(k_value);
+      break;  
+      case 13:   
+      gcode_X13(k_value);
+      break;
+      case 14:   
+      gcode_X14(k_value);
+      break;
+      case 15:   
+      gcode_X15();
+      break;
+      case 17:   
+      gcode_X17();
+      break;
+      case 18:   
+      gcode_X18();
+      break;
+      case 19:   
+      gcode_X19();
+      break; 
+      case 20:
+      gcode_X20();
+      break; 
+      case 21:   
+      gcode_X21();
+      break; 
+
+      case 22:   
+      gcode_X22();
+      break; 
+
+      case 23:   
+      gcode_X23();
+      break; 
+
+      case 24:   
+      gcode_X24();
+      break; 
+
+      case 25:   
+      gcode_X25();
+      break;
+
+      case 26:   
+      gcode_X26();
+      break; 
+
+      case 27:   
+      gcode_X27();
+      break; 
+
+      case 28:   
+      gcode_X28();
+      break; 
+
+      case 29:   
+      gcode_X29();
+      break; 
+
+      case 30:   
+      gcode_X30();
+      break; 
+#endif  
+
+      default:
+        SERIAL_ECHO_START;
+        SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
+        SERIAL_ECHO(cmdbuffer[bufindr]);
+        SERIAL_ECHOLNPGM("\"");
+
+        SERIAL_PROTOCOLLN("ER BAD_CMD");
+        break;
     }
 
     SERIAL_PROTOCOLLN(MSG_OK);
   }
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
+  //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
   else if(code_seen('C')) {
     int cCode = code_value_short();
 
     switch(cCode) {
       case 1:
-        // Enable/Disable lineno and sumcheck
+      // Enable/Disable lineno and sumcheck
         gcode_C1();
         break;
       default:
@@ -11089,7 +10970,7 @@ void prepare_move() {
       for (int8_t i = 0; i < NUM_AXIS; i++) destination[i] = current_position[i] + difference[i] * fraction;
 
       calculate_delta(destination);
-	  
+    
       //SERIAL_ECHOPGM("destination[0]="); SERIAL_ECHOLN(destination[0]);
       //SERIAL_ECHOPGM("destination[1]="); SERIAL_ECHOLN(destination[1]);
       //SERIAL_ECHOPGM("destination[2]="); SERIAL_ECHOLN(destination[2]);
@@ -11098,7 +10979,7 @@ void prepare_move() {
       //SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
 
       adjust_delta(destination);
-	  
+    
       plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder, active_driver);
     }
 
@@ -11355,28 +11236,28 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
   
   //#if HAS_FILRUNOUT //aven_test0826
-	  //if ((printing || card.sdprinting) && (READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING))
+    //if ((printing || card.sdprinting) && (READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING))
 
   //aven_0907
     if(filrunout_flag == 1)
     {
-	  if ((READ(F0_STOP)^FIL_RUNOUT_INVERTING))
+    if ((READ(F0_STOP)^FIL_RUNOUT_INVERTING))
       {
         if(filrunout_info_count = 10)
         {
-		  SerialUSB.println("filrunout");
+      SerialUSB.println("filrunout");
           //filrunout();
           filrunout_info_count = 0;
         }
-		filrunout_info_count++;
+    filrunout_info_count++;
       }
   //#endif
     }
 
-	else
-	{
+  else
+  {
       filrunout_info_count = 0;
-	}
+  }
 //aven_0907
 
   if (buflen < BUFSIZE - 1) get_command();
@@ -11556,7 +11437,7 @@ void kill()
   void filrunout() {
     //if (filrunoutEnqued == false) {
       //filrunoutEnqued = true;
-	  //gcode_X7();
+    //gcode_X7();
       //enquecommand("M600");
     //}
   }
