@@ -1870,24 +1870,77 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     st_synchronize();
   }
 
+
+
+  int read_FSR(int data[], int len, int pin)
+  {
+
+
+    for (int i = len - 1; i > 0; i--) 
+      data[i] = data[i - 1];
+
+    long sum = 0;
+    for (int i = 0; i < 20; i++)
+      sum += analogRead(pin);
+    data[0] = sum / 20;
+    
+    return data[0];
+  }
+
+  bool isTouched(int data[], int len, float threshold)
+  {
+
+    long sum = 0;
+    for (int i = 1; i < len - 1; i++)
+      sum += data[i];
+    sum = sum / (len - 1);
+
+    delayMicroseconds(800);
+    
+    return data[0] < (float)sum * threshold;
+
+
+  }
+
   float z_probe()
   {
     feedrate = homing_feedrate[X_AXIS];
+    
     prepare_move_raw();
     st_synchronize();
 
-    enable_endstops(true);
     float start_z = current_position[Z_AXIS];
     long start_steps = st_get_position(Z_AXIS);
 
     feedrate = probing_feedrate;
-    destination[Z_AXIS] = -20;
+
+
+    int data[3][20];
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 20; j++)
+        data[i][j] = 0;
+
+    int fsr_flag = -1;
+    while ((destination[Z_AXIS] -= 0.0125) > -10 && fsr_flag == -1)
+    {
+      prepare_move_raw();
+      st_synchronize();
+      for (int i = 0; i < 3; i++)
+      {
+        read_FSR(data[i], 20, i);
+        if (isTouched(data[i], 20, 0.9))
+        {
+          fsr_flag = i;
+          //Serial.println("TOUCHED");
+        } 
+      }
+    }
+
     prepare_move_raw();
     st_synchronize();
-    endstops_hit_on_purpose(); // clear endstop hit flags
 
-    enable_endstops(false);
     long stop_steps = st_get_position(Z_AXIS);
+
 
     saved_position[X_AXIS] = float((st_get_position(X_AXIS)) / axis_steps_per_unit[X_AXIS]);
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
@@ -1903,7 +1956,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
     feedrate = homing_feedrate[Z_AXIS];
-    destination[Z_AXIS] = mm+2;
+    destination[Z_AXIS] = mm + 2;
     prepare_move_raw();
     return mm;
   }
@@ -1994,7 +2047,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       if (probe_z > probe_h) probe_h = probe_z;
       if (probe_z < probe_l) probe_l = probe_z;
       probe_count ++;
-    } while ((probe_z != probe_bed_z) and (probe_count < 21));
+    } while ((abs((float)probe_z - probe_bed_z) > 0.03) and (probe_count < 21));
 
     return probe_bed_z;
   }
