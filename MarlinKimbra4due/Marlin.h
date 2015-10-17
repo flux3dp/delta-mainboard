@@ -373,4 +373,9 @@ extern inline bool debugDryrun() {
 
 extern void calculate_volumetric_multipliers();
 
+typedef struct FilamentDetect {
+  bool enable;
+  unsigned long last_trigger;
+} FilamentDetect;
+
 #endif //MARLIN_H

@@ -266,11 +266,13 @@ bool rpi_io2_flag;
 
 
 //aven_0509
+// FLUX defines
 int pleds=0;
 
 int motors=0;
 int motorc=0;
 
+struct FilamentDetect filament_detect = {false, 0};
 int filrunout_flag=0;
 int filrunout_info_count=0;
 
@@ -10099,14 +10101,18 @@ inline void gcode_X8()
 {
   if (code_seen('O')) 
   {
-    filrunout_flag = 1;
-  filrunout_info_count=0;
+    filament_detect.enable = true;
+    // TODO N
+  //   filrunout_flag = 1;
+  // filrunout_info_count=0;
   }
 
   if (code_seen('F')) 
   {
-    filrunout_flag = 0;
-  filrunout_info_count=0;
+    filament_detect.enable = false;
+    // TODO N
+  //   filrunout_flag = 0;
+  // filrunout_info_count=0;
   }
 }
 
@@ -11139,32 +11145,14 @@ void disable_all_steppers() {
  *  - check oozing prevent
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
+  if(filament_detect.enable) {
+    if((READ(F0_STOP)^FIL_RUNOUT_INVERTING) &&
+       (millis() - filament_detect.last_trigger > 1000)) {
 
-  
-  //#if HAS_FILRUNOUT //aven_test0826
-    //if ((printing || card.sdprinting) && (READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING))
-
-  //aven_0907
-    if(filrunout_flag == 1)
-    {
-    if ((READ(F0_STOP)^FIL_RUNOUT_INVERTING))
-      {
-        if(filrunout_info_count = 10)
-        {
-      SerialUSB.println("filrunout");
-          //filrunout();
-          filrunout_info_count = 0;
-        }
-    filrunout_info_count++;
-      }
-  //#endif
+       SerialUSB.println("CTRL FILAMENTRUNOUT 0");
+       filament_detect.last_trigger = millis();
     }
-
-  else
-  {
-      filrunout_info_count = 0;
   }
-//aven_0907
 
   if (buflen < BUFSIZE - 1) get_command();
 

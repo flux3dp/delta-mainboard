@@ -101,8 +101,7 @@ const bool Z_MAX_ENDSTOP_INVERTING = true;     // set to true to invert the logi
 //const bool Z_MAX_ENDSTOP_INVERTING = false;
 const bool Z_PROBE_ENDSTOP_INVERTING = false;
 
-//aven_test0826
-const bool FIL_RUNOUT_INVERTING = true;
+const bool FIL_RUNOUT_INVERTING = false;
 
 
 
