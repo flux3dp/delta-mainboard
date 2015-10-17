@@ -7549,25 +7549,17 @@ inline void gcode_X1()
 
 inline void gcode_X2()
 {
-  if (code_seen('F')) 
+  if (code_seen('F'))
   {
-    SerialUSB.println("PWM OFF");
-    analogWrite(M_IO2, 255);
+    analogWrite(M_IO2, 0);
   }
-  
-  if (code_seen('O')) 
+
+  if (code_seen('O'))
   {
     pleds = code_value_short();
-    if(pleds >255 | pleds <0)
+    if(pleds >= 0 & pleds <= 255)
     {
-      SerialUSB.print("OUT OF RANGE :");
-      SerialUSB.println(pleds);
-    }
-    else
-    {
-      SerialUSB.print("PWM :");
-      SerialUSB.println(pleds);
-      analogWrite(M_IO2, 255 - pleds);
+      analogWrite(M_IO2, 255);
     }
   }
 }
