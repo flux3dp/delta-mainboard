@@ -21,6 +21,7 @@ X3 + F + num (0 ~ 4)                                                           :
 * Example:
 
 > `X3L0C1A0.005`: White LED wave with cycle 0.005
+>
 > `X3L1C3`: Red LED on
 
 ```
