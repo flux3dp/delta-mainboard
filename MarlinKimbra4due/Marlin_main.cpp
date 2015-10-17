@@ -3524,14 +3524,6 @@ inline void gcode_G4() {
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
 
-  if (current_position[Z_AXIS] < 220.0)
-  {
-    feedrate = homing_feedrate[X_AXIS];
-    destination[Y_AXIS] = -85.0;
-    prepare_move_raw();
-    st_synchronize();
-  }
-
   G28_f = 1;//aven_0807
   
   #ifdef ENABLE_AUTO_BED_LEVELING
