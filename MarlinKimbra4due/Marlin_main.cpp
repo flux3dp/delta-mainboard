@@ -266,31 +266,7 @@ bool rpi_io2_flag;
 
 
 //aven_0509
-long setpoint=0;
-int freq=0;
-int duty=0;
-int power=0;
-long read_temp=0;
 int pleds=0;
-int qleds=0;
-int f_led1=0;
-int f_led2=0;
-int f_led3=0;
-int cled1=0;
-int cled2=0;
-int cled3=0;
-int fled1=0;
-int fled2=0;
-int fled3=0;
-int leds1=0;
-int leds2=0;
-int leds3=0;
-int runleds1=0;
-int runleds2=0;
-int runleds3=0;
-int dcount1=0;
-int dcount2=0;
-int dcount3=0;
 
 int motors=0;
 int motorc=0;
@@ -7652,131 +7628,8 @@ inline void gcode_X4()
 }
 
 
-inline void gcode_X5() //Breathing LED
+inline void gcode_X5() // Not defined
 {
-  SerialUSB.println("LED Breathing Setting :");
-  if (code_seen('O')) 
-  {
-    SerialUSB.print("LED 1 Breathing ");
-    f_led1=1;
-  
-    cled1 = code_value_short();
-    SerialUSB.print(" count:");
-    SerialUSB.print(cled1);
-
-    if(code_seen('C'))
-    {
-      fled1 = code_value_short();
-      SerialUSB.print(" freq:");
-      SerialUSB.println(fled1);
-    }
-
-    leds1=1;
-  }
-
-  if (code_seen('P')) 
-  {
-    SerialUSB.print("LED 2 Breathing ");
-    f_led2=1;
-    cled2 = code_value_short();
-    SerialUSB.print(" count:");
-    SerialUSB.print(cled2);
-
-    if(code_seen('C'))
-    {
-      fled2 = code_value_short();
-      SerialUSB.print(" freq:");
-      SerialUSB.println(fled2);
-    }
-
-    leds1=1;
-  } 
-
-  if (code_seen('Q')) 
-  {
-    SerialUSB.print("LED 3 Breathing ");
-    f_led3=1;
-    cled3 = code_value_short();
-    SerialUSB.print(" count:");
-    SerialUSB.print(cled3);
-
-    if(code_seen('C'))
-    {
-      fled3 = code_value_short();
-      SerialUSB.print(" freq:");
-      SerialUSB.println(fled3);
-    }
-
-    leds1=1;
-  } 
-
-  if (code_seen('R')) 
-  {
-    SerialUSB.print("ALL LED Breathing ");
-    //SerialUSB.print("LED 2 Breathing ");
-    //SerialUSB.print("LED 3 Breathing ");
-
-    f_led1 = 1;
-    f_led2 = 1;
-    f_led3 = 1;
-
-    cled1 = code_value_short();
-    cled2=cled1;
-    cled3=cled2;
-
-    SerialUSB.print(" count:");
-    SerialUSB.print(cled3);
-
-    if(code_seen('C'))
-    {
-      fled1 = code_value_short();
-      fled2=fled1;
-      fled3=fled2;
-
-      SerialUSB.print(" freq:");
-      SerialUSB.println(fled3);
-    }
-
-    leds1=1;
-    leds2=1;
-    leds3=1;
-  } 
-
-   if (code_seen('F')) 
-   {
-     SerialUSB.print("LED Breathing off");
-     fled1=0;
-     fled2=0;
-     fled3=0;
-
-     cled1=0;
-     cled2=0;
-     cled3=0;
-
-     fled1=0;
-     fled2=0;
-     fled3=0;
-
-     leds1=0;
-     leds2=0;
-     leds3=0;
-
-     dcount1=0;
-     dcount2=0;
-     dcount3=0;
-
-     runleds1=0;
-     runleds2=0;
-     runleds3=0;
-
-     delay(100);
-     analogWrite(LED_P2,0);
-     delay(100);
-     analogWrite(LED_P3,0);
-     delay(100);
-     analogWrite(LED_P1,255);
-     //delay(100);
-   }
 }
 
 
