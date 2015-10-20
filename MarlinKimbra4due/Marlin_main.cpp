@@ -7589,27 +7589,27 @@ inline void gcode_X4()
   }
   if(code_seen('R')) {
     SerialUSB.print(" CONTROL ");
-    SerialUSB.print(led_ctrl[led_index]);
+    SerialUSB.print(led_st.mode[led_index]);
     SerialUSB.print(" PARAM_A ");
-    SerialUSB.print(led_param_a[led_index]);
+    SerialUSB.print(led_st.param_a[led_index]);
     SerialUSB.print(" PARAM_B ");
-    SerialUSB.print(led_param_b[led_index]);
+    SerialUSB.print(led_st.param_a[led_index]);
     return;
   }
   if(code_seen('C')) {
-    led_ctrl[led_index] = code_value();
+    led_st.mode[led_index] = code_value();
     SerialUSB.print(" CONTROL ");
-    SerialUSB.print(led_ctrl[led_index]);
+    SerialUSB.print(led_st.mode[led_index]);
   }
   if(code_seen('A')) {
-    led_param_a[led_index] = code_value();
+    led_st.param_a[led_index] = code_value();
     SerialUSB.print(" PARAM_A ");
-    SerialUSB.print(led_param_a[led_index]);
+    SerialUSB.print(led_st.param_a[led_index]);
   }
   if(code_seen('B')) {
-    led_param_b[led_index] = code_value();
+    led_st.param_b[led_index] = code_value();
     SerialUSB.print(" PARAM_B ");
-    SerialUSB.print(led_param_b[led_index]);
+    SerialUSB.print(led_st.param_b[led_index]);
   }
   SerialUSB.println("#");
 }
