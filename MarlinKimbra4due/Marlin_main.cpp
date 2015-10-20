@@ -10278,14 +10278,6 @@ void process_commands()
       case 92: // M92
         gcode_M92();
         break;  
-      // NOTE: NOT use
-      // case 104: // M104
-      //   gcode_M104();
-      //   break;
-      // case 105: // M105 Read current temperature
-      //   gcode_M105()
-      //   break;
-      //
 #if HAS_FAN
       case 106: //M106 Fan On
         gcode_M106();
@@ -10295,9 +10287,6 @@ void process_commands()
         break;
 #endif //FAN_PIN
 
-      case 109: // M109 Wait for temperature
-        gcode_M109(); 
-        break;
       case 111: // M111 - Debug mode
         gcode_M111();
         break;
