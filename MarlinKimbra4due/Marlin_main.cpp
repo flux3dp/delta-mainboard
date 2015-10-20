@@ -1050,16 +1050,15 @@ void loop() {
 }
 
 void inline proc_heigh_level_control(const char* cmd) {
-  if(strcmp(cmd, "LINECHECK_ENABLED") == 0) {
+  if(strcmp(cmd, "ENABLE_LINECHECK") == 0) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
     line_check = 1;
     gcode_LastN = 0;
 
-  } else if(strcmp(cmd, "LINECHECK_DISABLED") == 0) {
+  } else if(strcmp(cmd, "DISABLE_LINECHECK") == 0) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     line_check = 0;
 
-  // } else if(strcmp(cmd, "RESET_QUEUE") == 0) {
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
   }
