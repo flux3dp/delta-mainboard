@@ -939,8 +939,8 @@ void setup()
   pinMode(M_IO1,INPUT);//PD7
 
 //aven_0825
-  pinMode(M_IO2,OUTPUT);//PD8
-
+  pinMode(M_IO2,OUTPUT); //PD8
+  digitalWrite(M_IO2, 0);
 
   pinMode(CAP_IO,INPUT);
   pinMode(REF_IO,INPUT);
@@ -7552,7 +7552,7 @@ inline void gcode_X2()
     pleds = code_value_short();
     if(pleds >= 0 & pleds <= 255)
     {
-      analogWrite(M_IO2, 255);
+      analogWrite(M_IO2, pleds);
     }
   }
 }
