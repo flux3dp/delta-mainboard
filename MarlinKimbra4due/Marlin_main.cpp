@@ -273,15 +273,22 @@ int motors=0;
 int motorc=0;
 
 struct FilamentDetect filament_detect = {false, 0};
-int filrunout_flag=0;
-int filrunout_info_count=0;
 
-
+// manage_led
+#define _led_wave_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
+// #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
+#define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])
+const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
+struct LedStatus led_st = {
+  'W',              // situational
+  0,                // last update
+  {1, 0, 0},        // mode
+  {0.0009, 1, 1},   // param_a
+  {0, 0, 0}         // param_b
+};
 
 float k_value= 0.03;
 float u_value;
-//char setpoint;
-//char pbuf[5];
 
 //aven_0721
 int line_check = 0;
@@ -716,93 +723,82 @@ void servo_init()
   #endif
 }
 
-// manage_led
-#define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
-#define _led_wave(i) _led_wave_atom(led_param_a[i], led_param_b[i])
-#define LED_OFF 0
-#define LED_WAVE 1
-#define LED_BLINK 2
-#define LED_ON 3
-#define LED_WAVE_2_ON 4
-#define LED_WAVE_2_OFF 5
-
-int led_pins[3] = {LED_P1, LED_P2, LED_P3};
-char led_mode = 'W';  // 'W'akeup, 'R'eady, 'S'leep, 'F'atel
-float led_param_a[3] = {0.0009, 1, 1};
-float led_param_b[3] = {0, 0, 0};
-char led_ctrl[3] = {1, 0, 0};
-
-// pre-molloc space
-char new_led_mode;
-
 void manage_led()
 {
-  new_led_mode = led_mode;
+  if(millis() - led_st.last_update < 30)
+    return;
+
+  led_st.last_update = millis();
+  char new_situational = led_st.situational;
 
   if(rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
     // rpi does not change R_IO1 status, check if timeout
     if(rpi_last_active) {
       if(millis() - rpi_last_active > 5000) {
-        new_led_mode = 'F';
+        new_situational = 'F';
       } else {
-        new_led_mode = 'R';
+        new_situational = 'R';
       }
     }
   } else {
     // rpi change R_IO1 flag, update status
     rpi_io1_flag = !rpi_io1_flag;
     rpi_last_active = millis();
-    new_led_mode = 'R';
+    new_situational = 'R';
   }
 
-  if(new_led_mode == 'R') {
+  if(new_situational == 'R') {
     if(rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
       if(millis() - rpi_wifi_active > 5000) {
         // rpi wifi status does not change over 5s
-        if(rpi_io2_flag && led_ctrl[2] != LED_ON)  // wifi is up
-          led_ctrl[2] = LED_WAVE_2_ON;
-        else if((!rpi_io2_flag) && led_ctrl[2] != LED_OFF)  // sleep
-          new_led_mode = 'S';
+        if(rpi_io2_flag && led_st.mode[2] != LED_ON)  // wifi is up
+          led_st.mode[2] = LED_WAVE_2_ON;
+        else if((!rpi_io2_flag) && led_st.mode[2] != LED_OFF)  // sleep
+          new_situational = 'S';
       }
     } else {
       // rpi wifi status is changed, wave led
       rpi_io2_flag = !rpi_io2_flag;
       rpi_wifi_active = millis();
-      if(led_ctrl[2] != LED_WAVE) {
-        led_ctrl[2] = LED_WAVE;
-        led_param_a[2] = 0.0009;
-        led_param_b[2] = millis();
+      if(led_st.mode[2] != LED_WAVE) {
+        led_st.mode[2] = LED_WAVE;
+        led_st.param_a[2] = 0.0009;
+        led_st.param_b[2] = millis();
       }
     }
   }
 
-  if(new_led_mode != led_mode) {
-    led_mode = new_led_mode;
-    switch(led_mode) {
+  if(new_situational != led_st.situational) {
+    led_st.situational = new_situational;
+    switch(led_st.situational) {
       case 'R':
-        led_ctrl[0] = LED_WAVE_2_ON;
-        led_ctrl[1] = LED_OFF;
+        led_st.mode[0] = LED_WAVE_2_ON;
+        led_st.mode[1] = LED_OFF;
         break;
       case 'F':
-        led_ctrl[0] = LED_BLINK; led_param_a[0] = 0.003; led_param_b[0] = 0;
-        led_ctrl[1] = LED_BLINK; led_param_a[1] = 0.003; led_param_b[1] = 0;
-        led_ctrl[2] = LED_OFF;
+        led_st.mode[0] = LED_BLINK;
+        led_st.param_a[0] = 0.003;
+        led_st.param_b[0] = 0;
+        led_st.mode[1] = LED_BLINK;
+        led_st.param_a[1] = 0.003;
+        led_st.param_b[1] = 0;
+        led_st.mode[2] = LED_OFF;
         break;
       case 'S':
-        led_ctrl[0] = led_ctrl[1] = led_ctrl[2] = 0;
+        led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = 0;
         break;
       case 'W':
         break;
       default:
-        led_ctrl[0] = led_ctrl[1] = led_ctrl[2] = LED_WAVE;
-        led_param_a[0] = led_param_a[1] = led_param_a[2] = 0.005;
-        led_param_b[0] = led_param_b[2] = 0;
-        led_param_b[1] = 175;
+        led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_WAVE;
+        led_st.param_a[0] = led_st.param_a[1] = led_st.param_a[2] = 0.005;
+        led_st.param_b[0] = led_st.param_b[2] = 0;
+        led_st.param_b[1] = 175;
     }
   }
 
   for(int i=0;i<3;i++) {
-    switch(led_ctrl[i]) {
+    switch(led_st.mode[i]) {
       case LED_OFF:
         analogWrite(led_pins[i], 0);
         break;
@@ -818,7 +814,7 @@ void manage_led()
       case LED_WAVE_2_ON:
         if(_led_wave(i) > 0.95) {
           analogWrite(led_pins[i], 255);
-          led_ctrl[i] = LED_ON;
+          led_st.mode[i] = LED_ON;
         }
         else {
           analogWrite(led_pins[i], int(_led_wave(i) * 255));
@@ -827,7 +823,7 @@ void manage_led()
       case LED_WAVE_2_OFF:
       if(_led_wave(i) < 0.05) {
         analogWrite(led_pins[i], 0);
-        led_ctrl[i] = LED_OFF;
+        led_st.mode[i] = LED_OFF;
       }
       else {
         analogWrite(led_pins[i], int(_led_wave(i) * 255));
@@ -972,7 +968,7 @@ void setup()
   pinMode(R_IO2,INPUT);
   rpi_io1_flag = digitalRead(R_IO1) == HIGH;
   rpi_io2_flag = digitalRead(R_IO1) == HIGH;
-  led_param_b[0] = millis();
+  led_st.param_b[0] = millis();
 
 
   //aven 0716
@@ -1851,8 +1847,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
   int read_FSR(int data[], int len, int pin)
   {
-
-
     for (int i = len - 1; i > 0; i--) 
       data[i] = data[i - 1];
 

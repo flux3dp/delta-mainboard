@@ -378,4 +378,21 @@ typedef struct FilamentDetect {
   unsigned long last_trigger;
 } FilamentDetect;
 
+#define LED_OFF 0
+#define LED_WAVE 1
+#define LED_BLINK 2
+#define LED_ON 3
+#define LED_WAVE_2_ON 4
+#define LED_WAVE_2_OFF 5
+
+typedef struct LedStatus {
+  // 'W'akeup, 'R'eady, 'S'leep, 'F'atel
+  char situational;
+  unsigned long last_update;
+
+  char mode[3];
+  float param_a[3];
+  float param_b[3];
+} LedStatus;
+
 #endif //MARLIN_H
