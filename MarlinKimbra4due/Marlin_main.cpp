@@ -753,7 +753,7 @@ void manage_led()
         // rpi wifi status does not change over 5s
         if(rpi_io2_flag && led_st.mode[2] != LED_ON)  // wifi is up
           led_st.mode[2] = LED_WAVE_2_ON;
-        else if((!rpi_io2_flag) && led_st.mode[2] != LED_OFF)  // sleep
+        else if(!rpi_io2_flag)  // sleep
           new_situational = 'S';
       }
     } else {
@@ -1854,23 +1854,19 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     for (int i = 0; i < 20; i++)
       sum += analogRead(pin);
     data[0] = sum / 20;
-    
+
     return data[0];
   }
 
   bool isTouched(int data[], int len, float threshold)
   {
-
     long sum = 0;
     for (int i = 1; i < len - 1; i++)
       sum += data[i];
     sum = sum / (len - 1);
 
     delayMicroseconds(800);
-    
     return data[0] < (float)sum * threshold;
-
-
   }
 
   float z_probe()
