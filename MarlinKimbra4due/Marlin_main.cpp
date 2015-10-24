@@ -1845,28 +1845,30 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
 
 
-  int read_FSR(int data[], int len, int pin)
+  int read_FSR(float data[], int len, int pin)
   {
     for (int i = len - 1; i > 0; i--) 
       data[i] = data[i - 1];
-
-    long sum = 0;
-    for (int i = 0; i < 20; i++)
-      sum += analogRead(pin);
-    data[0] = sum / 20;
-
+    data[0] = current_temperature[pin];
+    
     return data[0];
   }
 
-  bool isTouched(int data[], int len, float threshold)
+  bool isTouched(float data[], int len, float threshold)
   {
-    long sum = 0;
+    float sum = 0;
     for (int i = 1; i < len - 1; i++)
       sum += data[i];
-    sum = sum / (len - 1);
+    sum = sum / (float)(len - 1);
 
-    delayMicroseconds(800);
-    return data[0] < (float)sum * threshold;
+    delayMicroseconds(200);
+    /*
+    SerialUSB.print(data[0] * threshold, DEC);
+    SerialUSB.print("\t");
+    SerialUSB.print(sum, DEC);
+    SerialUSB.print("\t");
+    */
+    return sum < (float)data[0] * threshold;
   }
 
   float z_probe()
@@ -1882,23 +1884,23 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     feedrate = probing_feedrate;
 
 
-    int data[3][20];
+    float data[3][20];
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 20; j++)
-        data[i][j] = 0;
+        read_FSR(data[i], 20, i);
 
     int fsr_flag = -1;
-    while ((destination[Z_AXIS] -= 0.0125) > -10 && fsr_flag == -1)
+    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag == -1)
     {
       prepare_move_raw();
       st_synchronize();
       for (int i = 0; i < 3; i++)
       {
         read_FSR(data[i], 20, i);
-        if (isTouched(data[i], 20, 0.9))
+        if (isTouched(data[i], 20, 0.85))
         {
           fsr_flag = i;
-          //Serial.println("TOUCHED");
+          //SerialUSB.println(destination[Z_AXIS], DEC);
         } 
       }
     }
@@ -1999,7 +2001,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     destination[Y_AXIS] = y - z_probe_offset[Y_AXIS];
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
-    destination[Z_AXIS] = bed_level_c - z_probe_offset[Z_AXIS] + 3;
+    destination[Z_AXIS] = 5;
     prepare_move();
     st_synchronize();
 

@@ -28,7 +28,7 @@
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 // for smoother temperature
-#define MEDIAN_COUNT 10
+#define MEDIAN_COUNT 1
 
 // public functions
 void tp_init();  //initialize the heating

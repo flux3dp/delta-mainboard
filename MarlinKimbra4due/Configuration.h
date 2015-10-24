@@ -169,8 +169,8 @@
 //     #define DUMMY_THERMISTOR_999_VALUE 100
 
 #define TEMP_SENSOR_0 1
-#define TEMP_SENSOR_1 0
-#define TEMP_SENSOR_2 0
+#define TEMP_SENSOR_1 1
+#define TEMP_SENSOR_2 1
 #define TEMP_SENSOR_3 0
 #define TEMP_SENSOR_BED 1
 

@@ -484,9 +484,9 @@
 
 #define TEMP_BED_PIN       -1//0   // ANALOG NUMBERING
 
-#define TEMP_0_PIN         57//-1///1   // ANALOG NUMBERING
-#define TEMP_1_PIN         -1  // 2    // ANALOG NUMBERING
-#define TEMP_2_PIN         -1  // 3     // ANALOG NUMBERING
+#define TEMP_0_PIN         AD0//-1///1   // ANALOG NUMBERING
+#define TEMP_1_PIN         AD1  // 2    // ANALOG NUMBERING
+#define TEMP_2_PIN         AD2  // 3     // ANALOG NUMBERING
 
 #define TEMP_3_PIN         -1   // ANALOG NUMBERING
 #define TEMP_4_PIN         -1   // ANALOG NUMBERING
