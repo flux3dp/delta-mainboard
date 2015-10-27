@@ -453,10 +453,12 @@ inline void _temp_error(int e, const char *msg1, const char *msg2) {
 }
 
 void max_temp_error(uint8_t e) {
+  return;  //TODO
   disable_heater();
   _temp_error(e, PSTR(MSG_MAXTEMP_EXTRUDER_OFF), PSTR(MSG_ERR_MAXTEMP));
 }
 void min_temp_error(uint8_t e) {
+  return;  //TODO
   disable_heater();
   _temp_error(e, PSTR(MSG_MINTEMP_EXTRUDER_OFF), PSTR(MSG_ERR_MINTEMP));
 }
