@@ -1845,30 +1845,35 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
 
 
-  int read_FSR(float data[], int len, int pin)
+int read_FSR(int data[], int len, int pin)
   {
+
+
     for (int i = len - 1; i > 0; i--) 
       data[i] = data[i - 1];
-    data[0] = current_temperature[pin];
+
+    long sum = 0;
+    for (int i = 0; i < 20; i++)
+      for (int j = 0; j < 3; j++)
+        sum += analogRead(j);
+    data[0] = sum / 20;
     
     return data[0];
   }
 
-  bool isTouched(float data[], int len, float threshold)
+  bool isTouched(int data[], int len, float threshold)
   {
-    float sum = 0;
-    for (int i = 1; i < len - 1; i++)
+
+    long sum = 0;
+    for (int i = 1; i < len; i++)
       sum += data[i];
-    sum = sum / (float)(len - 1);
+    sum = sum / (len - 1);
 
     delayMicroseconds(200);
-    /*
-    SerialUSB.print(data[0] * threshold, DEC);
-    SerialUSB.print("\t");
-    SerialUSB.print(sum, DEC);
-    SerialUSB.print("\t");
-    */
-    return sum < (float)data[0] * threshold;
+    
+    return data[0] < (float)sum * threshold;
+
+
   }
 
   float z_probe()
@@ -1884,27 +1889,35 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     feedrate = probing_feedrate;
 
 
-    float data[3][20];
+    int data[3][20];
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 20; j++)
-        read_FSR(data[i], 20, i);
+        data[i][j] = 0;
 
     int fsr_flag = -1;
     while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag == -1)
     {
       prepare_move_raw();
       st_synchronize();
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 1; i++)
       {
         read_FSR(data[i], 20, i);
-        if (isTouched(data[i], 20, 0.85))
+        if (isTouched(data[i], 20, 0.98))
         {
           fsr_flag = i;
+          /*
+          for (int j = 0; j < 20; j++)
+          {
+            SerialUSB.print(data[i][j]);
+            SerialUSB.print("\t");
+            if (j % 5 == 4)
+              SerialUSB.println();
+          }*/
           //SerialUSB.println(destination[Z_AXIS], DEC);
         } 
       }
     }
-
+    float z_val = destination[Z_AXIS];
     prepare_move_raw();
     st_synchronize();
 
@@ -1924,10 +1937,12 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
-    feedrate = homing_feedrate[Z_AXIS];
+    feedrate = homing_feedrate[Z_AXIS]/3;
     destination[Z_AXIS] = mm + 2;
     prepare_move_raw();
-    return mm;
+    //delay(1500);
+    //SerialUSB.println(mm, DEC);
+    return z_val;
   }
 
   void calibrate_print_surface(float z_offset)
@@ -2016,7 +2031,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
       if (probe_z > probe_h) probe_h = probe_z;
       if (probe_z < probe_l) probe_l = probe_z;
       probe_count ++;
-    } while ((abs((float)probe_z - probe_bed_z) > 0.03) and (probe_count < 21));
+    } while ((abs((float)probe_z - probe_bed_z) > 0.02) and (probe_count < 21));
 
     return probe_bed_z;
   }
