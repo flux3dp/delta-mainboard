@@ -1845,7 +1845,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
 
 
-int read_FSR(int data[], int len, int pin)
+  int read_FSR(float data[], int len, float ratio[])
   {
 
 
@@ -1855,26 +1855,12 @@ int read_FSR(int data[], int len, int pin)
     long sum = 0;
     for (int i = 0; i < 20; i++)
       for (int j = 0; j < 3; j++)
-        sum += analogRead(j);
+        sum += ratio[j] * analogRead(j);
     data[0] = sum / 20;
     
     return data[0];
   }
 
-  bool isTouched(int data[], int len, float threshold)
-  {
-
-    long sum = 0;
-    for (int i = 1; i < len; i++)
-      sum += data[i];
-    sum = sum / (len - 1);
-
-    delayMicroseconds(200);
-    
-    return data[0] < (float)sum * threshold;
-
-
-  }
 
   float z_probe()
   {
@@ -1888,34 +1874,52 @@ int read_FSR(int data[], int len, int pin)
 
     feedrate = probing_feedrate;
 
+    float ratio[3];
+    const float point[3][2] = {{-73.6122, -42.5}, {73.6122, -42.5}, {0, 85}};
 
-    int data[3][20];
     for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 20; j++)
-        data[i][j] = 0;
-
-    int fsr_flag = -1;
-    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag == -1)
     {
+      ratio[(i + 2) % 3] = point[i][0] * point[(i + 1) % 3][1] - point[i][1] * point[(i + 1) % 3][0];
+      ratio[(i + 2) % 3] += point[(i + 1) % 3][0] * destination[Y_AXIS] - point[(i + 1) % 3][1] * destination[X_AXIS];
+      ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
+    }
+
+    float data[20];
+    for (int i = 0; i < 20; i++)
+      data[i] = 0;
+
+    
+    read_FSR(data, 20, ratio);
+    float threshold = data[0];
+    SerialUSB.println(threshold, DEC);
+    int fsr_flag = -1;
+    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
+    {
+      fsr_flag--;
       prepare_move_raw();
       st_synchronize();
-      for (int i = 0; i < 1; i++)
+      
+      read_FSR(data, 20, ratio);
+      if (fsr_flag > -500)
       {
-        read_FSR(data[i], 20, i);
-        if (isTouched(data[i], 20, 0.98))
+        if (data[0] < threshold)
         {
-          fsr_flag = i;
-          /*
-          for (int j = 0; j < 20; j++)
-          {
-            SerialUSB.print(data[i][j]);
-            SerialUSB.print("\t");
-            if (j % 5 == 4)
-              SerialUSB.println();
-          }*/
-          //SerialUSB.println(destination[Z_AXIS], DEC);
-        } 
+          threshold = data[0];
+          SerialUSB.println(threshold, DEC);
+          
+        }
       }
+      else
+      {
+        if (data[0] < threshold *0.999)
+        {
+          fsr_flag = 1;
+          
+        } 
+        else
+          delayMicroseconds(200);
+      }
+      
     }
     float z_val = destination[Z_AXIS];
     prepare_move_raw();
@@ -1938,10 +1942,9 @@ int read_FSR(int data[], int len, int pin)
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
     feedrate = homing_feedrate[Z_AXIS]/3;
-    destination[Z_AXIS] = mm + 2;
+    destination[Z_AXIS] = mm + 4;
     prepare_move_raw();
-    //delay(1500);
-    //SerialUSB.println(mm, DEC);
+    
     return z_val;
   }
 
@@ -2009,14 +2012,14 @@ int read_FSR(int data[], int len, int pin)
     //Probe bed at specified location and return z height of bed
     float probe_bed_z, probe_z, probe_h, probe_l;
     int probe_count;
-    //  feedrate = homing_feedrate[Z_AXIS];
+    feedrate = homing_feedrate[Z_AXIS];
     destination[X_AXIS] = x - z_probe_offset[X_AXIS];
     if (destination[X_AXIS]<X_MIN_POS) destination[X_AXIS]=X_MIN_POS;
     if (destination[X_AXIS]>X_MAX_POS) destination[X_AXIS]=X_MAX_POS;
     destination[Y_AXIS] = y - z_probe_offset[Y_AXIS];
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
-    destination[Z_AXIS] = 5;
+    destination[Z_AXIS] = 6;
     prepare_move();
     st_synchronize();
 
@@ -4258,7 +4261,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       float y = code_seen('Y') ? code_value():0.00;
       float probe_value;
 
-      deploy_z_probe();
+      //deploy_z_probe();
       probe_value = probe_bed(x, y);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
@@ -4275,7 +4278,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(", ");
       SERIAL_ECHO(saved_position[Z_AXIS]);
       SERIAL_ECHOLN("]");
-      retract_z_probe();
+      //retract_z_probe();
       return;
     }
 
@@ -5641,45 +5644,45 @@ inline void gcode_M119() {
   SERIAL_PROTOCOLLN(MSG_M119_REPORT);
   #if HAS_X_MIN
     SERIAL_PROTOCOLPGM(MSG_X_MIN);
-    SERIAL_PROTOCOLLN(((READ(X_MIN_PIN)^X_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(X_MIN_PIN)^X_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_X_MAX
     SERIAL_PROTOCOLPGM(MSG_X_MAX);
-    SERIAL_PROTOCOLLN(((READ(X_MAX_PIN)^X_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(X_MAX_PIN)^X_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Y_MIN
     SERIAL_PROTOCOLPGM(MSG_Y_MIN);
-    SERIAL_PROTOCOLLN(((READ(Y_MIN_PIN)^Y_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Y_MIN_PIN)^Y_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Y_MAX
     SERIAL_PROTOCOLPGM(MSG_Y_MAX);
-    SERIAL_PROTOCOLLN(((READ(Y_MAX_PIN)^Y_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Y_MAX_PIN)^Y_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_MIN
     SERIAL_PROTOCOLPGM(MSG_Z_MIN);
-    SERIAL_PROTOCOLLN(((READ(Z_MIN_PIN)^Z_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_MIN_PIN)^Z_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_MAX
     SERIAL_PROTOCOLPGM(MSG_Z_MAX);
-    SERIAL_PROTOCOLLN(((READ(Z_MAX_PIN)^Z_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_MAX_PIN)^Z_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z2_MAX
     SERIAL_PROTOCOLPGM(MSG_Z2_MAX);
-    SERIAL_PROTOCOLLN(((READ(Z2_MAX_PIN)^Z2_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z2_MAX_PIN)^Z2_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_PROBE
     SERIAL_PROTOCOLPGM(MSG_Z_PROBE);
-    SERIAL_PROTOCOLLN(((READ(Z_PROBE_PIN)^Z_PROBE_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_PROBE_PIN)^Z_PROBE_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_E_MIN
     SERIAL_PROTOCOLPGM(MSG_E_MIN);
-    SERIAL_PROTOCOLLN(((READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   //#if HAS_FILRUNOUT //aven_test0826
   //aven_0817 FILAMENT RUNOUT
     //SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
     SERIAL_PROTOCOLPGM(MSG_FILAMENT_RUNOUT_PIN);
-    SERIAL_PROTOCOLLN(((READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
     //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
     //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FILRUNOUT_PIN_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   //#endif
