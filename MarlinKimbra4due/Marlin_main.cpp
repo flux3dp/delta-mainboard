@@ -1891,7 +1891,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     
     read_FSR(data, 20, ratio);
     float threshold = data[0];
-    SerialUSB.println(threshold, DEC);
     int fsr_flag = -1;
     while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
     {
@@ -1905,7 +1904,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (data[0] < threshold)
         {
           threshold = data[0];
-          SerialUSB.println(threshold, DEC);
           
         }
       }
@@ -2027,16 +2025,24 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     probe_z = -100;
     probe_h = -100;
     probe_l = 100;
+    float data[5];
     do
     {
-      probe_bed_z = probe_z;
       probe_z = z_probe() + z_probe_offset[Z_AXIS];
-      if (probe_z > probe_h) probe_h = probe_z;
-      if (probe_z < probe_l) probe_l = probe_z;
+      for (int i = 1; i < 5; i++)
+      {
+        data[i] = data[i - 1];
+        if (abs(probe_z - data[i]) < 0.03 && probe_count >= i)
+        {
+          probe_z = max(probe_z, data[i]);
+          probe_count = 22;
+        }
+      }
+      data[0] = probe_z;
       probe_count ++;
-    } while ((abs((float)probe_z - probe_bed_z) > 0.02) and (probe_count < 21));
+    } while (probe_count < 21);
 
-    return probe_bed_z;
+    return probe_z;
   }
 
   float z_probe_accuracy()
@@ -2232,14 +2238,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
                          - sq(delta_tower3_x-cartesian[X_AXIS])
                          - sq(delta_tower3_y-cartesian[Y_AXIS])
                          ) + cartesian[Z_AXIS];
-#if 0
-  SerialUSB.print(" X: ");
-  SerialUSB.print(delta[X_AXIS]);
-  SerialUSB.print(" Y: ");
-  SerialUSB.print(delta[Y_AXIS]);
-  SerialUSB.print(" Z: ");
-  SerialUSB.println(delta[Z_AXIS]);
-#endif
   }
 
  //aven_0817
@@ -4742,7 +4740,7 @@ inline void gcode_G92() {
         didXYZ = true;
     }
   }
-  if (didXYZ) sync_plan_position();
+  if (didXYZ) sync_plan_position_delta();
 }
 
 #ifdef ULTIPANEL
@@ -6696,9 +6694,24 @@ inline void gcode_M503() {
   //M666: Set delta endstop and geometry adjustment
   inline void gcode_M666() {
     if ( !(code_seen('P'))) {
-      for(int8_t i=0; i < 3; i++) {
-        if (code_seen(axis_codes[i])) endstop_adj[i] = code_value();
+      float saved_endstop_adj[4] = {0};
+      for(int8_t i=0; i < 3; i++) 
+      {
+        if (code_seen(axis_codes[i])) 
+        {
+          saved_endstop_adj[i] = code_value() - endstop_adj[i];
+          endstop_adj[i] = code_value();
+        }
       }
+      if (code_seen('H'))
+      {
+        saved_endstop_adj[3] = code_value() - max_pos[Z_AXIS];
+        max_pos[Z_AXIS]= code_value();
+        set_delta_constants();
+      }
+      calculate_delta(current_position);
+      plan_set_position(delta[X_AXIS] - saved_endstop_adj[X_AXIS] + saved_endstop_adj[3], delta[Y_AXIS] - saved_endstop_adj[Y_AXIS] + saved_endstop_adj[3], delta[Z_AXIS] - saved_endstop_adj[Z_AXIS] + saved_endstop_adj[3], current_position[E_AXIS]);
+      st_synchronize();
     }
     if (code_seen('A')) {
       tower_adj[0] = code_value();
@@ -6730,10 +6743,6 @@ inline void gcode_M503() {
     }
     if (code_seen('D')) {
       delta_diagonal_rod = code_value();
-      set_delta_constants();
-    }
-    if (code_seen('H')) {
-      max_pos[Z_AXIS]= code_value();
       set_delta_constants();
     }
     if (code_seen('P')) {
