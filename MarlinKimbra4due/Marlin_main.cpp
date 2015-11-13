@@ -10133,13 +10133,79 @@ inline void gcode_X8()
 }
 
 
-
 inline void gcode_X111()
 {
   SerialUSB.print("FW Version:");
   SerialUSB.println(FW_V,4);
 }
 
+
+inline void read_fsr_helper(int times, float avg[3], float sd[3],
+                            int max_value[3], int min_value[3]) {
+    int dataset[3][200];
+    for(int i=0;i<3;i++) {
+        max_value[i] = min_value[i] = dataset[i][0] = analogRead(i);
+    }
+    for(int x=1;x<times;x++) {
+        for(int i=0;i<3;i++) {
+            int val = dataset[i][x] = analogRead(i);
+            if(val > max_value[i]) max_value[i] = val;
+            if(val < min_value[i]) min_value[i] = val;
+        }
+    }
+    for(int i=0;i<3;i++) {
+        long sum = 0;
+        for(int x=0;x<times;x++) sum += dataset[i][x];
+        avg[i] = (float)sum / (float)times;
+        float v = 0;
+        for(int x=1;x<times;x++) v += pow(avg[i] - dataset[i][x], 2);
+        sd[i] = pow(v / (float)(times - 1), 0.5);
+    }
+}
+
+inline void gcode_X900()
+{
+    // X900 use to debug FSR
+    float x = destination[X_AXIS];
+    float y = destination[Y_AXIS];
+    int counter = 5;
+
+    if(code_seen('A')) {
+        x = code_value();
+    }
+    if(code_seen('B')) {
+        y = code_value();
+    }
+    if(code_seen('C')) {
+        counter = code_value_short();
+        if(counter > 200 || counter < 1) {
+            SerialUSB.println("ER PARAM_ERROR C");
+            return;
+        }
+    }
+
+    destination[X_AXIS] = x;
+    destination[Y_AXIS] = y;
+    destination[Z_AXIS] = 10;
+    prepare_move_raw();
+
+    int min_value[3], max_value[3];
+    float avg[3], sd[3];
+    read_fsr_helper(counter, avg, sd, min_value, max_value);
+
+    for(int i=0;i<3;i++) {
+        SerialUSB.print("FSR ");
+        SerialUSB.print(i);
+        SerialUSB.print(" AVG ");
+        SerialUSB.print(avg[i]);
+        SerialUSB.print(" S ");
+        SerialUSB.print(sd[i]);
+        SerialUSB.print(" MIX ");
+        SerialUSB.print(min_value[i]);
+        SerialUSB.print(" MAX ");
+        SerialUSB.println(max_value[i]);
+    }
+}
 
 
 /*****************************************************
@@ -10627,6 +10693,9 @@ void process_commands()
         break;      
       case 111:   
         gcode_X111();
+        break;
+      case 900:
+        gcode_X900();
         break;
       default:
         SERIAL_ECHO_START;
