@@ -1845,31 +1845,22 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
 
 
-  int read_FSR(float data[], int len, int pin)
+  int read_FSR(float data[], int len, float ratio[])
   {
+
+
     for (int i = len - 1; i > 0; i--) 
       data[i] = data[i - 1];
-    data[0] = current_temperature[pin];
+
+    long sum = 0;
+    for (int i = 0; i < 20; i++)
+      for (int j = 0; j < 3; j++)
+        sum += ratio[j] * analogRead(j);
+    data[0] = sum / 20;
     
     return data[0];
   }
 
-  bool isTouched(float data[], int len, float threshold)
-  {
-    float sum = 0;
-    for (int i = 1; i < len - 1; i++)
-      sum += data[i];
-    sum = sum / (float)(len - 1);
-
-    delayMicroseconds(200);
-    /*
-    SerialUSB.print(data[0] * threshold, DEC);
-    SerialUSB.print("\t");
-    SerialUSB.print(sum, DEC);
-    SerialUSB.print("\t");
-    */
-    return sum < (float)data[0] * threshold;
-  }
 
   float z_probe()
   {
@@ -1883,27 +1874,51 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
     feedrate = probing_feedrate;
 
+    float ratio[3];
+    const float point[3][2] = {{-73.6122, -42.5}, {73.6122, -42.5}, {0, 85}};
 
-    float data[3][20];
     for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 20; j++)
-        read_FSR(data[i], 20, i);
-
-    int fsr_flag = -1;
-    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag == -1)
     {
-      prepare_move_raw();
-      st_synchronize();
-      for (int i = 0; i < 3; i++)
-      {
-        read_FSR(data[i], 20, i);
-        if (isTouched(data[i], 20, 0.85))
-        {
-          fsr_flag = i;
-        } 
-      }
+      ratio[(i + 2) % 3] = point[i][0] * point[(i + 1) % 3][1] - point[i][1] * point[(i + 1) % 3][0];
+      ratio[(i + 2) % 3] += point[(i + 1) % 3][0] * destination[Y_AXIS] - point[(i + 1) % 3][1] * destination[X_AXIS];
+      ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
     }
 
+    float data[20];
+    for (int i = 0; i < 20; i++)
+      data[i] = 0;
+
+    
+    read_FSR(data, 20, ratio);
+    float threshold = data[0];
+    int fsr_flag = -1;
+    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
+    {
+      fsr_flag--;
+      prepare_move_raw();
+      st_synchronize();
+      
+      read_FSR(data, 20, ratio);
+      if (fsr_flag > -500)
+      {
+        if (data[0] < threshold)
+        {
+          threshold = data[0];
+          
+        }
+      }
+      else
+      {
+        if (data[0] < threshold *0.999)
+        {
+          fsr_flag = 1;
+        } 
+        else
+          delayMicroseconds(200);
+      }
+      
+    }
+    float z_val = destination[Z_AXIS];
     prepare_move_raw();
     st_synchronize();
 
@@ -1923,10 +1938,11 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
-    feedrate = homing_feedrate[Z_AXIS];
-    destination[Z_AXIS] = mm + 2;
+    feedrate = homing_feedrate[Z_AXIS]/3;
+    destination[Z_AXIS] = mm + 4;
     prepare_move_raw();
-    return mm;
+    
+    return z_val;
   }
 
   void calibrate_print_surface(float z_offset)
@@ -1993,14 +2009,14 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     //Probe bed at specified location and return z height of bed
     float probe_bed_z, probe_z, probe_h, probe_l;
     int probe_count;
-    //  feedrate = homing_feedrate[Z_AXIS];
+    feedrate = homing_feedrate[Z_AXIS];
     destination[X_AXIS] = x - z_probe_offset[X_AXIS];
     if (destination[X_AXIS]<X_MIN_POS) destination[X_AXIS]=X_MIN_POS;
     if (destination[X_AXIS]>X_MAX_POS) destination[X_AXIS]=X_MAX_POS;
     destination[Y_AXIS] = y - z_probe_offset[Y_AXIS];
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
-    destination[Z_AXIS] = 5;
+    destination[Z_AXIS] = 6;
     prepare_move();
     st_synchronize();
 
@@ -2008,16 +2024,24 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
     probe_z = -100;
     probe_h = -100;
     probe_l = 100;
+    float data[5];
     do
     {
-      probe_bed_z = probe_z;
       probe_z = z_probe() + z_probe_offset[Z_AXIS];
-      if (probe_z > probe_h) probe_h = probe_z;
-      if (probe_z < probe_l) probe_l = probe_z;
+      for (int i = 1; i < 5; i++)
+      {
+        data[i] = data[i - 1];
+        if (abs(probe_z - data[i]) < 0.03 && probe_count >= i)
+        {
+          probe_z = max(probe_z, data[i]);
+          probe_count = 22;
+        }
+      }
+      data[0] = probe_z;
       probe_count ++;
-    } while ((abs((float)probe_z - probe_bed_z) > 0.03) and (probe_count < 21));
+    } while (probe_count < 21);
 
-    return probe_bed_z;
+    return probe_z;
   }
 
   float z_probe_accuracy()
@@ -2213,14 +2237,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
                          - sq(delta_tower3_x-cartesian[X_AXIS])
                          - sq(delta_tower3_y-cartesian[Y_AXIS])
                          ) + cartesian[Z_AXIS];
-#if 0
-  SerialUSB.print(" X: ");
-  SerialUSB.print(delta[X_AXIS]);
-  SerialUSB.print(" Y: ");
-  SerialUSB.print(delta[Y_AXIS]);
-  SerialUSB.print(" Z: ");
-  SerialUSB.println(delta[Z_AXIS]);
-#endif
   }
 
  //aven_0817
@@ -4242,7 +4258,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       float y = code_seen('Y') ? code_value():0.00;
       float probe_value;
 
-      deploy_z_probe();
+      //deploy_z_probe();
       probe_value = probe_bed(x, y);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
@@ -4266,7 +4282,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(", ");
       SERIAL_ECHO(saved_position[Z_AXIS]);
       SERIAL_ECHOLN("]");
-      retract_z_probe();
+      //retract_z_probe();
       return;
     }
 
@@ -4730,7 +4746,7 @@ inline void gcode_G92() {
         didXYZ = true;
     }
   }
-  if (didXYZ) sync_plan_position();
+  if (didXYZ) sync_plan_position_delta();
 }
 
 #ifdef ULTIPANEL
@@ -5632,45 +5648,45 @@ inline void gcode_M119() {
   SERIAL_PROTOCOLLN(MSG_M119_REPORT);
   #if HAS_X_MIN
     SERIAL_PROTOCOLPGM(MSG_X_MIN);
-    SERIAL_PROTOCOLLN(((READ(X_MIN_PIN)^X_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(X_MIN_PIN)^X_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_X_MAX
     SERIAL_PROTOCOLPGM(MSG_X_MAX);
-    SERIAL_PROTOCOLLN(((READ(X_MAX_PIN)^X_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(X_MAX_PIN)^X_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Y_MIN
     SERIAL_PROTOCOLPGM(MSG_Y_MIN);
-    SERIAL_PROTOCOLLN(((READ(Y_MIN_PIN)^Y_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Y_MIN_PIN)^Y_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Y_MAX
     SERIAL_PROTOCOLPGM(MSG_Y_MAX);
-    SERIAL_PROTOCOLLN(((READ(Y_MAX_PIN)^Y_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Y_MAX_PIN)^Y_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_MIN
     SERIAL_PROTOCOLPGM(MSG_Z_MIN);
-    SERIAL_PROTOCOLLN(((READ(Z_MIN_PIN)^Z_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_MIN_PIN)^Z_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_MAX
     SERIAL_PROTOCOLPGM(MSG_Z_MAX);
-    SERIAL_PROTOCOLLN(((READ(Z_MAX_PIN)^Z_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_MAX_PIN)^Z_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z2_MAX
     SERIAL_PROTOCOLPGM(MSG_Z2_MAX);
-    SERIAL_PROTOCOLLN(((READ(Z2_MAX_PIN)^Z2_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z2_MAX_PIN)^Z2_MAX_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_Z_PROBE
     SERIAL_PROTOCOLPGM(MSG_Z_PROBE);
-    SERIAL_PROTOCOLLN(((READ(Z_PROBE_PIN)^Z_PROBE_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(Z_PROBE_PIN)^Z_PROBE_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   #if HAS_E_MIN
     SERIAL_PROTOCOLPGM(MSG_E_MIN);
-    SERIAL_PROTOCOLLN(((READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
   //#if HAS_FILRUNOUT //aven_test0826
   //aven_0817 FILAMENT RUNOUT
     //SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
     SERIAL_PROTOCOLPGM(MSG_FILAMENT_RUNOUT_PIN);
-    SERIAL_PROTOCOLLN(((READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
+    SERIAL_PROTOCOLLN(((!READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
     //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
     //SERIAL_PROTOCOLLN(((READ(FILRUNOUT_PIN)^FILRUNOUT_PIN_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   //#endif
@@ -6684,9 +6700,24 @@ inline void gcode_M503() {
   //M666: Set delta endstop and geometry adjustment
   inline void gcode_M666() {
     if ( !(code_seen('P'))) {
-      for(int8_t i=0; i < 3; i++) {
-        if (code_seen(axis_codes[i])) endstop_adj[i] = code_value();
+      float saved_endstop_adj[4] = {0};
+      for(int8_t i=0; i < 3; i++) 
+      {
+        if (code_seen(axis_codes[i])) 
+        {
+          saved_endstop_adj[i] = code_value() - endstop_adj[i];
+          endstop_adj[i] = code_value();
+        }
       }
+      if (code_seen('H'))
+      {
+        saved_endstop_adj[3] = code_value() - max_pos[Z_AXIS];
+        max_pos[Z_AXIS]= code_value();
+        set_delta_constants();
+      }
+      calculate_delta(current_position);
+      plan_set_position(delta[X_AXIS] - saved_endstop_adj[X_AXIS] + saved_endstop_adj[3], delta[Y_AXIS] - saved_endstop_adj[Y_AXIS] + saved_endstop_adj[3], delta[Z_AXIS] - saved_endstop_adj[Z_AXIS] + saved_endstop_adj[3], current_position[E_AXIS]);
+      st_synchronize();
     }
     if (code_seen('A')) {
       tower_adj[0] = code_value();
@@ -6718,10 +6749,6 @@ inline void gcode_M503() {
     }
     if (code_seen('D')) {
       delta_diagonal_rod = code_value();
-      set_delta_constants();
-    }
-    if (code_seen('H')) {
-      max_pos[Z_AXIS]= code_value();
       set_delta_constants();
     }
     if (code_seen('P')) {

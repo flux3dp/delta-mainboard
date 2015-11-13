@@ -12,7 +12,7 @@
 
 // Center-to-center distance of the holes in the diagonal push rods.
 //#define DEFAULT_DELTA_DIAGONAL_ROD 208.0      // mm
-#define DEFAULT_DELTA_DIAGONAL_ROD 190.0      // mm
+#define DEFAULT_DELTA_DIAGONAL_ROD 189.75      // mm
 
 
 // Horizontal offset from middle of printer to smooth rod center.
@@ -191,7 +191,7 @@ const bool FIL_RUNOUT_INVERTING = false;
 
 #define DEFAULT_MAX_FEEDRATE {300,300,300,200,100,100,100}             // X, Y, Z, E0, E1, E2, E3 (mm/sec)
 #define DEFAULT_RETRACTION_MAX_FEEDRATE {150,150,150,150}             // E0, E1, E2, E3 (mm/sec)
-#define DEFAULT_MAX_ACCELERATION {2000,2000,2000,1000,1000,1000,1000} // X, Y, Z, E0, E1, E2, E3 maximum start speed for accelerated moves.
+#define DEFAULT_MAX_ACCELERATION {1000,1000,1000,1000,1000,1000,1000} // X, Y, Z, E0, E1, E2, E3 maximum start speed for accelerated moves.
 
 #define DEFAULT_ACCELERATION          1000      // X, Y, Z and E max acceleration in mm/s^2 for printing moves
 #define DEFAULT_RETRACT_ACCELERATION  2500      // X, Y, Z and E max acceleration in mm/s^2 for retracts
