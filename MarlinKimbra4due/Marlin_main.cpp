@@ -1900,7 +1900,6 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
         if (isTouched(data[i], 20, 0.85))
         {
           fsr_flag = i;
-          //SerialUSB.println(destination[Z_AXIS], DEC);
         } 
       }
     }
@@ -4250,6 +4249,13 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(" Y:");
       SERIAL_ECHO(y);
       SERIAL_ECHO(" = ");
+
+      // NOTE: Change probe_value because FSR is obtuse in center
+      float d = pow(pow(x, 2) + pow(y, 2), 0.5);
+      if(d < 85) {
+          probe_value += 0.3 * ((85 - d) / 85);  // Linear adjust
+      }
+
       SERIAL_PROTOCOL_F(probe_value, 4);
       SERIAL_EOL;
 
@@ -7615,6 +7621,12 @@ inline void gcode_X4()
 
 inline void gcode_X5() // Not defined
 {
+  SerialUSB.print(led_st.situational);
+  for(int i=0;i<256;i++) {
+    SerialUSB.print(digitalRead(R_IO2));
+    delay(0.001);
+  }
+  SerialUSB.println("#");
 }
 
 
@@ -10085,17 +10097,11 @@ inline void gcode_X8()
   if (code_seen('O')) 
   {
     filament_detect.enable = true;
-    // TODO N
-  //   filrunout_flag = 1;
-  // filrunout_info_count=0;
   }
 
   if (code_seen('F')) 
   {
     filament_detect.enable = false;
-    // TODO N
-  //   filrunout_flag = 0;
-  // filrunout_info_count=0;
   }
 }
 
@@ -10595,78 +10601,6 @@ void process_commands()
       case 111:   
         gcode_X111();
         break;
-#if 0      
-      case 10:   
-      gcode_X10();
-      break; 
-      case 11:   
-      gcode_X11();
-      break;
-      case 12:   
-      gcode_X12(k_value);
-      break;  
-      case 13:   
-      gcode_X13(k_value);
-      break;
-      case 14:   
-      gcode_X14(k_value);
-      break;
-      case 15:   
-      gcode_X15();
-      break;
-      case 17:   
-      gcode_X17();
-      break;
-      case 18:   
-      gcode_X18();
-      break;
-      case 19:   
-      gcode_X19();
-      break; 
-      case 20:
-      gcode_X20();
-      break; 
-      case 21:   
-      gcode_X21();
-      break; 
-
-      case 22:   
-      gcode_X22();
-      break; 
-
-      case 23:   
-      gcode_X23();
-      break; 
-
-      case 24:   
-      gcode_X24();
-      break; 
-
-      case 25:   
-      gcode_X25();
-      break;
-
-      case 26:   
-      gcode_X26();
-      break; 
-
-      case 27:   
-      gcode_X27();
-      break; 
-
-      case 28:   
-      gcode_X28();
-      break; 
-
-      case 29:   
-      gcode_X29();
-      break; 
-
-      case 30:   
-      gcode_X30();
-      break; 
-#endif  
-
       default:
         SERIAL_ECHO_START;
         SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
