@@ -11163,8 +11163,14 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   if (max_inactive_time && ms > previous_millis_cmd + max_inactive_time) kill();
 
   if (stepper_inactive_time && ms > previous_millis_cmd + stepper_inactive_time
-      && !ignore_stepper_queue && !blocks_queued())
-    disable_all_steppers();
+      && !ignore_stepper_queue && !blocks_queued()) {
+          if(line_check == 0) {
+              // Only disable steppers while line check is disabled
+              // because while line check is enabled it may printting something
+              // and disable steppers may destory printting object.
+              disable_all_steppers();
+          }
+      }
 
   #ifdef CHDK // Check if pin should be set to LOW after M240 set it to HIGH
     if (chdkActive && ms > chdkHigh + CHDK_DELAY) {
