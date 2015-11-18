@@ -967,7 +967,7 @@ void setup()
   pinMode(R_IO1,INPUT);
   pinMode(R_IO2,INPUT);
   rpi_io1_flag = digitalRead(R_IO1) == HIGH;
-  rpi_io2_flag = digitalRead(R_IO1) == HIGH;
+  rpi_io2_flag = digitalRead(R_IO2) == HIGH;
   led_st.param_b[0] = millis();
 
 
@@ -998,7 +998,7 @@ void setup()
   digitalWrite(EN6, HIGH);
 
   pinMode(F0_STOP,INPUT);
-  digitalWrite(F0_STOP, HIGH);
+  //digitalWrite(F0_STOP, HIGH);
 
 
 }
