@@ -272,6 +272,10 @@ int pleds=0;
 int motors=0;
 int motorc=0;
 
+struct GlobalVariable global = {
+  0 //home_btn_press
+};
+
 struct FilamentDetect filament_detect = {false, 0};
 
 // manage_led
@@ -840,6 +844,9 @@ void manage_led()
   }
 }
 
+void on_home_btn_press() {
+  global.home_btn_press += 1;
+}
 
 void setup()
 {
@@ -1000,7 +1007,11 @@ void setup()
   digitalWrite(EN5, HIGH);
   digitalWrite(EN6, HIGH);
 
-  pinMode(F0_STOP,INPUT);
+  pinMode(F0_STOP, INPUT);
+
+  pinMode(HOME_BTN_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(HOME_BTN_PIN),
+    on_home_btn_press, FALLING);
 }
 
 void loop() {
@@ -1039,10 +1050,6 @@ void loop() {
   checkHitEndstops();
   //lcd_update();
   manage_led();
-
-  //SerialUSB.println(digitalRead(F0_STOP));
-  //SerialUSB.println(digitalRead(FILRUNOUT_PIN));
-  
 }
 
 void inline proc_heigh_level_control(const char* cmd) {
@@ -1055,6 +1062,9 @@ void inline proc_heigh_level_control(const char* cmd) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
+
+  } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
+    global.home_btn_press++;
 
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
@@ -1696,6 +1706,30 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 #endif // Cartesian || CoreXY || Scara
 
 #endif //aven_0813
+
+
+inline void read_fsr_helper(int times, float avg[3], float sd[3],
+                            int max_value[3], int min_value[3]) {
+    int dataset[3][200];
+    for(int i=0;i<3;i++) {
+        max_value[i] = min_value[i] = dataset[i][0] = analogRead(i);
+    }
+    for(int x=1;x<times;x++) {
+        for(int i=0;i<3;i++) {
+            int val = dataset[i][x] = analogRead(i);
+            if(val > max_value[i]) max_value[i] = val;
+            if(val < min_value[i]) min_value[i] = val;
+        }
+    }
+    for(int i=0;i<3;i++) {
+        long sum = 0;
+        for(int x=0;x<times;x++) sum += dataset[i][x];
+        avg[i] = (float)sum / (float)times;
+        float v = 0;
+        for(int x=1;x<times;x++) v += pow(avg[i] - dataset[i][x], 2);
+        sd[i] = pow(v / (float)(times - 1), 0.5);
+    }
+}
 
 
 #ifdef DELTA
@@ -8102,6 +8136,7 @@ inline void gcode_C2()
 {
   if (play_st.enable_linecheck == 0) {
     SERIAL_PROTOCOLLN("ER LINECHECK_DISABLED");
+    return;
   }
   if (code_seen('O'))
   {
@@ -8118,6 +8153,11 @@ inline void gcode_C2()
 
       // Move to stash position
       feedrate = 8000;
+      if(current_position[Z_AXIS] > 200) {
+        destination[Z_AXIS] = 220;
+        prepare_move_raw();
+        st_synchronize();
+      }
       destination[X_AXIS] = 0;
       destination[Y_AXIS] = -90;
       destination[Z_AXIS] = 220;
@@ -8159,6 +8199,46 @@ inline void gcode_C2()
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
+}
+
+inline void gcode_C3() {
+  global.home_btn_press = 0;
+
+  float avg[3], sd[3];
+  int dummy1[3], dummy2[3];
+  read_fsr_helper(5, avg, sd, dummy1, dummy2);
+
+  int max_value_base = avg[0] + sd[0] * 3;
+  int speed = 150;
+  while(global.home_btn_press == 0) {
+    if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+        delay(10);
+        continue;
+    }
+
+    read_fsr_helper(5, avg, sd, dummy1, dummy2);
+
+    if(avg[0] > max_value_base) max_value_base = avg[0];
+    if(max_value_base > 3500) max_value_base = 3500;
+
+    int new_speed = (max_value_base - avg[0]) * 6;
+    if(new_speed > 6000) new_speed = 6000;
+    new_speed = (new_speed / 500) * 500 + 150;
+
+    if(new_speed - speed > 350) speed += 350;
+    else if(new_speed - speed < -700) speed -= 700;
+    else speed = new_speed;
+
+    feedrate = speed;
+    destination[X_AXIS] = current_position[X_AXIS];
+    destination[Y_AXIS] = current_position[Y_AXIS];
+    destination[Z_AXIS] = current_position[Z_AXIS];
+
+    destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
+
+    prepare_move();
+  }
+  SERIAL_PROTOCOLLN("ok");
 }
 
 #if 0
@@ -10180,29 +10260,6 @@ inline void gcode_X111()
 }
 
 
-inline void read_fsr_helper(int times, float avg[3], float sd[3],
-                            int max_value[3], int min_value[3]) {
-    int dataset[3][200];
-    for(int i=0;i<3;i++) {
-        max_value[i] = min_value[i] = dataset[i][0] = analogRead(i);
-    }
-    for(int x=1;x<times;x++) {
-        for(int i=0;i<3;i++) {
-            int val = dataset[i][x] = analogRead(i);
-            if(val > max_value[i]) max_value[i] = val;
-            if(val < min_value[i]) min_value[i] = val;
-        }
-    }
-    for(int i=0;i<3;i++) {
-        long sum = 0;
-        for(int x=0;x<times;x++) sum += dataset[i][x];
-        avg[i] = (float)sum / (float)times;
-        float v = 0;
-        for(int x=1;x<times;x++) v += pow(avg[i] - dataset[i][x], 2);
-        sd[i] = pow(v / (float)(times - 1), 0.5);
-    }
-}
-
 inline void gcode_X900()
 {
     // X900 use to debug FSR
@@ -10224,10 +10281,10 @@ inline void gcode_X900()
         }
     }
 
-    destination[X_AXIS] = x;
-    destination[Y_AXIS] = y;
-    destination[Z_AXIS] = 10;
-    prepare_move_raw();
+    // destination[X_AXIS] = x;
+    // destination[Y_AXIS] = y;
+    // destination[Z_AXIS] = 10;
+    // prepare_move_raw();
 
     int min_value[3], max_value[3];
     float avg[3], sd[3];
@@ -10760,6 +10817,9 @@ void process_commands()
         break;
       case 2:
         gcode_C2();
+        break;
+      case 3:
+        gcode_C3();
         break;
       default:
         SERIAL_ECHO_START;
