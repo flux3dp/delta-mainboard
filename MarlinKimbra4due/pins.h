@@ -559,6 +559,8 @@
 #endif
 
 
+#define HOME_BTN_PIN      6
+
 /*
 #define A_STOP 25 //PD0
 #define B_STOP 26 //PD1

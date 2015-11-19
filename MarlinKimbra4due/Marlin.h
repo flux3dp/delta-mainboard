@@ -385,6 +385,10 @@ typedef struct FilamentDetect {
 #define LED_WAVE_2_ON 4
 #define LED_WAVE_2_OFF 5
 
+typedef struct GlobalVariable {
+  unsigned int home_btn_press;
+};
+
 typedef struct LedStatus {
   // 'W'akeup, 'R'eady, 'S'leep, 'F'atel
   char situational;
@@ -394,5 +398,17 @@ typedef struct LedStatus {
   float param_a[3];
   float param_b[3];
 } LedStatus;
+
+typedef struct PlayStatus {
+  int enable_linecheck;
+  int stashed;
+  unsigned long last_no;
+
+  float stashed_position[3];
+  float stashed_extruder_position[NUM_AXIS - 3];
+  float stashed_feedrate;
+  float stashed_extruder;
+
+} PlayStatus;
 
 #endif //MARLIN_H
