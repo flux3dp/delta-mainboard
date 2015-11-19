@@ -939,7 +939,7 @@ void setup()
   pinMode(M_IO1,INPUT);//PD7
 
 //aven_0825
-  pinMode(M_IO2,OUTPUT); //PD8
+  pinMode(M_IO2,OUTPUT); //PD8 Laser PWM
   digitalWrite(M_IO2, 0);
 
   pinMode(CAP_IO,INPUT);
