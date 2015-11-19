@@ -230,7 +230,7 @@ const char echomagic[] PROGMEM = "echo:";
 const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
 static float offset[3] = { 0 };
 static float feedrate = 1500.0, next_feedrate, saved_feedrate;
-static long gcode_N, gcode_LastN, Stopped_gcode_LastN = 0;
+static long gcode_N, Stopped_gcode_LastN = 0;
 static bool relative_mode = false;  //Determines Absolute or Relative Coordinates
 static char cmdbuffer[BUFSIZE][MAX_CMD_SIZE];
 static int bufindr = 0;
@@ -279,6 +279,7 @@ struct FilamentDetect filament_detect = {false, 0};
 // #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
 #define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])
 const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
+
 struct LedStatus led_st = {
   'W',              // situational
   0,                // last update
@@ -287,12 +288,14 @@ struct LedStatus led_st = {
   {0, 0, 0}         // param_b
 };
 
+struct PlayStatus play_st = {
+  0, // enable_linecheck
+  0, // stashed
+  0, // next_no
+};
+
 float k_value= 0.03;
 float u_value;
-
-//aven_0721
-int line_check = 0;
-int NO = 0;
 
 //aven_0807
 int G28_f = 0;
@@ -998,9 +1001,6 @@ void setup()
   digitalWrite(EN6, HIGH);
 
   pinMode(F0_STOP,INPUT);
-  //digitalWrite(F0_STOP, HIGH);
-
-
 }
 
 void loop() {
@@ -1048,12 +1048,13 @@ void loop() {
 void inline proc_heigh_level_control(const char* cmd) {
   if(strcmp(cmd, "ENABLE_LINECHECK") == 0) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
-    line_check = 1;
-    gcode_LastN = 0;
+    play_st.enable_linecheck = 1;
+    play_st.last_no = 0;
 
   } else if(strcmp(cmd, "DISABLE_LINECHECK") == 0) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
-    line_check = 0;
+    play_st.enable_linecheck = 0;
+    play_st.stashed = 0;
 
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
@@ -1068,16 +1069,16 @@ bool inline check_line_number(const char* cmd) {
   if(strchr_pointer == NULL) {
     // Can not found Line Number, send error, clean buffer and return
     SERIAL_PROTOCOL("ER MISSING_LINENUMBER ");
-    SERIAL_PROTOCOL(gcode_LastN + 1);
+    SERIAL_PROTOCOL(play_st.last_no + 1);
     SERIAL_PROTOCOL("\n");
     MYSERIAL.flush();
     return false;
 
   } else {
     gcode_N = (strtol(strchr_pointer + 1, NULL, 10));
-    if(gcode_N != gcode_LastN + 1) {
+    if(gcode_N != play_st.last_no + 1) {
       SERIAL_PROTOCOL("ER LINE_MISMATCH ");
-      SERIAL_PROTOCOL(gcode_LastN + 1);
+      SERIAL_PROTOCOL(play_st.last_no + 1);
       SERIAL_PROTOCOL(" ");
       SERIAL_PROTOCOL(gcode_N);
       SERIAL_PROTOCOL("\n");
@@ -1091,7 +1092,7 @@ bool inline check_line_number(const char* cmd) {
   if(strchr_pointer == NULL) {
     // Checksum not send
     SERIAL_PROTOCOL("ER CHECKSUM_MISMATCH ");
-    SERIAL_PROTOCOL(gcode_LastN + 1);
+    SERIAL_PROTOCOL(play_st.last_no + 1);
     SERIAL_PROTOCOL("\n");
     MYSERIAL.flush();
     return false;
@@ -1110,7 +1111,7 @@ bool inline check_line_number(const char* cmd) {
     if(strtol(strchr_pointer + 1, NULL, 10) != checksum) {
       // Checksum not match
       SERIAL_PROTOCOL("ER CHECKSUM_MISMATCH ");
-      SERIAL_PROTOCOL(gcode_LastN + 1);
+      SERIAL_PROTOCOL(play_st.last_no + 1);
       SERIAL_PROTOCOL("\n");
       MYSERIAL.flush();
       return false;
@@ -1125,7 +1126,7 @@ bool inline check_line_number(const char* cmd) {
   SERIAL_PROTOCOL("\n");
   MYSERIAL.flush();
 
-  gcode_LastN = gcode_N;
+  play_st.last_no = gcode_N;
   return true;
 }
 
@@ -1157,7 +1158,7 @@ void get_command()
       if(strcmp(cmdbuffer[bufindw], "M112") == 0)
         kill();
 
-      if(line_check == 1) {
+      if(play_st.enable_linecheck == 1) {
         if(!check_line_number(cmdbuffer[bufindw])) {
           // Check failed, ignore this command and return
           serial_count = 0;
@@ -3400,32 +3401,7 @@ inline void wait_bed() {
  */
 inline void gcode_G0_G1() {
   if (!Stopped) {
-
-#if 0 //aven_0813
-    #ifdef IDLE_OOZING_PREVENT
-      IDLE_OOZING_retract(false);
-    #endif
-#endif
-
     get_coordinates(); // For X Y Z E F
-
-#if 0 //aven_0813
-    #ifdef FWRETRACT
-      if (autoretract_enabled) {
-        if (!(code_seen('X') || code_seen('Y') || code_seen('Z')) && code_seen('E')) {
-          float echange = destination[E_AXIS] - current_position[E_AXIS];
-          // Is this move an attempt to retract or recover?
-          if ((echange < -MIN_RETRACT && !retracted[active_extruder]) || (echange > MIN_RETRACT && retracted[active_extruder])) {
-            current_position[E_AXIS] = destination[E_AXIS]; // hide the slicer-generated retract/recover from calculations
-            plan_set_e_position(current_position[E_AXIS]);  // AND from the planner
-            retract(!retracted);
-            return;
-          }
-        }
-      }
-    #endif //FWRETRACT
-#endif
-
     prepare_move();
     //ClearToSend();
   }
@@ -6858,7 +6834,7 @@ inline void gcode_M907() {
 inline void gcode_M999() {
   Stopped = false;
   lcd_reset_alert_level();
-  gcode_LastN = Stopped_gcode_LastN;
+  play_st.last_no = Stopped_gcode_LastN;
   FlushSerialRequestResend();
 }
 
@@ -7646,14 +7622,14 @@ inline void gcode_X4()
 }
 
 
-inline void gcode_X5() // Not defined
+inline void gcode_X5()
 {
-  SerialUSB.print(led_st.situational);
-  for(int i=0;i<256;i++) {
-    SerialUSB.print(digitalRead(R_IO2));
-    delay(0.001);
-  }
-  SerialUSB.println("#");
+    // Stash manager
+    if(play_st.enable_linecheck == 0) {
+        SerialUSB.println("ER LINECHECK_NOT_ENABLE");
+    } 
+
+    
 }
 
 
@@ -8111,11 +8087,75 @@ inline void gcode_C1()
   if (code_seen('O'))
   {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
-    line_check = 1;
-    gcode_LastN = 0;
+    play_st.enable_linecheck = 1;
+    play_st.last_no = 0;
   } else if (code_seen('F')) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
-    line_check = 0;
+    play_st.enable_linecheck = 0;
+    play_st.stashed = 0;
+  } else {
+    SERIAL_PROTOCOLLN("ER BAD_CMD");
+  }
+}
+
+inline void gcode_C2()
+{
+  if (play_st.enable_linecheck == 0) {
+    SERIAL_PROTOCOLLN("ER LINECHECK_DISABLED");
+  }
+  if (code_seen('O'))
+  {
+    if (play_st.stashed == 0) {
+      // Remember current status
+      play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
+      play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
+      play_st.stashed_position[Z_AXIS] = current_position[Z_AXIS];
+      for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
+        play_st.stashed_extruder_position[i] = current_position[i];
+      }
+      play_st.stashed_feedrate = feedrate;
+      play_st.stashed_extruder = target_extruder;
+
+      // Move to stash position
+      feedrate = 8000;
+      destination[X_AXIS] = 0;
+      destination[Y_AXIS] = -90;
+      destination[Z_AXIS] = 220;
+      prepare_move_raw();
+      st_synchronize();
+
+      play_st.stashed = 1;
+      SERIAL_PROTOCOLLN("CTRL STASH");
+    } else {
+      SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
+    }
+  } else if (code_seen('F')) {
+    if (play_st.stashed == 0) {
+      SERIAL_PROTOCOLLN("ER NOT_STASHED");
+    } else {
+      destination[X_AXIS] = play_st.stashed_position[X_AXIS];
+      destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
+      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 3;
+      feedrate = 6000;
+      prepare_move_raw();
+      st_synchronize();
+
+      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
+      feedrate = 1500;
+      prepare_move_raw();
+      st_synchronize();
+
+      for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
+        current_position[i] = play_st.stashed_extruder_position[i];
+      }
+
+      feedrate = play_st.stashed_feedrate;
+      target_extruder = play_st.stashed_extruder;
+
+      play_st.stashed = 0;
+      SERIAL_PROTOCOLLN("CTRL STASH_POP");
+      SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
+    }
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
@@ -10718,6 +10758,9 @@ void process_commands()
       // Enable/Disable lineno and sumcheck
         gcode_C1();
         break;
+      case 2:
+        gcode_C2();
+        break;
       default:
         SERIAL_ECHO_START;
         SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
@@ -10745,7 +10788,7 @@ void FlushSerialRequestResend() {
   //char cmdbuffer[bufindr][100]="Resend:";
   MYSERIAL.flush();
   SERIAL_PROTOCOLPGM(MSG_RESEND);
-  SERIAL_PROTOCOLLN(gcode_LastN + 1);
+  SERIAL_PROTOCOLLN(play_st.last_no + 1);
   ClearToSend();
 }
 
@@ -11164,7 +11207,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
 
   if (stepper_inactive_time && ms > previous_millis_cmd + stepper_inactive_time
       && !ignore_stepper_queue && !blocks_queued()) {
-          if(line_check == 0) {
+          if(play_st.enable_linecheck == 0) {
               // Only disable steppers while line check is disabled
               // because while line check is enabled it may printting something
               // and disable steppers may destory printting object.
@@ -11350,7 +11393,7 @@ void Stop()
   disable_heater();
   if(Stopped == false) {
     Stopped = true;
-    Stopped_gcode_LastN = gcode_LastN; // Save last g_code for restart
+    Stopped_gcode_LastN = play_st.last_no; // Save last g_code for restart
     SERIAL_ERROR_START;
     SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
     LCD_MESSAGEPGM(MSG_STOPPED);

@@ -395,4 +395,16 @@ typedef struct LedStatus {
   float param_b[3];
 } LedStatus;
 
+typedef struct PlayStatus {
+  int enable_linecheck;
+  int stashed;
+  unsigned long last_no;
+
+  float stashed_position[3];
+  float stashed_extruder_position[NUM_AXIS - 3];
+  float stashed_feedrate;
+  float stashed_extruder;
+
+} PlayStatus;
+
 #endif //MARLIN_H
