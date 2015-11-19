@@ -8203,6 +8203,10 @@ inline void gcode_C2()
 
 inline void gcode_C3() {
   global.home_btn_press = 0;
+  destination[X_AXIS] = current_position[X_AXIS];
+  destination[Y_AXIS] = current_position[Y_AXIS];
+  destination[Z_AXIS] = current_position[Z_AXIS];
+  float e_pos = current_position[E_AXIS];
 
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
@@ -8230,17 +8234,47 @@ inline void gcode_C3() {
     else speed = new_speed;
 
     feedrate = speed;
-    destination[X_AXIS] = current_position[X_AXIS];
-    destination[Y_AXIS] = current_position[Y_AXIS];
-    destination[Z_AXIS] = current_position[Z_AXIS];
-
     destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
 
     prepare_move();
   }
+
+  current_position[E_AXIS] = e_pos;
+  plan_set_e_position(e_pos);
   SERIAL_PROTOCOLLN("ok");
 }
 
+inline void gcode_C4() {
+  destination[X_AXIS] = current_position[X_AXIS];
+  destination[Y_AXIS] = current_position[Y_AXIS];
+  destination[Z_AXIS] = current_position[Z_AXIS];
+  float e_pos = current_position[E_AXIS];
+
+  if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+    SERIAL_PROTOCOLLN("ok");
+    return;
+  }
+
+  feedrate = 8000;
+  destination[E_AXIS] = current_position[E_AXIS] - 50;
+  prepare_move();
+
+  feedrate = 6000;
+  for(int i=0;i<9;i++) {
+    if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+      SERIAL_PROTOCOLLN("ok");
+      break;
+    }
+
+    destination[E_AXIS] -= 50;
+    prepare_move();
+  }
+
+  current_position[E_AXIS] = e_pos;
+  plan_set_e_position(e_pos);
+  SERIAL_PROTOCOLLN("ok");
+  return;
+}
 #if 0
 
 inline void gcode_X16()
@@ -10820,6 +10854,9 @@ void process_commands()
         break;
       case 3:
         gcode_C3();
+        break;
+      case 4:
+        gcode_C4();
         break;
       default:
         SERIAL_ECHO_START;
