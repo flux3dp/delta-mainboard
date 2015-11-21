@@ -1880,20 +1880,23 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
 
 
-  int read_FSR(float data[], int len, float ratio[])
+  int read_FSR(float &data, int count, float ratio[])
   {
+    float avg[3], sd[3];
+    int max_val[3], min_val[3];
 
-
-    for (int i = len - 1; i > 0; i--) 
-      data[i] = data[i - 1];
-
-    long sum = 0;
-    for (int i = 0; i < 20; i++)
-      for (int j = 0; j < 3; j++)
-        sum += ratio[j] * analogRead(j);
-    data[0] = sum / 20;
+    read_fsr_helper(count, avg, sd, max_val, min_val);
     
-    return data[0];
+    bool flag = 1;
+    data = 0;
+    for (int j = 0; j < 3; j++)
+    {
+      data += ratio[j] * avg[j];
+      if (sd[j] * 3 > avg[j] * 0.01)
+        flag = 0;
+    }
+    
+    return flag;
   }
 
 
@@ -1919,13 +1922,10 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
     }
 
-    float data[20];
-    for (int i = 0; i < 20; i++)
-      data[i] = 0;
-
+    float data;
     
     read_FSR(data, 20, ratio);
-    float threshold = data[0];
+    float threshold = data;
     int fsr_flag = -1;
     while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
     {
@@ -1936,15 +1936,15 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       read_FSR(data, 20, ratio);
       if (fsr_flag > -500)
       {
-        if (data[0] < threshold)
+        if (data < threshold)
         {
-          threshold = data[0];
+          threshold = data;
           
         }
       }
       else
       {
-        if (data[0] < threshold *0.999)
+        if (data < threshold * 0.998)
         {
           fsr_flag = 1;
         } 
@@ -1973,11 +1973,54 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
-    feedrate = homing_feedrate[Z_AXIS]/3;
-    destination[Z_AXIS] = mm + 4;
-    prepare_move_raw();
     
-    return z_val;
+    feedrate = 600;
+
+    z_val += 0.2;
+    float up, down;
+    float value[3] = {0};
+    for (int i = 0; i < 30; i++)
+    {
+      destination[Z_AXIS] = z_val + 0.25;
+      prepare_move_raw();
+      st_synchronize();
+      delay(200);
+      
+      int timeout = 0;
+      while (!read_FSR(up, 200, ratio) && timeout < 20)
+        timeout++;
+      destination[Z_AXIS] = (z_val -= 0.0125) ;
+      prepare_move_raw();
+      st_synchronize();
+      delay(200);
+      
+      timeout = 0;
+      while (!read_FSR(down, 200, ratio) && timeout < 20)
+        timeout++;
+
+      for (int j = 2; j > 0; j--)
+        value[j] = value[j - 1];
+      value[0] = max(up - down, 1);
+      if (value[2] == 0) 
+      {
+        if (value[0] > up * 0.0005)
+        {
+          z_val += 0.1;
+          value[1] = 0;
+        }
+      }
+      else if (value[0] > up * 0.0005 && value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
+      {
+        destination[Z_AXIS] += 1;
+        prepare_move_raw();
+        st_synchronize();
+        return z_val + 0.025;
+      }
+      
+    }
+    
+    
+    return -100;
   }
 
   void calibrate_print_surface(float z_offset)
@@ -2054,29 +2097,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     destination[Z_AXIS] = 6;
     prepare_move();
     st_synchronize();
-
-    probe_count = 0;
-    probe_z = -100;
-    probe_h = -100;
-    probe_l = 100;
-    float data[5];
-    do
-    {
-      probe_z = z_probe() + z_probe_offset[Z_AXIS];
-      for (int i = 1; i < 5; i++)
-      {
-        data[i] = data[i - 1];
-        if (abs(probe_z - data[i]) < 0.03 && probe_count >= i)
-        {
-          probe_z = max(probe_z, data[i]);
-          probe_count = 22;
-        }
-      }
-      data[0] = probe_z;
-      probe_count ++;
-    } while (probe_count < 21);
-
-    return probe_z;
+    return z_probe() + z_probe_offset[Z_AXIS];
   }
 
   float z_probe_accuracy()
@@ -4276,11 +4297,13 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(y);
       SERIAL_ECHO(" = ");
 
+      /*
       // NOTE: Change probe_value because FSR is obtuse in center
       float d = pow(pow(x, 2) + pow(y, 2), 0.5);
       if(d < 85) {
           probe_value += 0.3 * ((85 - d) / 85);  // Linear adjust
       }
+      */
 
       SERIAL_PROTOCOL_F(probe_value, 4);
       SERIAL_EOL;
