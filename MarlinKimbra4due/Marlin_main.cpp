@@ -2002,11 +2002,11 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       for (int j = 2; j > 0; j--)
         value[j] = value[j - 1];
       value[0] = up - down;
-      if (value[0] < up * 0.0005)
+      if (value[0] < up * 0.005)
         value[0] = 1;
       if (value[2] == 0) 
       {
-        if (value[0] > up * 0.0005)
+        if (value[0] > 1)
         {
           z_val += 0.1;
           value[1] = 0;
@@ -2019,7 +2019,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
           destination[Z_AXIS] += 1;
           prepare_move_raw();
           st_synchronize();
-          return z_val + 0.025;
+          return z_val + 0.0375;
         }
         else
           return -100;
@@ -4303,7 +4303,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       {
         probe_value = probe_bed(x, y);
         count++;
-      } while (probe_value < 10 && count < 10);
+      } while (probe_value < -10 && count < 10);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
       SERIAL_ECHO(" Y:");
