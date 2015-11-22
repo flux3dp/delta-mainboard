@@ -828,15 +828,16 @@ void manage_led()
         }
         break;
       case LED_WAVE_2_OFF:
-      if(_led_wave(i) < 0.05) {
-        analogWrite(led_pins[i], 0);
-        led_st.mode[i] = LED_OFF;
-      }
-      else {
-        analogWrite(led_pins[i], int(_led_wave(i) * 255));
-      }
-      break;
+        if(_led_wave(i) < 0.05) {
+          analogWrite(led_pins[i], 0);
+          led_st.mode[i] = LED_OFF;
+        }
+        else {
+          analogWrite(led_pins[i], int(_led_wave(i) * 255));
+        }
         break;
+      case LED_STATIC:
+        analogWrite(led_pins[i], int(led_st.param_a[i]));
       default:
         analogWrite(led_pins[i], 0);
         break;
