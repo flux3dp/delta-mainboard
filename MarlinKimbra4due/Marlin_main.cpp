@@ -2001,7 +2001,9 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
       for (int j = 2; j > 0; j--)
         value[j] = value[j - 1];
-      value[0] = max(up - down, 1);
+      value[0] = up - down;
+      if (value[0] < up * 0.0005)
+        value[0] = 1;
       if (value[2] == 0) 
       {
         if (value[0] > up * 0.0005)
@@ -2010,12 +2012,17 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
           value[1] = 0;
         }
       }
-      else if (value[0] > up * 0.0005 && value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
+      else if (value[2] > 1)
       {
-        destination[Z_AXIS] += 1;
-        prepare_move_raw();
-        st_synchronize();
-        return z_val + 0.025;
+        if (value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
+        {
+          destination[Z_AXIS] += 1;
+          prepare_move_raw();
+          st_synchronize();
+          return z_val + 0.025;
+        }
+        else
+          return -100;
       }
       
     }
@@ -4291,7 +4298,12 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       float probe_value;
 
       //deploy_z_probe();
-      probe_value = probe_bed(x, y);
+      int count = 0;
+      do
+      {
+        probe_value = probe_bed(x, y);
+        count++;
+      } while (probe_value < 10 && count < 10);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
       SERIAL_ECHO(" Y:");
