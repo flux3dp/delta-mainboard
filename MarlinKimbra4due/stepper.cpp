@@ -34,6 +34,7 @@
 #endif
 
 extern int G28_f; //aven_0807
+extern float feedrate, next_feedrate;
 //===========================================================================
 //============================= public variables ============================
 //===========================================================================
@@ -484,8 +485,16 @@ HAL_STEP_TIMER_ISR {
               if ((current_block->active_driver == 0 && X_HOME_DIR == 1) || (current_block->active_driver != 0 && X2_HOME_DIR == 1))
             #endif
               {
-                #if HAS_X_MAX
+                #if defined(X_MAX_PIN) && X_MAX_PIN >= 0
                   UPDATE_ENDSTOP(x, X, max, MAX);
+					//bool x_max_endstop = (READ(X_MAX_PIN) == X_MAX_ENDSTOP_INVERTING); 
+					//	if (x_max_endstop && old_x_max_endstop && (current_block->steps[X_X] > 0)) {
+					//	  
+					//			endstops_trigsteps[X_X] = count_position[X_X]; 
+					//			endstop_x_hit = true; 
+					//			step_events_completed = current_block->step_event_count; 
+					//	} 
+					//old_x_max_endstop = x_max_endstop;
                 #endif
               }
           }
@@ -519,7 +528,6 @@ HAL_STEP_TIMER_ISR {
       count_direction[Z_AXIS] = -1;
 
       if (check_endstops) {
-
         #if HAS_Z_MIN
 
           #ifdef Z_DUAL_ENDSTOPS
@@ -554,19 +562,19 @@ HAL_STEP_TIMER_ISR {
 
         #ifdef Z_PROBE_ENDSTOP
 
-		if(G28_f != 1)//aven_0807
-		{
-          UPDATE_ENDSTOP(z, Z, probe, PROBE);
-          z_probe_endstop = (READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
-          if(z_probe_endstop && old_z_probe_endstop)
-          {
-        	  endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-        	  endstop_z_probe_hit = true;
-
-//        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
-          }
-          old_z_probe_endstop = z_probe_endstop;
-		} //aven_0807
+//		if(G28_f == 1)//aven_0807
+//		{
+//          UPDATE_ENDSTOP(z, Z, probe, PROBE);
+//          z_probe_endstop = (READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
+//          if(z_probe_endstop && old_z_probe_endstop)
+//          {
+//        	  endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+//        	  endstop_z_probe_hit = true;
+//
+////        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
+//          }
+//          old_z_probe_endstop = z_probe_endstop;
+//		} //aven_0807
         #endif
         
       } // check_endstops
@@ -616,19 +624,19 @@ HAL_STEP_TIMER_ISR {
         #endif // Z_MAX_PIN
         
         #ifdef Z_PROBE_ENDSTOP
-
-		if(G28_f != 1)//aven_0807
-		{
-          UPDATE_ENDSTOP(z, Z, probe, PROBE);
-          z_probe_endstop=(READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
-          if(z_probe_endstop && old_z_probe_endstop)
-          {
-        	  endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-        	  endstop_z_probe_hit = true;
-//        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
-          }
-          old_z_probe_endstop = z_probe_endstop;
-		} //aven_0807 
+//
+//		if(G28_f != 0)//aven_0807
+//		{
+//          UPDATE_ENDSTOP(z, Z, probe, PROBE);
+//          z_probe_endstop=(READ(M_IO1) == Z_PROBE_ENDSTOP_INVERTING);
+//          if(z_probe_endstop && old_z_probe_endstop)
+//          {
+//        	  endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+//        	  endstop_z_probe_hit = true;
+////        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
+//          }
+//          old_z_probe_endstop = z_probe_endstop;
+//		} //aven_0807 
         #endif
 
       } // check_endstops
@@ -658,6 +666,24 @@ HAL_STEP_TIMER_ISR {
         count_direction[E_AXIS] = 1;
       }
     #endif //!ADVANCE
+
+
+	if (G28_f == 1 && READ(M_IO1)==LOW)
+	{
+		X_APPLY_DIR(!INVERT_X_DIR, 0);
+		count_direction[X_AXIS] = 1;
+		Y_APPLY_DIR(!INVERT_Y_DIR, 0);
+		count_direction[Y_AXIS] = 1;
+		Z_APPLY_DIR(!INVERT_Z_DIR, 0);
+		count_direction[Z_AXIS] = 1;
+		endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
+		endstop_x_hit = true;
+		endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
+		endstop_y_hit = true;
+		endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+		endstop_z_probe_hit = true;
+		step_events_completed = current_block->step_event_count;
+	}
 
     // Take multiple steps per interrupt (For high speed moves)
     for (int8_t i = 0; i < step_loops; i++) {
@@ -1147,7 +1173,7 @@ void finishAndDisableSteppers() {
 }
 
 void quickStop() {
-  cleaning_buffer_counter = 5000;
+  cleaning_buffer_counter = 200;
   DISABLE_STEPPER_DRIVER_INTERRUPT();
   while (blocks_queued()) plan_discard_current_block();
   current_block = NULL;

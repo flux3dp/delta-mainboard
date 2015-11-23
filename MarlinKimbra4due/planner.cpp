@@ -1009,6 +1009,7 @@ float junction_deviation = 0.1;
   // Update position
   for (int i = 0; i < NUM_AXIS; i++) position[i] = target[i];
 
+  //look ahead
   planner_recalculate();
 
   st_wake_up();
