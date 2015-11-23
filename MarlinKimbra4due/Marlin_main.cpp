@@ -255,9 +255,6 @@ bool target_direction;
 static bool home_all_axis = true;
 
 
-
-#define FW_V 1.0907
-
 // Lifetime manage
 unsigned long rpi_last_active = 0;
 unsigned long rpi_wifi_active = 0;
@@ -940,8 +937,8 @@ void setup()
   pinMode(S_LAS2, OUTPUT);//PC26
 
 //aven 0504 - TI TPS2552
-  pinMode(U5EN,OUTPUT);
-  pinMode(U5FAULT,INPUT);
+  pinMode(U5EN, OUTPUT);
+  pinMode(U5FAULT, INPUT);
 
   //digitalWrite(U5EN, HIGH);
   digitalWrite(U5EN, LOW);
@@ -10323,10 +10320,54 @@ inline void gcode_X8()
 }
 
 
+inline void gcode_X78()
+{
+  SerialUSB.print("FSR0 ");
+  SerialUSB.println(analogRead(0));
+  SerialUSB.print("FSR1 ");
+  SerialUSB.println(analogRead(1));
+  SerialUSB.print("FSR2 ");
+  SerialUSB.println(analogRead(2));
+  SerialUSB.print("R_IO1 ");
+  SerialUSB.println(analogRead(R_IO1));
+  SerialUSB.print("R_IO2 ");
+  SerialUSB.println(analogRead(R_IO2));
+  SerialUSB.print("M_IO1 ");
+  SerialUSB.println(analogRead(M_IO1));
+  SerialUSB.print("F0_STOP ");
+  SerialUSB.println(analogRead(F0_STOP));
+  SerialUSB.print("F1_STOP ");
+  SerialUSB.println(analogRead(F1_STOP));
+  SerialUSB.print("HOME_BTN_PIN ");
+  SerialUSB.println(analogRead(HOME_BTN_PIN));
+  SerialUSB.print("U5FAULT ");
+  SerialUSB.println(analogRead(U5FAULT));
+
+  if(code_seen('C')) {
+    int val = code_value();
+    if(val & 1) {
+      analogWrite(U5EN, 255);
+      SerialUSB.println("*U5EN ON");
+    } else {
+      analogWrite(U5EN, 0);
+      SerialUSB.println("*U5EN OFF");
+    }
+  }
+
+  SerialUSB.println("ok");
+}
+
 inline void gcode_X111()
 {
-  SerialUSB.print("FW Version:");
-  SerialUSB.println(FW_V,4);
+  SerialUSB.print("CRTL VERSION ");
+  SerialUSB.print(FIREWARE_VERSION);
+
+  #ifdef VERSION_CONTROL
+    SerialUSB.print(" ");
+    SerialUSB.print(VERSION_CONTROL);
+  #endif
+
+  SerialUSB.println();
 }
 
 
@@ -10857,8 +10898,11 @@ void process_commands()
         break;      
       case 8:   
         gcode_X8();
-        break;      
-      case 111:   
+        break;
+      case 78:
+        gcode_X78();
+        break;
+      case 111:
         gcode_X111();
         break;
       case 900:

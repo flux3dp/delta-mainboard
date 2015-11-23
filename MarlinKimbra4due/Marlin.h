@@ -373,6 +373,8 @@ extern inline bool debugDryrun() {
 
 extern void calculate_volumetric_multipliers();
 
+#define FIREWARE_VERSION "0.1a1"
+
 typedef struct FilamentDetect {
   bool enable;
   unsigned long last_trigger;
