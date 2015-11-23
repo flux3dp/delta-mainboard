@@ -255,9 +255,6 @@ bool target_direction;
 static bool home_all_axis = true;
 
 
-
-#define FW_V 1.0907
-
 // Lifetime manage
 unsigned long rpi_last_active = 0;
 unsigned long rpi_wifi_active = 0;
@@ -828,15 +825,16 @@ void manage_led()
         }
         break;
       case LED_WAVE_2_OFF:
-      if(_led_wave(i) < 0.05) {
-        analogWrite(led_pins[i], 0);
-        led_st.mode[i] = LED_OFF;
-      }
-      else {
-        analogWrite(led_pins[i], int(_led_wave(i) * 255));
-      }
-      break;
+        if(_led_wave(i) < 0.05) {
+          analogWrite(led_pins[i], 0);
+          led_st.mode[i] = LED_OFF;
+        }
+        else {
+          analogWrite(led_pins[i], int(_led_wave(i) * 255));
+        }
         break;
+      case LED_STATIC:
+        analogWrite(led_pins[i], int(led_st.param_a[i]));
       default:
         analogWrite(led_pins[i], 0);
         break;
@@ -939,8 +937,8 @@ void setup()
   pinMode(S_LAS2, OUTPUT);//PC26
 
 //aven 0504 - TI TPS2552
-  pinMode(U5EN,OUTPUT);
-  pinMode(U5FAULT,INPUT);
+  pinMode(U5EN, OUTPUT);
+  pinMode(U5FAULT, INPUT);
 
   //digitalWrite(U5EN, HIGH);
   digitalWrite(U5EN, LOW);
@@ -1880,20 +1878,23 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
 
 
-  int read_FSR(float data[], int len, float ratio[])
+  int read_FSR(float &data, int count, float ratio[])
   {
+    float avg[3], sd[3];
+    int max_val[3], min_val[3];
 
-
-    for (int i = len - 1; i > 0; i--) 
-      data[i] = data[i - 1];
-
-    long sum = 0;
-    for (int i = 0; i < 20; i++)
-      for (int j = 0; j < 3; j++)
-        sum += ratio[j] * analogRead(j);
-    data[0] = sum / 20;
+    read_fsr_helper(count, avg, sd, max_val, min_val);
     
-    return data[0];
+    bool flag = 1;
+    data = 0;
+    for (int j = 0; j < 3; j++)
+    {
+      data += ratio[j] * avg[j];
+      if (sd[j] * 3 > avg[j] * 0.01)
+        flag = 0;
+    }
+    
+    return flag;
   }
 
 
@@ -1919,13 +1920,10 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
     }
 
-    float data[20];
-    for (int i = 0; i < 20; i++)
-      data[i] = 0;
-
+    float data;
     
     read_FSR(data, 20, ratio);
-    float threshold = data[0];
+    float threshold = data;
     int fsr_flag = -1;
     while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
     {
@@ -1936,15 +1934,15 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       read_FSR(data, 20, ratio);
       if (fsr_flag > -500)
       {
-        if (data[0] < threshold)
+        if (data < threshold)
         {
-          threshold = data[0];
+          threshold = data;
           
         }
       }
       else
       {
-        if (data[0] < threshold *0.999)
+        if (data < threshold * 0.998)
         {
           fsr_flag = 1;
         } 
@@ -1973,11 +1971,61 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
 
-    feedrate = homing_feedrate[Z_AXIS]/3;
-    destination[Z_AXIS] = mm + 4;
-    prepare_move_raw();
     
-    return z_val;
+    feedrate = 600;
+
+    z_val += 0.2;
+    float up, down;
+    float value[3] = {0};
+    for (int i = 0; i < 30; i++)
+    {
+      destination[Z_AXIS] = z_val + 0.25;
+      prepare_move_raw();
+      st_synchronize();
+      delay(200);
+      
+      int timeout = 0;
+      while (!read_FSR(up, 200, ratio) && timeout < 20)
+        timeout++;
+      destination[Z_AXIS] = (z_val -= 0.0125) ;
+      prepare_move_raw();
+      st_synchronize();
+      delay(200);
+      
+      timeout = 0;
+      while (!read_FSR(down, 200, ratio) && timeout < 20)
+        timeout++;
+
+      for (int j = 2; j > 0; j--)
+        value[j] = value[j - 1];
+      value[0] = up - down;
+      if (value[0] < up * 0.005)
+        value[0] = 1;
+      if (value[2] == 0) 
+      {
+        if (value[0] > 1)
+        {
+          z_val += 0.1;
+          value[1] = 0;
+        }
+      }
+      else if (value[2] > 1)
+      {
+        if (value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
+        {
+          destination[Z_AXIS] += 1;
+          prepare_move_raw();
+          st_synchronize();
+          return z_val + 0.0375;
+        }
+        else
+          return -100;
+      }
+      
+    }
+    
+    
+    return -100;
   }
 
   void calibrate_print_surface(float z_offset)
@@ -2054,29 +2102,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     destination[Z_AXIS] = 6;
     prepare_move();
     st_synchronize();
-
-    probe_count = 0;
-    probe_z = -100;
-    probe_h = -100;
-    probe_l = 100;
-    float data[5];
-    do
-    {
-      probe_z = z_probe() + z_probe_offset[Z_AXIS];
-      for (int i = 1; i < 5; i++)
-      {
-        data[i] = data[i - 1];
-        if (abs(probe_z - data[i]) < 0.03 && probe_count >= i)
-        {
-          probe_z = max(probe_z, data[i]);
-          probe_count = 22;
-        }
-      }
-      data[0] = probe_z;
-      probe_count ++;
-    } while (probe_count < 21);
-
-    return probe_z;
+    return z_probe() + z_probe_offset[Z_AXIS];
   }
 
   float z_probe_accuracy()
@@ -4294,18 +4320,25 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       float probe_value;
 
       //deploy_z_probe();
-      probe_value = probe_bed(x, y);
+      int count = 0;
+      do
+      {
+        probe_value = probe_bed(x, y);
+        count++;
+      } while (probe_value < -10 && count < 10);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
       SERIAL_ECHO(" Y:");
       SERIAL_ECHO(y);
       SERIAL_ECHO(" = ");
 
+      /*
       // NOTE: Change probe_value because FSR is obtuse in center
       float d = pow(pow(x, 2) + pow(y, 2), 0.5);
       if(d < 85) {
           probe_value += 0.3 * ((85 - d) / 85);  // Linear adjust
       }
+      */
 
       SERIAL_PROTOCOL_F(probe_value, 4);
       SERIAL_EOL;
@@ -8228,6 +8261,10 @@ inline void gcode_C2()
 
 inline void gcode_C3() {
   global.home_btn_press = 0;
+  destination[X_AXIS] = current_position[X_AXIS];
+  destination[Y_AXIS] = current_position[Y_AXIS];
+  destination[Z_AXIS] = current_position[Z_AXIS];
+  float e_pos = current_position[E_AXIS];
 
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
@@ -8255,17 +8292,47 @@ inline void gcode_C3() {
     else speed = new_speed;
 
     feedrate = speed;
-    destination[X_AXIS] = current_position[X_AXIS];
-    destination[Y_AXIS] = current_position[Y_AXIS];
-    destination[Z_AXIS] = current_position[Z_AXIS];
-
     destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
 
     prepare_move();
   }
+
+  current_position[E_AXIS] = e_pos;
+  plan_set_e_position(e_pos);
   SERIAL_PROTOCOLLN("ok");
 }
 
+inline void gcode_C4() {
+  destination[X_AXIS] = current_position[X_AXIS];
+  destination[Y_AXIS] = current_position[Y_AXIS];
+  destination[Z_AXIS] = current_position[Z_AXIS];
+  float e_pos = current_position[E_AXIS];
+
+  if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+    SERIAL_PROTOCOLLN("ok");
+    return;
+  }
+
+  feedrate = 8000;
+  destination[E_AXIS] = current_position[E_AXIS] - 50;
+  prepare_move();
+
+  feedrate = 6000;
+  for(int i=0;i<9;i++) {
+    if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+      SERIAL_PROTOCOLLN("ok");
+      break;
+    }
+
+    destination[E_AXIS] -= 50;
+    prepare_move();
+  }
+
+  current_position[E_AXIS] = e_pos;
+  plan_set_e_position(e_pos);
+  SERIAL_PROTOCOLLN("ok");
+  return;
+}
 #if 0
 
 inline void gcode_X16()
@@ -10278,10 +10345,54 @@ inline void gcode_X8()
 }
 
 
+inline void gcode_X78()
+{
+  SerialUSB.print("FSR0 ");
+  SerialUSB.println(analogRead(0));
+  SerialUSB.print("FSR1 ");
+  SerialUSB.println(analogRead(1));
+  SerialUSB.print("FSR2 ");
+  SerialUSB.println(analogRead(2));
+  SerialUSB.print("R_IO1 ");
+  SerialUSB.println(analogRead(R_IO1));
+  SerialUSB.print("R_IO2 ");
+  SerialUSB.println(analogRead(R_IO2));
+  SerialUSB.print("M_IO1 ");
+  SerialUSB.println(analogRead(M_IO1));
+  SerialUSB.print("F0_STOP ");
+  SerialUSB.println(analogRead(F0_STOP));
+  SerialUSB.print("F1_STOP ");
+  SerialUSB.println(analogRead(F1_STOP));
+  SerialUSB.print("HOME_BTN_PIN ");
+  SerialUSB.println(analogRead(HOME_BTN_PIN));
+  SerialUSB.print("U5FAULT ");
+  SerialUSB.println(analogRead(U5FAULT));
+
+  if(code_seen('C')) {
+    int val = code_value();
+    if(val & 1) {
+      analogWrite(U5EN, 255);
+      SerialUSB.println("*U5EN ON");
+    } else {
+      analogWrite(U5EN, 0);
+      SerialUSB.println("*U5EN OFF");
+    }
+  }
+
+  SerialUSB.println("ok");
+}
+
 inline void gcode_X111()
 {
-  SerialUSB.print("FW Version:");
-  SerialUSB.println(FW_V,4);
+  SerialUSB.print("CRTL VERSION ");
+  SerialUSB.print(FIREWARE_VERSION);
+
+  #ifdef VERSION_CONTROL
+    SerialUSB.print(" ");
+    SerialUSB.print(VERSION_CONTROL);
+  #endif
+
+  SerialUSB.println();
 }
 
 
@@ -10812,8 +10923,11 @@ void process_commands()
         break;      
       case 8:   
         gcode_X8();
-        break;      
-      case 111:   
+        break;
+      case 78:
+        gcode_X78();
+        break;
+      case 111:
         gcode_X111();
         break;
       case 900:
@@ -10845,6 +10959,9 @@ void process_commands()
         break;
       case 3:
         gcode_C3();
+        break;
+      case 4:
+        gcode_C4();
         break;
       default:
         SERIAL_ECHO_START;

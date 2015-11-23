@@ -12,17 +12,17 @@ X3 + F + num (0 ~ 4)                                                           :
 
 ##### X4 Manage LED
 
-* Syntax: `X4L[id]C[mode]A[cycle]`
+* Syntax: `X4L[id]C[mode]A[cycle]B[offset]`
 
 * `[id]`: `0`=White, `1`=Red, `2`=Green (Required)
-* `[mode]`: `0`=Off, `1`=Wave, `2`=Blink, `3`=On
+* `[mode]`: `0`=Off, `1`=Wave, `2`=Blink, `3`=On, `4`=Wave to brightest, `5`=Wave to off, `6`=Fix strangth (use param a)
 * `[cycle]`: Wave/Blink mode cycle, use `0.0005` first if you don't know which value is better
 
 * Example:
 
-> `X3L0C1A0.005`: White LED wave with cycle 0.005
+> `X4L0C1A0.005`: White LED wave with cycle 0.005
 >
-> `X3L1C3`: Red LED on
+> `X4L1C3`: Red LED on
 
 ```
 X6                                                                             : delta Homing Distance Calculation

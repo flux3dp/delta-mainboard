@@ -373,6 +373,8 @@ extern inline bool debugDryrun() {
 
 extern void calculate_volumetric_multipliers();
 
+#define FIREWARE_VERSION "0.1a1"
+
 typedef struct FilamentDetect {
   bool enable;
   unsigned long last_trigger;
@@ -384,6 +386,7 @@ typedef struct FilamentDetect {
 #define LED_ON 3
 #define LED_WAVE_2_ON 4
 #define LED_WAVE_2_OFF 5
+#define LED_STATIC 6
 
 typedef struct GlobalVariable {
   unsigned int home_btn_press;
