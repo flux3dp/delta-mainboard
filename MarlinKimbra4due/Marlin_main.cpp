@@ -1316,6 +1316,11 @@ void inline proc_heigh_level_control(const char* cmd) {
     play_st.last_no = 0;
 
   } else if(strcmp(cmd, "DISABLE_LINECHECK") == 0) {
+    while(buflen > 1) {
+      buflen--;
+      bufindr = (bufindr + 1) % BUFSIZE;
+    }
+
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
@@ -1323,6 +1328,10 @@ void inline proc_heigh_level_control(const char* cmd) {
   } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
     global.home_btn_press++;
 
+  } else if(strcmp(cmd, "LOAD_FILAMENT") == 0) {
+    
+  } else if(strcmp(cmd, "EJECT_FILAMENT") == 0) {
+    
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
   }
@@ -8468,16 +8477,14 @@ inline void gcode_C2()
       play_st.stashed_feedrate = feedrate;
       play_st.stashed_extruder = target_extruder;
 
-      // Move to stash position
-      feedrate = 8000;
-      if(current_position[Z_AXIS] > 200) {
-        destination[Z_AXIS] = 220;
-        prepare_move_raw();
-        st_synchronize();
-      }
-      destination[X_AXIS] = 0;
-      destination[Y_AXIS] = -90;
-      destination[Z_AXIS] = 220;
+      // Retraction
+      feedrate = 500;
+      destination[E_AXIS] = current_position[E_AXIS] - 5;
+      prepare_move_raw();
+      st_synchronize();
+
+      feedrate = 300;
+      destination[Z_AXIS] = current_position[Z_AXIS] + 10;
       prepare_move_raw();
       st_synchronize();
 
@@ -8492,18 +8499,23 @@ inline void gcode_C2()
     } else {
       destination[X_AXIS] = play_st.stashed_position[X_AXIS];
       destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
-      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 3;
+      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 8.0;
       feedrate = 6000;
       prepare_move_raw();
       st_synchronize();
 
+      destination[E_AXIS] = current_position[E_AXIS] + 5.2;
+      feedrate = 300;
+      prepare_move_raw();
+      st_synchronize();
+
       destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
-      feedrate = 1500;
       prepare_move_raw();
       st_synchronize();
 
       for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
         current_position[i] = play_st.stashed_extruder_position[i];
+        plan_set_e_position(current_position[i]);
       }
 
       feedrate = play_st.stashed_feedrate;
@@ -8511,26 +8523,44 @@ inline void gcode_C2()
 
       play_st.stashed = 0;
       SERIAL_PROTOCOLLN("CTRL STASH_POP");
-      SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
     }
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
 }
 
-inline void gcode_C3() {
-  global.home_btn_press = 0;
+inline void gcode_C3(int t=0) {
+  if(t > 2) t = 0;
+  target_extruder = t;
+
   destination[X_AXIS] = current_position[X_AXIS];
   destination[Y_AXIS] = current_position[Y_AXIS];
   destination[Z_AXIS] = current_position[Z_AXIS];
-  float e_pos = current_position[E_AXIS];
 
+  // Move to stash position
+  feedrate = 8000;
+  if(current_position[Z_AXIS] > 200) {
+    destination[Z_AXIS] = 220;
+    prepare_move_raw();
+    st_synchronize();
+  }
+
+  destination[X_AXIS] = 0;
+  destination[Y_AXIS] = -90;
+  destination[Z_AXIS] = 220;
+  prepare_move_raw();
+  st_synchronize();
+
+
+  float e_pos = current_position[E_AXIS];
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
   read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
   int max_value_base = avg[0] + sd[0] * 3;
   int speed = 150;
+
+  global.home_btn_press = 0;
   while(global.home_btn_press == 0) {
     if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
         delay(10);
@@ -8561,7 +8591,10 @@ inline void gcode_C3() {
   SERIAL_PROTOCOLLN("ok");
 }
 
-inline void gcode_C4() {
+inline void gcode_C4(int t=0) {
+  if(t > 2) t = 0;
+  target_extruder = t;
+
   destination[X_AXIS] = current_position[X_AXIS];
   destination[Y_AXIS] = current_position[Y_AXIS];
   destination[Z_AXIS] = current_position[Z_AXIS];
@@ -8592,6 +8625,7 @@ inline void gcode_C4() {
   SERIAL_PROTOCOLLN("ok");
   return;
 }
+
 #if 0
 
 inline void gcode_X16()
@@ -11170,27 +11204,35 @@ void process_commands()
         break;
       case 1: 
         gcode_X1();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 2:   
         gcode_X2();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 3:   
         gcode_X3();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 4:   
         gcode_X4();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 5:   
         gcode_X5();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break; //heater PID on/off 
       case 6:   
         gcode_X6();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 7:   
         gcode_X7();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;      
       case 8:   
         gcode_X8();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 78:
         gcode_X78();
@@ -11198,11 +11240,13 @@ void process_commands()
       case 111:
         gcode_X111();
         break;
-	  case 200:
-		  gcode_X200();
-		  break;
+      case 200:
+        gcode_X200();
+        SERIAL_PROTOCOLLN(MSG_OK);
+        break;
       case 900:
         gcode_X900();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       default:
         SERIAL_ECHO_START;
@@ -11213,8 +11257,6 @@ void process_commands()
         SERIAL_PROTOCOLLN("ER BAD_CMD");
         break;
     }
-
-    SERIAL_PROTOCOLLN(MSG_OK);
   }
   //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
   else if(code_seen('C')) {
