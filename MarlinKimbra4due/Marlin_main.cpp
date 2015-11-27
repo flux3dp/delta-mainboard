@@ -284,7 +284,7 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 struct LedStatus led_st = {
   'P',              // situational
   0,                // last update
-  {1, 0, 1},        // mode
+  { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode
   {0.0009, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
@@ -846,25 +846,25 @@ void manage_led()
 
 	switch (led_st.situational) {
 	case 'R':
-		led_st.mode[0] = LED_ON;
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_ON;
+		led_st.mode[2] = LED_WAVE;
 		break;
 	case 'F':
-		led_st.mode[0] = LED_OFF;
+		led_st.mode[0] = LED_BLINK;
 		led_st.mode[1] = LED_BLINK;
 		led_st.mode[2] = LED_OFF;
 		break;
 	case 'P':
-		led_st.mode[0] = LED_WAVE;
+		led_st.mode[0] = LED_WAVE_POWER_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
 	case 0://Sleep
 		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
 		break;
-	case 1://白燈恆亮 系統待機,Wifi connecting
-		led_st.mode[0] = LED_ON;
+	case 1://白燈呼吸燈 系統待機,Wifi connecting
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
@@ -873,8 +873,8 @@ void manage_led()
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
-	case 3://白燈呼吸燈 工作中,Wifi connecting
-		led_st.mode[0] = LED_WAVE;
+	case 3://白燈恆亮 工作中,Wifi connecting
+		led_st.mode[0] = LED_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
@@ -893,8 +893,8 @@ void manage_led()
 		led_st.mode[1] = LED_WAVE;
 		led_st.mode[2] = LED_WAVE;
 		break;
-	case 7://白燈恆亮 系統待機,Wifi OK
-		led_st.mode[0] = LED_ON;
+	case 7://白燈呼吸燈 系統待機,Wifi OK
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
@@ -903,8 +903,8 @@ void manage_led()
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
-	case 9://白燈呼吸燈 工作中,Wifi OK
-		led_st.mode[0] = LED_WAVE;
+	case 9://白燈恆亮 工作中,Wifi OK
+		led_st.mode[0] = LED_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
@@ -968,6 +968,12 @@ void manage_led()
 			break;
 		case LED_STATIC:
 			analogWrite(led_pins[i], int(led_st.param_a[i]));
+			break;
+		case LED_WAVE_POWER_ON:
+			led_st.param_a[i] = 0.0005;
+			led_st.param_b[i] = 0;
+			analogWrite(led_pins[i], int(_led_wave(i) * 255));
+			break;
 		default:
 			analogWrite(led_pins[i], 0);
 			break;
@@ -3808,7 +3814,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   feedmultiply = 100;
   refresh_cmd_timeout();
 
-  SERIAL_PROTOCOLLN("G28 alarmIO testing1125_1");
+  //SERIAL_PROTOCOLLN("G28 alarmIO testing1125_1");
   enable_endstops(true);
 
   set_destination_to_current();
