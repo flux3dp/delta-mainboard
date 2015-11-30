@@ -4172,7 +4172,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 	enable_endstops(false);
 #endif
 
-	if (READ(M_IO1) == LOW) {
+	if (G28_f && READ(M_IO1) == LOW) {
 		G28_f = 0;
 		refresh_cmd_timeout();
 
