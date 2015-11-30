@@ -3802,8 +3802,12 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
-
-  G28_f = 1;//aven_0807
+	if (code_seen('+')) {
+		G28_f = 1;
+	}
+	else {
+		G28_f = 0;
+	}
   
   #ifdef ENABLE_AUTO_BED_LEVELING
     plan_bed_level_matrix.set_to_identity();
