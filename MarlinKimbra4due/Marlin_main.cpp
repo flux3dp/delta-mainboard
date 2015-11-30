@@ -4176,7 +4176,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 		G28_f = 0;
 		refresh_cmd_timeout();
 
-		SERIAL_PROTOCOLLN("detected alarmIO");
+		//SERIAL_PROTOCOLLN("detected alarmIO");
 		enable_endstops(true);
 
 		// Move all carriages up together until the first endstop is hit.
