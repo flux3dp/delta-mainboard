@@ -1187,7 +1187,7 @@ void setup()
 
 //aven 0504 - TI TPS2552
   pinMode(U5EN, OUTPUT);
-  pinMode(U5FAULT, INPUT);
+  pinMode(U5FAULT, INPUT_PULLUP);
 
   //digitalWrite(U5EN, HIGH);
   digitalWrite(U5EN, LOW);
@@ -10611,15 +10611,15 @@ inline void gcode_X78()
   SerialUSB.print("R_IO2 ");
   SerialUSB.println(analogRead(R_IO2));
   SerialUSB.print("M_IO1 ");
-  SerialUSB.println(analogRead(M_IO1));
+  SerialUSB.println(digitalRead(M_IO1));
   SerialUSB.print("F0_STOP ");
-  SerialUSB.println(analogRead(F0_STOP));
+  SerialUSB.println(digitalRead(F0_STOP));
   SerialUSB.print("F1_STOP ");
-  SerialUSB.println(analogRead(F1_STOP));
+  SerialUSB.println(digitalRead(F1_STOP));
   SerialUSB.print("HOME_BTN_PIN ");
-  SerialUSB.println(analogRead(HOME_BTN_PIN));
+  SerialUSB.println(digitalRead(HOME_BTN_PIN));
   SerialUSB.print("U5FAULT ");
-  SerialUSB.println(analogRead(U5FAULT));
+  SerialUSB.println(digitalRead(U5FAULT));
 
   if(code_seen('C')) {
     int val = code_value();
@@ -10632,7 +10632,7 @@ inline void gcode_X78()
     }
   }
 
-  SerialUSB.println("ok");
+  //SerialUSB.println("ok");
 }
 
 inline void gcode_X111()
