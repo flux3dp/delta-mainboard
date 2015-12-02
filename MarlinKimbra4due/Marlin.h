@@ -387,6 +387,7 @@ typedef struct FilamentDetect {
 #define LED_WAVE_2_ON 4
 #define LED_WAVE_2_OFF 5
 #define LED_STATIC 6
+#define LED_WAVE_POWER_ON 7
 
 typedef struct GlobalVariable {
   unsigned int home_btn_press;

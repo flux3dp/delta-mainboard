@@ -284,7 +284,7 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 struct LedStatus led_st = {
   'P',              // situational
   0,                // last update
-  {1, 0, 1},        // mode
+  { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode
   {0.0009, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
@@ -846,25 +846,25 @@ void manage_led()
 
 	switch (led_st.situational) {
 	case 'R':
-		led_st.mode[0] = LED_ON;
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_ON;
+		led_st.mode[2] = LED_WAVE;
 		break;
 	case 'F':
-		led_st.mode[0] = LED_OFF;
+		led_st.mode[0] = LED_BLINK;
 		led_st.mode[1] = LED_BLINK;
 		led_st.mode[2] = LED_OFF;
 		break;
 	case 'P':
-		led_st.mode[0] = LED_WAVE;
+		led_st.mode[0] = LED_WAVE_POWER_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
 	case 0://Sleep
 		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
 		break;
-	case 1://白燈恆亮 系統待機,Wifi connecting
-		led_st.mode[0] = LED_ON;
+	case 1://白燈呼吸燈 系統待機,Wifi connecting
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
@@ -873,8 +873,8 @@ void manage_led()
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
-	case 3://白燈呼吸燈 工作中,Wifi connecting
-		led_st.mode[0] = LED_WAVE;
+	case 3://白燈恆亮 工作中,Wifi connecting
+		led_st.mode[0] = LED_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_WAVE;
 		break;
@@ -893,8 +893,8 @@ void manage_led()
 		led_st.mode[1] = LED_WAVE;
 		led_st.mode[2] = LED_WAVE;
 		break;
-	case 7://白燈恆亮 系統待機,Wifi OK
-		led_st.mode[0] = LED_ON;
+	case 7://白燈呼吸燈 系統待機,Wifi OK
+		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
@@ -903,8 +903,8 @@ void manage_led()
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
-	case 9://白燈呼吸燈 工作中,Wifi OK
-		led_st.mode[0] = LED_WAVE;
+	case 9://白燈恆亮 工作中,Wifi OK
+		led_st.mode[0] = LED_ON;
 		led_st.mode[1] = LED_OFF;
 		led_st.mode[2] = LED_ON;
 		break;
@@ -968,6 +968,12 @@ void manage_led()
 			break;
 		case LED_STATIC:
 			analogWrite(led_pins[i], int(led_st.param_a[i]));
+			break;
+		case LED_WAVE_POWER_ON:
+			led_st.param_a[i] = 0.0005;
+			led_st.param_b[i] = 0;
+			analogWrite(led_pins[i], int(_led_wave(i) * 255));
+			break;
 		default:
 			analogWrite(led_pins[i], 0);
 			break;
@@ -1265,6 +1271,15 @@ void setup()
   //attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
 }
 
+void inline report_ln() {
+  SERIAL_PROTOCOL("LN ");
+  SERIAL_PROTOCOL(play_st.last_no);
+  SERIAL_PROTOCOL(" ");
+  SERIAL_PROTOCOL(buflen);
+  SERIAL_PROTOCOL("\n");
+}
+
+
 void loop() {
   if (buflen < BUFSIZE - 1) get_command();
 
@@ -1294,6 +1309,10 @@ void loop() {
     #endif // SDSUPPORT
     buflen--;
     bufindr = (bufindr + 1) % BUFSIZE;
+
+    if(play_st.enable_linecheck) {
+      report_ln();
+    }
   }
   // Check heater every n milliseconds
   manage_heater();
@@ -1310,6 +1329,11 @@ void inline proc_heigh_level_control(const char* cmd) {
     play_st.last_no = 0;
 
   } else if(strcmp(cmd, "DISABLE_LINECHECK") == 0) {
+    while(buflen > 1) {
+      buflen--;
+      bufindr = (bufindr + 1) % BUFSIZE;
+    }
+
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
@@ -1317,6 +1341,10 @@ void inline proc_heigh_level_control(const char* cmd) {
   } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
     global.home_btn_press++;
 
+  } else if(strcmp(cmd, "LOAD_FILAMENT") == 0) {
+    
+  } else if(strcmp(cmd, "EJECT_FILAMENT") == 0) {
+    
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
   }
@@ -1334,7 +1362,6 @@ bool inline check_line_number(const char* cmd) {
     SERIAL_PROTOCOL("\n");
     MYSERIAL.flush();
     return false;
-
   } else {
     gcode_N = (strtol(strchr_pointer + 1, NULL, 10));
     if(gcode_N != play_st.last_no + 1) {
@@ -1378,14 +1405,6 @@ bool inline check_line_number(const char* cmd) {
       return false;
     }
   }
-
-  // No error, update last line code
-  SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(gcode_N);
-  SERIAL_PROTOCOL(" ");
-  SERIAL_PROTOCOL(buflen);
-  SERIAL_PROTOCOL("\n");
-  MYSERIAL.flush();
 
   play_st.last_no = gcode_N;
   return true;
@@ -1453,6 +1472,9 @@ void get_command()
       bufindw = (bufindw + 1)%BUFSIZE;
       buflen += 1;
 
+      if(play_st.enable_linecheck) {
+        report_ln();
+      }
       serial_count = 0; //clear buffer
     }
     else {   // its not a newline, carriage return or escape char
@@ -3796,8 +3818,12 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
-
-  G28_f = 1;//aven_0807
+	if (code_seen('+')) {
+		G28_f = 1;
+	}
+	else {
+		G28_f = 0;
+	}
   
   #ifdef ENABLE_AUTO_BED_LEVELING
     plan_bed_level_matrix.set_to_identity();
@@ -3808,7 +3834,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   feedmultiply = 100;
   refresh_cmd_timeout();
 
-  SERIAL_PROTOCOLLN("G28 alarmIO testing1125_1");
+  //SERIAL_PROTOCOLLN("G28 alarmIO testing1125_1");
   enable_endstops(true);
 
   set_destination_to_current();
@@ -4153,11 +4179,11 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 	enable_endstops(false);
 #endif
 
-	if (READ(M_IO1) == LOW) {
+	if (G28_f && READ(M_IO1) == LOW) {
 		G28_f = 0;
 		refresh_cmd_timeout();
 
-		SERIAL_PROTOCOLLN("detected alarmIO");
+		//SERIAL_PROTOCOLLN("detected alarmIO");
 		enable_endstops(true);
 
 		// Move all carriages up together until the first endstop is hit.
@@ -8462,16 +8488,14 @@ inline void gcode_C2()
       play_st.stashed_feedrate = feedrate;
       play_st.stashed_extruder = target_extruder;
 
-      // Move to stash position
-      feedrate = 8000;
-      if(current_position[Z_AXIS] > 200) {
-        destination[Z_AXIS] = 220;
-        prepare_move_raw();
-        st_synchronize();
-      }
-      destination[X_AXIS] = 0;
-      destination[Y_AXIS] = -90;
-      destination[Z_AXIS] = 220;
+      // Retraction
+      feedrate = 500;
+      destination[E_AXIS] = current_position[E_AXIS] - 5;
+      prepare_move_raw();
+      st_synchronize();
+
+      feedrate = 300;
+      destination[Z_AXIS] = current_position[Z_AXIS] + 10;
       prepare_move_raw();
       st_synchronize();
 
@@ -8486,18 +8510,23 @@ inline void gcode_C2()
     } else {
       destination[X_AXIS] = play_st.stashed_position[X_AXIS];
       destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
-      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 3;
+      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 8.0;
       feedrate = 6000;
       prepare_move_raw();
       st_synchronize();
 
+      destination[E_AXIS] = current_position[E_AXIS] + 5.2;
+      feedrate = 300;
+      prepare_move_raw();
+      st_synchronize();
+
       destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
-      feedrate = 1500;
       prepare_move_raw();
       st_synchronize();
 
       for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
         current_position[i] = play_st.stashed_extruder_position[i];
+        plan_set_e_position(current_position[i]);
       }
 
       feedrate = play_st.stashed_feedrate;
@@ -8505,26 +8534,46 @@ inline void gcode_C2()
 
       play_st.stashed = 0;
       SERIAL_PROTOCOLLN("CTRL STASH_POP");
-      SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
     }
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
 }
 
-inline void gcode_C3() {
-  global.home_btn_press = 0;
+inline void gcode_C3(int t=0) {
+  if(t > 2) t = 0;
+  target_extruder = t;
+
+  float e_pos = current_position[E_AXIS];
   destination[X_AXIS] = current_position[X_AXIS];
   destination[Y_AXIS] = current_position[Y_AXIS];
   destination[Z_AXIS] = current_position[Z_AXIS];
-  float e_pos = current_position[E_AXIS];
+  destination[E_AXIS] = current_position[E_AXIS];
+  // Move to stash position
+  feedrate = 8000;
+  if(current_position[Z_AXIS] > 200) {
+    destination[Z_AXIS] = 220;
+    prepare_move_raw();
+    st_synchronize();
+  }
 
+  destination[X_AXIS] = 0;
+  destination[Y_AXIS] = -90;
+  destination[Z_AXIS] = 220;
+  destination[E_AXIS] = current_position[E_AXIS];
+  prepare_move_raw();
+  st_synchronize();
+
+
+  
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
   read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
   int max_value_base = avg[0] + sd[0] * 3;
   int speed = 150;
+
+  global.home_btn_press = 0;
   while(global.home_btn_press == 0) {
     if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
         delay(10);
@@ -8555,7 +8604,10 @@ inline void gcode_C3() {
   SERIAL_PROTOCOLLN("ok");
 }
 
-inline void gcode_C4() {
+inline void gcode_C4(int t=0) {
+  if(t > 2) t = 0;
+  target_extruder = t;
+
   destination[X_AXIS] = current_position[X_AXIS];
   destination[Y_AXIS] = current_position[Y_AXIS];
   destination[Z_AXIS] = current_position[Z_AXIS];
@@ -8586,6 +8638,7 @@ inline void gcode_C4() {
   SERIAL_PROTOCOLLN("ok");
   return;
 }
+
 #if 0
 
 inline void gcode_X16()
@@ -10644,7 +10697,7 @@ inline void gcode_X111()
     SerialUSB.print(" ");
     SerialUSB.print(VERSION_CONTROL);
   #endif
-
+  // TODO: become \r\n
   SerialUSB.println();
 }
 
@@ -11164,27 +11217,35 @@ void process_commands()
         break;
       case 1: 
         gcode_X1();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 2:   
         gcode_X2();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 3:   
         gcode_X3();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 4:   
         gcode_X4();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 5:   
         gcode_X5();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break; //heater PID on/off 
       case 6:   
         gcode_X6();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 7:   
         gcode_X7();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;      
       case 8:   
         gcode_X8();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 78:
         gcode_X78();
@@ -11192,11 +11253,13 @@ void process_commands()
       case 111:
         gcode_X111();
         break;
-	  case 200:
-		  gcode_X200();
-		  break;
+      case 200:
+        gcode_X200();
+        SERIAL_PROTOCOLLN(MSG_OK);
+        break;
       case 900:
         gcode_X900();
+        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       default:
         SERIAL_ECHO_START;
@@ -11207,8 +11270,6 @@ void process_commands()
         SERIAL_PROTOCOLLN("ER BAD_CMD");
         break;
     }
-
-    SERIAL_PROTOCOLLN(MSG_OK);
   }
   //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
   else if(code_seen('C')) {
