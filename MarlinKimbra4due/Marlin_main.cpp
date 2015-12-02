@@ -1273,7 +1273,7 @@ void setup()
 
 void inline report_ln() {
   SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(gcode_N);
+  SERIAL_PROTOCOL(play_st.last_no);
   SERIAL_PROTOCOL(" ");
   SERIAL_PROTOCOL(buflen);
   SERIAL_PROTOCOL("\n");
@@ -1406,7 +1406,6 @@ bool inline check_line_number(const char* cmd) {
     }
   }
 
-  report_ln();
   play_st.last_no = gcode_N;
   return true;
 }
@@ -1473,6 +1472,9 @@ void get_command()
       bufindw = (bufindw + 1)%BUFSIZE;
       buflen += 1;
 
+      if(play_st.enable_linecheck) {
+        report_ln();
+      }
       serial_count = 0; //clear buffer
     }
     else {   // its not a newline, carriage return or escape char
