@@ -284,7 +284,7 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 struct LedStatus led_st = {
   'P',              // situational
   0,                // last update
-  { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode
+  { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode LED_WAVE_POWER_ON
   {0.0009, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
@@ -8509,6 +8509,7 @@ inline void gcode_C2()
       destination[X_AXIS] = play_st.stashed_position[X_AXIS];
       destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
       destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 8.0;
+	  destination[E_AXIS] = current_position[E_AXIS];
       feedrate = 6000;
       prepare_move_raw();
       st_synchronize();
