@@ -1193,7 +1193,7 @@ void setup()
 
 //aven 0504 - TI TPS2552
   pinMode(U5EN, OUTPUT);
-  pinMode(U5FAULT, INPUT);
+  pinMode(U5FAULT, INPUT_PULLUP);
 
   //digitalWrite(U5EN, HIGH);
   digitalWrite(U5EN, LOW);
@@ -1273,7 +1273,7 @@ void setup()
 
 void inline report_ln() {
   SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(gcode_N);
+  SERIAL_PROTOCOL(play_st.last_no);
   SERIAL_PROTOCOL(" ");
   SERIAL_PROTOCOL(buflen);
   SERIAL_PROTOCOL("\n");
@@ -1406,7 +1406,6 @@ bool inline check_line_number(const char* cmd) {
     }
   }
 
-  report_ln();
   play_st.last_no = gcode_N;
   return true;
 }
@@ -1473,6 +1472,9 @@ void get_command()
       bufindw = (bufindw + 1)%BUFSIZE;
       buflen += 1;
 
+      if(play_st.enable_linecheck) {
+        report_ln();
+      }
       serial_count = 0; //clear buffer
     }
     else {   // its not a newline, carriage return or escape char
@@ -10663,15 +10665,15 @@ inline void gcode_X78()
   SerialUSB.print("R_IO2 ");
   SerialUSB.println(analogRead(R_IO2));
   SerialUSB.print("M_IO1 ");
-  SerialUSB.println(analogRead(M_IO1));
+  SerialUSB.println(digitalRead(M_IO1));
   SerialUSB.print("F0_STOP ");
-  SerialUSB.println(analogRead(F0_STOP));
+  SerialUSB.println(digitalRead(F0_STOP));
   SerialUSB.print("F1_STOP ");
-  SerialUSB.println(analogRead(F1_STOP));
+  SerialUSB.println(digitalRead(F1_STOP));
   SerialUSB.print("HOME_BTN_PIN ");
-  SerialUSB.println(analogRead(HOME_BTN_PIN));
+  SerialUSB.println(digitalRead(HOME_BTN_PIN));
   SerialUSB.print("U5FAULT ");
-  SerialUSB.println(analogRead(U5FAULT));
+  SerialUSB.println(digitalRead(U5FAULT));
 
   if(code_seen('C')) {
     int val = code_value();
@@ -10684,7 +10686,7 @@ inline void gcode_X78()
     }
   }
 
-  SerialUSB.println("ok");
+  //SerialUSB.println("ok");
 }
 
 inline void gcode_X111()
