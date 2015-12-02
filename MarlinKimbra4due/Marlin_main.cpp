@@ -1271,6 +1271,15 @@ void setup()
   //attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
 }
 
+void inline report_ln() {
+  SERIAL_PROTOCOL("LN ");
+  SERIAL_PROTOCOL(gcode_N);
+  SERIAL_PROTOCOL(" ");
+  SERIAL_PROTOCOL(buflen);
+  SERIAL_PROTOCOL("\n");
+}
+
+
 void loop() {
   if (buflen < BUFSIZE - 1) get_command();
 
@@ -1300,6 +1309,10 @@ void loop() {
     #endif // SDSUPPORT
     buflen--;
     bufindr = (bufindr + 1) % BUFSIZE;
+
+    if(play_st.enable_linecheck) {
+      report_ln();
+    }
   }
   // Check heater every n milliseconds
   manage_heater();
@@ -1393,14 +1406,7 @@ bool inline check_line_number(const char* cmd) {
     }
   }
 
-  // No error, update last line code
-  SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(gcode_N);
-  SERIAL_PROTOCOL(" ");
-  SERIAL_PROTOCOL(buflen);
-  SERIAL_PROTOCOL("\n");
-  MYSERIAL.flush();
-
+  report_ln();
   play_st.last_no = gcode_N;
   return true;
 }
@@ -10689,7 +10695,7 @@ inline void gcode_X111()
     SerialUSB.print(" ");
     SerialUSB.print(VERSION_CONTROL);
   #endif
-
+  // TODO: become \r\n
   SerialUSB.println();
 }
 
