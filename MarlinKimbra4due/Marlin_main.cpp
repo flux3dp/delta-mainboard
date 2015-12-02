@@ -1349,7 +1349,6 @@ bool inline check_line_number(const char* cmd) {
     SERIAL_PROTOCOL("\n");
     MYSERIAL.flush();
     return false;
-
   } else {
     gcode_N = (strtol(strchr_pointer + 1, NULL, 10));
     if(gcode_N != play_st.last_no + 1) {
@@ -8537,10 +8536,11 @@ inline void gcode_C3(int t=0) {
   if(t > 2) t = 0;
   target_extruder = t;
 
+  float e_pos = current_position[E_AXIS];
   destination[X_AXIS] = current_position[X_AXIS];
   destination[Y_AXIS] = current_position[Y_AXIS];
   destination[Z_AXIS] = current_position[Z_AXIS];
-
+  destination[E_AXIS] = current_position[E_AXIS];
   // Move to stash position
   feedrate = 8000;
   if(current_position[Z_AXIS] > 200) {
@@ -8552,11 +8552,12 @@ inline void gcode_C3(int t=0) {
   destination[X_AXIS] = 0;
   destination[Y_AXIS] = -90;
   destination[Z_AXIS] = 220;
+  destination[E_AXIS] = current_position[E_AXIS];
   prepare_move_raw();
   st_synchronize();
 
 
-  float e_pos = current_position[E_AXIS];
+  
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
   read_fsr_helper(5, avg, sd, dummy1, dummy2);
