@@ -1268,7 +1268,8 @@ void setup()
     on_home_btn_press, FALLING);
   attachInterrupt(R_IO2, Count_pulse, RISING);
   attachInterrupt(R_IO1, R_IO1_Rising, RISING);
-  //attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
+
+  attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
 }
 
 void inline report_ln() {
@@ -8491,7 +8492,8 @@ inline void gcode_C2()
       // Retraction
       feedrate = 500;
       destination[E_AXIS] = current_position[E_AXIS] - 5;
-      prepare_move_raw();
+	  prepare_move();
+	  //prepare_move_raw();
       st_synchronize();
 
       feedrate = 300;
@@ -8516,19 +8518,26 @@ inline void gcode_C2()
       prepare_move_raw();
       st_synchronize();
 
+	  destination[X_AXIS] = current_position[X_AXIS];
+	  destination[Y_AXIS] = current_position[Y_AXIS];
+	  destination[Z_AXIS] = current_position[Z_AXIS];
       destination[E_AXIS] = current_position[E_AXIS] + 5.2;
       feedrate = 300;
       prepare_move_raw();
       st_synchronize();
 
+	  destination[X_AXIS] = current_position[X_AXIS];
+	  destination[Y_AXIS] = current_position[Y_AXIS];
       destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
+	  destination[E_AXIS] = current_position[E_AXIS];
       prepare_move_raw();
       st_synchronize();
 
-      for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
-        current_position[i] = play_st.stashed_extruder_position[i];
-        plan_set_e_position(current_position[i]);
-      }
+	  //current_position[E_AXIS] = play_st.stashed_extruder_position[E_AXIS];
+      //for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
+      //  current_position[i] = play_st.stashed_extruder_position[i];
+      //  plan_set_e_position(current_position[i]);
+      //}
 
       feedrate = play_st.stashed_feedrate;
       target_extruder = play_st.stashed_extruder;
