@@ -277,8 +277,15 @@ struct GlobalVariable global = {
 struct FilamentDetect filament_detect = {false, 0};
 
 // manage_led
-#define _led_wave_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
+inline float _led_wave_atom(float a, float b) {
+  float v = abs(1 - fmod(a * (millis() - b), 2));
+  if(v < 0.15) return v * 1.04533;
+  else if(v < 0.85) return v * 0.336143 + 0.106379;
+  else return v * 4.05267 - 3.05267;
+}
+#define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
 // #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
+#define _led_blink(i) _led_blink_atom(led_st.param_a[i], led_st.param_b[i])
 #define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])
 const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
@@ -287,7 +294,7 @@ struct LedStatus led_st = {
   0,                // last update
   0,                // god mode
   { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
-  {0.0005, 1, 1},   // param_a
+  {0.0003, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
 
@@ -809,12 +816,13 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
 		break;
 	case PI_IDLE: //白燈呼吸燈 系統待機
-		led_st.param_a[0] = 0.00045;
+		led_st.param_a[0] = 0.001;
+    led_st.param_b[0] = millis();
 		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		break;
 	case PI_PAUSED: //白燈閃爍 工作暫停
-		led_st.param_a[0] = 0.003;
+		led_st.param_a[0] = 0.0015;
 		led_st.param_b[0] = millis();
 		led_st.mode[0] = LED_BLINK;
 		led_st.mode[1] = LED_OFF;
@@ -829,18 +837,18 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		break;
 	case PI_ERROR: //橘燈閃爍 工作異常
 		led_st.mode[0] = LED_OFF;
-		led_st.param_a[1] = 0.003;
+		led_st.param_a[1] = 0.0015;
 		led_st.param_b[1] = millis();
 		led_st.mode[1] = LED_BLINK;
 		break;
 	case PI_RUNNING_WAIT_HEAD: //橘燈呼吸燈 準備中
-		led_st.param_a[0] = 0.00045;
+		led_st.param_a[0] = 0.0008;
 		led_st.mode[0] = LED_OFF;
 		led_st.mode[1] = LED_WAVE;
 		break;
 	default:
   	led_st.mode[0] = LED_OFF;
-		led_st.param_a[1] = 0.003;
+		led_st.param_a[1] = 0.01;
 		led_st.param_b[1] = millis();
   	led_st.mode[1] = LED_BLINK;
   	break;
@@ -877,7 +885,7 @@ void manage_led()
 			analogWrite(led_pins[i], int(_led_wave(i) * 255));
 			break;
 		case LED_BLINK:
-			analogWrite(led_pins[i], (_led_wave(i) > 0.5) ? 255 : 0);
+			analogWrite(led_pins[i], (_led_blink(i) > 0.5) ? 255 : 0);
 			break;
 		case LED_ON:
 			analogWrite(led_pins[i], 255);
@@ -7803,6 +7811,11 @@ inline void gcode_X4()
 }
 
 inline void gcode_X5() {
+  if(code_seen('P')) {
+    analogWrite(led_pins[1], 0);
+    analogWrite(led_pins[2], 0);
+    analogWrite(led_pins[0], code_value_short());
+  }
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
   } else {
