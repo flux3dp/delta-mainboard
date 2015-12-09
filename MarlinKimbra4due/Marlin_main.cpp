@@ -8529,13 +8529,13 @@ inline void gcode_C2()
       prepare_move_raw();
       st_synchronize();
 
-	  destination[X_AXIS] = current_position[X_AXIS];
-	  destination[Y_AXIS] = current_position[Y_AXIS];
-	  destination[Z_AXIS] = current_position[Z_AXIS];
-      destination[E_AXIS] = current_position[E_AXIS] + 5.2;
-      feedrate = 300;
-      prepare_move_raw();
-      st_synchronize();
+	  //destination[X_AXIS] = current_position[X_AXIS];
+	  //destination[Y_AXIS] = current_position[Y_AXIS];
+	  //destination[Z_AXIS] = current_position[Z_AXIS];
+   //   destination[E_AXIS] = current_position[E_AXIS] + 3;
+   //   feedrate = 300;
+   //   prepare_move_raw();
+   //   st_synchronize();
 
 	  destination[X_AXIS] = current_position[X_AXIS];
 	  destination[Y_AXIS] = current_position[Y_AXIS];
