@@ -761,6 +761,8 @@ inline char get_wifi_status() {
          return PI_WIFI_CONNECTED;
        else if(!rpi_io2_flag)  // sleep
          return PI_WIFI_DISCONNECTED;
+     } else {
+       return PI_WIFI_ASSOCOATING;
      }
    } else {
      // rpi wifi status is changed, wave led
@@ -7804,8 +7806,10 @@ inline void gcode_X5() {
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
   } else {
-    SerialUSB.print("DEBUG: ");
-    SerialUSB.println(led_st.situational);
+    SerialUSB.print("DEBUG: ST=");
+    SerialUSB.print(led_st.situational);
+    SerialUSB.print(" WIFI=");
+    SerialUSB.println(get_wifi_status());
   }
 }
 
