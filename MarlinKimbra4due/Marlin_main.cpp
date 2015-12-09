@@ -285,8 +285,9 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 struct LedStatus led_st = {
   'P',              // situational Prepare
   0,                // last update
-  { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode LED_WAVE_POWER_ON
-  {0.0009, 1, 1},   // param_a
+  0,                // god mode
+  { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
+  {0.0005, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
 
@@ -430,13 +431,6 @@ float h_offset=0;
   static float bed_level_ox, bed_level_oy, bed_level_oz;
   static int loopcount;
 
-//for caculate R_IO2 PWM
-  volatile uint32_t Print_Freq_Last_Time = 0;
-  volatile uint32_t Pulse_Count_Last_Time = 0;
-  volatile uint32_t Pulse_Count = 0;
-  volatile uint32_t Count_Start_Time = 0;
-  volatile float Pulse_Freq = 0;
-  bool Enable_Pulse_Count = false;
 #endif // DELTA
 
 #ifdef SCARA
@@ -736,210 +730,141 @@ void servo_init()
   #endif
 }
 
-void R_IO1_Rising() {
-	//Pulse_Count = 0;
-	//Enable_Pulse_Count = true;
+
+inline char get_pi_status() {
+  if (rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
+    // rpi does not change R_IO1 status, check if timeout
+    if (rpi_last_active) {
+      if (millis() - rpi_last_active > 5000) {
+        return PI_FATEL;
+      }
+      else {
+        return PI_NOT_DEFINED;
+      }
+    } else {
+      return PI_WAKINGUP;
+    }
+  }
+  else {
+    // rpi change R_IO1 flag, update status
+    rpi_io1_flag = !rpi_io1_flag;
+    rpi_last_active = millis();
+    return PI_NOT_DEFINED;
+  }
 }
 
-void R_IO1_Falling() {
-	//Pulse_Count = 0;
-	//Enable_Pulse_Count = true;
+inline char get_wifi_status() {
+   if(rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
+     if(millis() - rpi_wifi_active > 5000) {
+       // rpi wifi status does not change over 5s
+       if(rpi_io2_flag)  // wifi is up
+         return PI_WIFI_CONNECTED;
+       else if(!rpi_io2_flag)  // sleep
+         return PI_WIFI_DISCONNECTED;
+     }
+   } else {
+     // rpi wifi status is changed, wave led
+     rpi_io2_flag = !rpi_io2_flag;
+     rpi_wifi_active = millis();
+     return PI_WIFI_ASSOCOATING;
+   }
 }
 
-void Count_pulse() {
-	if (Pulse_Count == 0)
-		Count_Start_Time = millis();
-	Pulse_Count++;
+inline char get_led_status() {
+  // override status for debug
+  if (led_st.god_mode) return led_st.god_mode;
+
+  if (play_st.enable_linecheck == 1) {  // if running
+    switch(play_st.stashed) {
+      case 0: return PI_RUNNING;
+      case 1: return PI_PAUSED;
+      default: return PI_ERROR;
+    }
+  } else {
+    return PI_IDLE;
+  }
 }
 
-//void Count_pulse() {
-//	uint32_t t_now;
-//	if (!Enable_Pulse_Count)
-//		return;
-//	if (Pulse_Count == 0)
-//		Count_Start_Time = millis();
-//	t_now = millis();
-//	if (t_now - Count_Start_Time > 500) {
-//		Pulse_Freq = (float)Pulse_Count * 1000.0 / (t_now - Count_Start_Time);
-//		Enable_Pulse_Count = false;
-//		return;
-//	}
-//	Pulse_Count++;
-//}
+inline void update_led_flags(char operation_flag, char wifi_flag) {
+  switch(wifi_flag) {
+    case PI_WIFI_CONNECTED:
+      if(led_st.mode[2] != LED_ON) led_st.mode[2] = LED_WAVE_2_ON;
+      break;
+    case PI_WIFI_ASSOCOATING:
+      if(led_st.mode[2] != LED_WAVE) {
+        led_st.mode[2] = LED_WAVE;
+        led_st.param_a[2] = 0.0009;
+        led_st.param_b[2] = millis();
+      }
+      break;
+    case PI_WIFI_DISCONNECTED:
+      led_st.mode[2] = LED_OFF;
+      break;
+  }
+
+	switch (operation_flag) {
+	case PI_SLEEP: //Sleep
+		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
+		break;
+	case PI_IDLE: //白燈呼吸燈 系統待機
+		led_st.param_a[0] = 0.00045;
+		led_st.mode[0] = LED_WAVE;
+		led_st.mode[1] = LED_OFF;
+		break;
+	case PI_PAUSED: //白燈閃爍 工作暫停
+		led_st.param_a[0] = 0.003;
+		led_st.param_b[0] = millis();
+		led_st.mode[0] = LED_BLINK;
+		led_st.mode[1] = LED_OFF;
+		break;
+	case PI_RUNNING: //白燈恆亮 工作中
+		led_st.mode[0] = LED_ON;
+		led_st.mode[1] = LED_OFF;
+		break;
+	case PI_FATEL: //橘燈恆亮 系統故障
+		led_st.mode[0] = LED_OFF;
+		led_st.mode[1] = LED_ON;
+		break;
+	case PI_ERROR: //橘燈閃爍 工作異常
+		led_st.mode[0] = LED_OFF;
+		led_st.param_a[1] = 0.003;
+		led_st.param_b[1] = millis();
+		led_st.mode[1] = LED_BLINK;
+		break;
+	case PI_RUNNING_WAIT_HEAD: //橘燈呼吸燈 準備中
+		led_st.param_a[0] = 0.00045;
+		led_st.mode[0] = LED_OFF;
+		led_st.mode[1] = LED_WAVE;
+		break;
+	default:
+  	led_st.mode[0] = LED_OFF;
+		led_st.param_a[1] = 0.003;
+		led_st.param_b[1] = millis();
+  	led_st.mode[1] = LED_BLINK;
+  	break;
+	}
+}
 
 void manage_led()
 {
-	if (millis() - led_st.last_update < 30)
-		return;
-	led_st.last_update = millis();
+  if (millis() - led_st.last_update < 30) return;
+  led_st.last_update = millis();
 
-	//char new_situational = led_st.situational;
+  char new_situational = get_pi_status();
+  char new_wifi_flag = get_wifi_status();
 
-	if (millis() - Print_Freq_Last_Time > 500) {
-		Print_Freq_Last_Time = millis();
-		Pulse_Freq = (float)Pulse_Count * 1000.0 / (millis() - Count_Start_Time);
-		Pulse_Count = 0;
-		//SerialUSB.print("Freq=");
-		//SerialUSB.println(Pulse_Freq);
-	}
-	if (rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
-		// rpi does not change R_IO1 status, check if timeout
-		if (rpi_last_active) {
-			if (millis() - rpi_last_active > 5000) {
-				led_st.situational = 'F';
-			}
-			else {
-				led_st.situational = 'R';
-			}
-		}
-	}
-	else {
-		// rpi change R_IO1 flag, update status
-		rpi_io1_flag = !rpi_io1_flag;
-		rpi_last_active = millis();
-		led_st.situational = 'R';
-	}
+  if (new_situational == PI_NOT_DEFINED) {
+    if(new_wifi_flag == PI_WIFI_DISCONNECTED) {
+      new_situational = PI_SLEEP;
+    } else {
+      new_situational = get_led_status();
+    }
+  }
 
-	if (led_st.situational == 'R' && play_st.enable_linecheck == 1) {
-		led_st.situational = 9;
-	}
-	else if (led_st.situational == 'R' && play_st.stashed == 1) {
-		led_st.situational = 2;
-	}
-	else if (led_st.situational == 'R') {
-		led_st.situational = 7;
-	}
-
-	if (led_st.situational == 'R' && 0) {
-		if (Pulse_Freq < 1) {
-			led_st.situational = 0;
-		}
-		else if (Pulse_Freq > 5 && Pulse_Freq < 15) {
-			led_st.situational = 1;
-		}
-		else if (Pulse_Freq >15  && Pulse_Freq <25 ) {
-			led_st.situational = 2;
-		}
-		else if (Pulse_Freq >25  && Pulse_Freq <35) {
-			led_st.situational = 3;
-		}
-		else if (Pulse_Freq >35  && Pulse_Freq <45) {
-			led_st.situational = 4;
-		}
-		else if (Pulse_Freq >45  && Pulse_Freq <55) {
-			led_st.situational = 5;
-		}
-		else if (Pulse_Freq >55  && Pulse_Freq <65) {
-			led_st.situational = 6;
-		}
-		else if (Pulse_Freq >65  && Pulse_Freq <75) {
-			led_st.situational = 7;
-		}
-		else if (Pulse_Freq >75  && Pulse_Freq <85) {
-			led_st.situational = 8;
-		}
-		else if (Pulse_Freq >85  && Pulse_Freq <95) {
-			led_st.situational = 9;
-		}
-		else if (Pulse_Freq >95  && Pulse_Freq <105) {
-			led_st.situational = 10;
-		}
-		else if (Pulse_Freq >105  && Pulse_Freq <115) {
-			led_st.situational = 11;
-		}
-		else if (Pulse_Freq >115 && Pulse_Freq <125) {
-			led_st.situational = 12;
-		}
-		else {
-
-		}
-	}
-
-	switch (led_st.situational) {
-	case 'R':
-		led_st.mode[0] = LED_WAVE;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 'F':
-		led_st.mode[0] = LED_BLINK;
-		led_st.mode[1] = LED_BLINK;
-		led_st.mode[2] = LED_OFF;
-		break;
-	case 'P':
-		led_st.mode[0] = LED_WAVE_POWER_ON;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 0://Sleep
-		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
-		break;
-	case 1://白燈呼吸燈 系統待機,Wifi connecting
-		led_st.mode[0] = LED_WAVE;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 2://白燈閃爍 工作暫停,Wifi connecting
-		led_st.mode[0] = LED_BLINK;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 3://白燈恆亮 工作中,Wifi connecting
-		led_st.mode[0] = LED_ON;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 4://橘燈恆亮 系統故障,Wifi connecting
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_ON;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 5://橘燈閃爍 工作異常,Wifi connecting
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_BLINK;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 6://橘燈呼吸燈 準備中,Wifi connecting
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_WAVE;
-		led_st.mode[2] = LED_WAVE;
-		break;
-	case 7://白燈呼吸燈 系統待機,Wifi OK
-		led_st.mode[0] = LED_WAVE;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_ON;
-		break;
-	case 8://白燈閃爍 工作暫停,Wifi OK
-		led_st.mode[0] = LED_BLINK;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_ON;
-		break;
-	case 9://白燈恆亮 工作中,Wifi OK
-		led_st.mode[0] = LED_ON;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_ON;
-		break;
-	case 10://橘燈恆亮 系統故障,Wifi OK
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_ON;
-		led_st.mode[2] = LED_ON;
-		break;
-	case 11://橘燈閃爍 工作異常,Wifi OK
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_BLINK;
-		led_st.mode[2] = LED_ON;
-		break;
-	case 12://橘燈呼吸燈 準備中,Wifi OK
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_WAVE;
-		led_st.mode[2] = LED_ON;
-		break;
-
-	default:
-		led_st.mode[0] = LED_WAVE;
-		led_st.mode[1] = LED_OFF;
-		led_st.mode[2] = LED_WAVE;
-	}
+  if(new_situational != led_st.situational) {
+    update_led_flags(new_situational, new_wifi_flag);
+    led_st.situational = new_situational;
+  }
 
 	for (int i = 0; i<3; i++) {
 		switch (led_st.mode[i]) {
@@ -947,13 +872,9 @@ void manage_led()
 			analogWrite(led_pins[i], 0);
 			break;
 		case LED_WAVE:
-			led_st.param_a[i] = 0.001;
-			led_st.param_b[i] = 0;
 			analogWrite(led_pins[i], int(_led_wave(i) * 255));
 			break;
 		case LED_BLINK:
-			led_st.param_a[i] = 0.003;
-			led_st.param_b[i] = 0;
 			analogWrite(led_pins[i], (_led_wave(i) > 0.5) ? 255 : 0);
 			break;
 		case LED_ON:
@@ -980,11 +901,6 @@ void manage_led()
 		case LED_STATIC:
 			analogWrite(led_pins[i], int(led_st.param_a[i]));
 			break;
-		case LED_WAVE_POWER_ON:
-			led_st.param_a[i] = 0.0005;
-			led_st.param_b[i] = 0;
-			analogWrite(led_pins[i], int(_led_wave(i) * 255));
-			break;
 		default:
 			analogWrite(led_pins[i], 0);
 			break;
@@ -993,120 +909,6 @@ void manage_led()
 }
 
 
-//void manage_led()
-//{
-//  if(millis() - led_st.last_update < 30)
-//    return;
-//
-//  led_st.last_update = millis();
-//  char new_situational = led_st.situational;
-//
-//  if(rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
-//    // rpi does not change R_IO1 status, check if timeout
-//    if(rpi_last_active) {
-//      if(millis() - rpi_last_active > 5000) {
-//        new_situational = 'F';
-//      } else {
-//        new_situational = 'R';
-//      }
-//    }
-//  } else {
-//    // rpi change R_IO1 flag, update status
-//    rpi_io1_flag = !rpi_io1_flag;
-//    rpi_last_active = millis();
-//    new_situational = 'R';
-//  }
-//
-//  if(new_situational == 'R') {
-//    if(rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
-//      if(millis() - rpi_wifi_active > 5000) {
-//        // rpi wifi status does not change over 5s
-//        if(rpi_io2_flag && led_st.mode[2] != LED_ON)  // wifi is up
-//          led_st.mode[2] = LED_WAVE_2_ON;
-//        else if(!rpi_io2_flag)  // sleep
-//          new_situational = 'S';
-//      }
-//    } else {
-//      // rpi wifi status is changed, wave led
-//      rpi_io2_flag = !rpi_io2_flag;
-//      rpi_wifi_active = millis();
-//      if(led_st.mode[2] != LED_WAVE) {
-//        led_st.mode[2] = LED_WAVE;
-//        led_st.param_a[2] = 0.0009;
-//        led_st.param_b[2] = millis();
-//      }
-//    }
-//  }
-//
-//  if(new_situational != led_st.situational) {
-//    led_st.situational = new_situational;
-//    switch(led_st.situational) {
-//      case 'R':
-//        led_st.mode[0] = LED_WAVE_2_ON;
-//        led_st.mode[1] = LED_OFF;
-//        break;
-//      case 'F':
-//        led_st.mode[0] = LED_BLINK;
-//        led_st.param_a[0] = 0.003;
-//        led_st.param_b[0] = 0;
-//        led_st.mode[1] = LED_BLINK;
-//        led_st.param_a[1] = 0.003;
-//        led_st.param_b[1] = 0;
-//        led_st.mode[2] = LED_OFF;
-//        break;
-//      case 'S':
-//        led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = 0;
-//        break;
-//      case 'W':
-//        break;
-//      default:
-//        led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_WAVE;
-//        led_st.param_a[0] = led_st.param_a[1] = led_st.param_a[2] = 0.005;
-//        led_st.param_b[0] = led_st.param_b[2] = 0;
-//        led_st.param_b[1] = 175;
-//    }
-//  }
-//
-//  for(int i=0;i<3;i++) {
-//    switch(led_st.mode[i]) {
-//      case LED_OFF:
-//        analogWrite(led_pins[i], 0);
-//        break;
-//      case LED_WAVE:
-//        analogWrite(led_pins[i], int(_led_wave(i) * 255));
-//        break;
-//      case LED_BLINK:
-//        analogWrite(led_pins[i], (_led_wave(i) > 0.5) ? 255 : 0);
-//        break;
-//      case LED_ON:
-//        analogWrite(led_pins[i], 255);
-//        break;
-//      case LED_WAVE_2_ON:
-//        if(_led_wave(i) > 0.95) {
-//          analogWrite(led_pins[i], 255);
-//          led_st.mode[i] = LED_ON;
-//        }
-//        else {
-//          analogWrite(led_pins[i], int(_led_wave(i) * 255));
-//        }
-//        break;
-//      case LED_WAVE_2_OFF:
-//        if(_led_wave(i) < 0.05) {
-//          analogWrite(led_pins[i], 0);
-//          led_st.mode[i] = LED_OFF;
-//        }
-//        else {
-//          analogWrite(led_pins[i], int(_led_wave(i) * 255));
-//        }
-//        break;
-//      case LED_STATIC:
-//        analogWrite(led_pins[i], int(led_st.param_a[i]));
-//      default:
-//        analogWrite(led_pins[i], 0);
-//        break;
-//    }
-//  }
-//}
 
 void on_home_btn_press() {
   global.home_btn_press += 1;
@@ -1277,10 +1079,6 @@ void setup()
   pinMode(HOME_BTN_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HOME_BTN_PIN),
     on_home_btn_press, FALLING);
-  //attachInterrupt(R_IO2, Count_pulse, RISING);
-  //attachInterrupt(R_IO1, R_IO1_Rising, RISING);
-
-  //attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
 }
 
 void inline report_ln() {
@@ -1330,7 +1128,6 @@ void loop() {
   manage_heater();
   manage_inactivity();
   checkHitEndstops();
-  //lcd_update();
   manage_led();
 }
 
@@ -7965,7 +7762,6 @@ inline void gcode_X3()
   }
 }
 
-
 inline void gcode_X4()
 {
   int led_index;
@@ -7979,7 +7775,7 @@ inline void gcode_X4()
   }
   if(code_seen('R')) {
     SerialUSB.print(" CONTROL ");
-    SerialUSB.print(led_st.mode[led_index]);
+    SerialUSB.print((int)led_st.mode[led_index]);
     SerialUSB.print(" PARAM_A ");
     SerialUSB.print(led_st.param_a[led_index]);
     SerialUSB.print(" PARAM_B ");
@@ -8004,89 +7800,14 @@ inline void gcode_X4()
   SerialUSB.println("#");
 }
 
-
-inline void gcode_X5()
-{
-    // Stash manager
-    if(play_st.enable_linecheck == 0) {
-        SerialUSB.println("ER LINECHECK_NOT_ENABLE");
-    } 
-
-    
+inline void gcode_X5() {
+  if(code_seen('S')) {
+    led_st.god_mode = code_value_short();
+  } else {
+    SerialUSB.print("DEBUG: ");
+    SerialUSB.println(led_st.situational);
+  }
 }
-
-
-#if 0
-inline void gcode_X5() //heater PID
-{
-  setpoint = 0;
-  //power = 0;
-  
-  if (code_seen('H') || code_seen('h')) 
-  {
-    //SerialUSB.print("Setpoint 1 : ");
-    //SerialUSB.println(setpoint);
-    //setpoint = constrain(code_value_short(), 0, 2625);
-    setpoint =code_value_short();
-
-    //SerialUSB.print("Setpoint 2 : ");
-    //SerialUSB.println(setpoint);
-  if(setpoint >= 0 || setpoint <= 2625)
-    {
-    //pbuf[0]= 'h';
-  //pbuf[1]= code_value_short();
-  
-     SerialUSB.println("Heater ON ");
-  
-   Serial.print("h");
-   Serial.print(setpoint);
-  }
-  else
-  {
-      SerialUSB.print("Wrong Temp !!");
-    SerialUSB.print("Range 0 ~ 2625");
-  }
-  }
-  
-
-  
-  if (code_seen('O') | code_seen('o')) 
-  {
-    SerialUSB.println("Heater OFF");
-  Serial.print("O");
-  }
-
-
-
-/*
-  if (code_seen('X') | code_seen('x')) 
-  {
-    SerialUSB.print("power 1 : ");
-    SerialUSB.println(power);
-    
-    power =code_value_short();
-
-  SerialUSB.print("power 2 : ");
-    SerialUSB.println(power);
-
-    SerialUSB.print("Set Laser power ");
-  
-  if(power>256)
-  {
-      SerialUSB.print("Wrong power !!");
-    SerialUSB.print("Range 0 ~ 255");
-  }
-    else
-    {
-    Serial.print("L");
-    Serial.print(power);
-  }
-  }*/
-
-  
-
-}
-#endif
 
 
 inline void gcode_X11()
@@ -8487,7 +8208,8 @@ inline void gcode_C2()
     SERIAL_PROTOCOLLN("ER LINECHECK_DISABLED");
     return;
   }
-  if (code_seen('O'))
+
+  if (code_seen('O') || code_seen('E'))
   {
     if (play_st.stashed == 0) {
       // Remember current status
@@ -8512,7 +8234,7 @@ inline void gcode_C2()
       prepare_move_raw();
       st_synchronize();
 
-      play_st.stashed = 1;
+      play_st.stashed = code_seen('E') ? code_value_short() : 1;
       SERIAL_PROTOCOLLN("CTRL STASH");
     } else {
       SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
@@ -11226,9 +10948,6 @@ void process_commands()
     gcode_T();
     SERIAL_PROTOCOLLN(MSG_OK);
   }
-
-
-  //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
   else if (code_seen('X')) 
   {
     int gCode = code_value_short();  
@@ -11252,10 +10971,10 @@ void process_commands()
         gcode_X4();
         SERIAL_PROTOCOLLN(MSG_OK);
         break;
-      case 5:   
+      case 5:
         gcode_X5();
         SERIAL_PROTOCOLLN(MSG_OK);
-        break; //heater PID on/off 
+        break;
       case 6:   
         gcode_X6();
         SERIAL_PROTOCOLLN(MSG_OK);
