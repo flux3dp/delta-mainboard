@@ -47,6 +47,7 @@
 #include "pins_arduino.h"
 #include "math.h"
 
+
 #ifdef BLINKM
   #include "BlinkM.h"
   #include "Wire.h"
@@ -282,7 +283,7 @@ struct FilamentDetect filament_detect = {false, 0};
 const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
 struct LedStatus led_st = {
-  'P',              // situational
+  'P',              // situational Prepare
   0,                // last update
   { LED_WAVE_POWER_ON, LED_OFF, LED_WAVE },        // mode LED_WAVE_POWER_ON
   {0.0009, 1, 1},   // param_a
@@ -799,11 +800,21 @@ void manage_led()
 		led_st.situational = 'R';
 	}
 
-	if (led_st.situational == 'R') {
+	if (led_st.situational == 'R' && play_st.enable_linecheck == 1) {
+		led_st.situational = 9;
+	}
+	else if (led_st.situational == 'R' && play_st.stashed == 1) {
+		led_st.situational = 2;
+	}
+	else if (led_st.situational == 'R') {
+		led_st.situational = 7;
+	}
+
+	if (led_st.situational == 'R' && 0) {
 		if (Pulse_Freq < 1) {
 			led_st.situational = 0;
 		}
-		if (Pulse_Freq > 5 && Pulse_Freq < 15) {
+		else if (Pulse_Freq > 5 && Pulse_Freq < 15) {
 			led_st.situational = 1;
 		}
 		else if (Pulse_Freq >15  && Pulse_Freq <25 ) {
@@ -1105,7 +1116,7 @@ void setup()
 {
 
 //aven_0509
-  Serial.begin(115200);
+  //Serial.begin(115200);
   SerialUSB.begin(115200);
 
   #if MB(ALLIGATOR)
@@ -1149,7 +1160,7 @@ void setup()
   // loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
   Config_RetrieveSettings();
 
-  tp_init();    // Initialize temperature loop
+  //tp_init();    // Initialize temperature loop
   plan_init();  // Initialize planner;
   watchdog_init();
   st_init();    // Initialize stepper, this enables interrupts!
@@ -1266,10 +1277,10 @@ void setup()
   pinMode(HOME_BTN_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HOME_BTN_PIN),
     on_home_btn_press, FALLING);
-  attachInterrupt(R_IO2, Count_pulse, RISING);
-  attachInterrupt(R_IO1, R_IO1_Rising, RISING);
+  //attachInterrupt(R_IO2, Count_pulse, RISING);
+  //attachInterrupt(R_IO1, R_IO1_Rising, RISING);
 
-  attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
+  //attachInterrupt(R_IO1, R_IO1_Falling, FALLING);
 }
 
 void inline report_ln() {
@@ -8497,7 +8508,7 @@ inline void gcode_C2()
       st_synchronize();
 
       feedrate = 300;
-      destination[Z_AXIS] = current_position[Z_AXIS] + 10;
+      destination[Z_AXIS] = current_position[Z_AXIS] + 30;
       prepare_move_raw();
       st_synchronize();
 

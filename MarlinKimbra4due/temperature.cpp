@@ -577,7 +577,7 @@ float get_pid_output(int e) {
 #endif
 
 void manage_heater() {
-
+	return;
   if (!temp_meas_ready) return;
 
   updateTemperaturesFromRawValues();
@@ -1103,6 +1103,7 @@ void setWatch() {
 #endif // HAS_HEATER_THERMAL_PROTECTION || HAS_BED_THERMAL_PROTECTION
 
 void disable_heater() {
+	return;
   for (int i = 0; i < HOTENDS; i++) setTargetHotend(0, i);
   setTargetBed(0);
 
