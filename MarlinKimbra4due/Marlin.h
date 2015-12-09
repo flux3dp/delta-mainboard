@@ -387,16 +387,29 @@ typedef struct FilamentDetect {
 #define LED_WAVE_2_ON 4
 #define LED_WAVE_2_OFF 5
 #define LED_STATIC 6
-#define LED_WAVE_POWER_ON 7
+
+#define PI_NOT_DEFINED '?'
+#define PI_WAKINGUP 'W'
+#define PI_IDLE 'I'
+#define PI_FATEL 'F'
+#define PI_RUNNING 'R'
+#define PI_RUNNING_WAIT_HEAD 'H'
+#define PI_PAUSED 'P'
+#define PI_ERROR 'E'
+#define PI_SLEEP 'S'
+
+#define PI_WIFI_CONNECTED 'C'
+#define PI_WIFI_ASSOCOATING 'A'
+#define PI_WIFI_DISCONNECTED 'D'
 
 typedef struct GlobalVariable {
   unsigned int home_btn_press;
 };
 
 typedef struct LedStatus {
-  // 'W'akeup, 'R'eady, 'S'leep, 'F'atel
   char situational;
   unsigned long last_update;
+  char god_mode;
 
   char mode[3];
   float param_a[3];
@@ -412,7 +425,6 @@ typedef struct PlayStatus {
   float stashed_extruder_position[NUM_AXIS - 3];
   float stashed_feedrate;
   float stashed_extruder;
-
 } PlayStatus;
 
 #endif //MARLIN_H
