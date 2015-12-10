@@ -2019,7 +2019,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     read_FSR(data, 20, ratio);
     float threshold = data;
     int fsr_flag = -1;
-    while ((destination[Z_AXIS] -= 0.00625) > -10 && fsr_flag < 0)
+    while ((destination[Z_AXIS] -= 0.00625) > -1.5 && fsr_flag < 0)
     {
       fsr_flag--;
       prepare_move_raw();
@@ -2043,6 +2043,10 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
         else
           delayMicroseconds(200);
       }
+
+	  if (destination[Z_AXIS] <= -1.5) {
+		  return -300;
+	  }
       
     }
     float z_val = destination[Z_AXIS];
