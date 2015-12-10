@@ -7696,27 +7696,31 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
 inline void gcode_X1()
 {
+  if (code_seen('E')) {
+    pleds = code_value_short();
+    digitalWrite(S_LAS1, (pleds & 1) ? HIGH : LOW);
+    digitalWrite(S_LAS2, (pleds & 2) ? HIGH : LOW);
+    return;
+  }
+
+  // TODO: This codes is goning to be removed
   if (code_seen('F')) 
   {
     pleds = code_value_short();
-  if(pleds == 1)
+    if(pleds == 1)
     {
-      SerialUSB.println("LSA1 OFF");
       digitalWrite(S_LAS1, LOW);
-    
-  }
+    }
     if(pleds == 2)
     {
-      SerialUSB.println("LSA2 OFF");
       digitalWrite(S_LAS2, LOW);
-  }
-  
+    }
+
     if(pleds == 0)
     {
-      SerialUSB.println("LSA1&LSA2 OFF");
       digitalWrite(S_LAS1, LOW);
-    digitalWrite(S_LAS2, LOW);
-  }
+      digitalWrite(S_LAS2, LOW);
+    }
   }
   
   if (code_seen('O')) 
@@ -7726,23 +7730,24 @@ inline void gcode_X1()
     {
       SerialUSB.println("LSA1 ON");
       digitalWrite(S_LAS1, HIGH);
-  }
+    }
     if(pleds == 2)
     {
       SerialUSB.println("LSA2 ON");
       digitalWrite(S_LAS2, HIGH);
-  }
+    }
     if(pleds == 0)
     {
       SerialUSB.println("LSA1&LSA2 ON");
       digitalWrite(S_LAS1, HIGH);
     digitalWrite(S_LAS2, HIGH);
-  }
+    }
   }
 }
 
 inline void gcode_X2()
 {
+  st_synchronize();
   if (code_seen('F'))
   {
     analogWrite(M_IO2, 0);
@@ -7826,7 +7831,11 @@ inline void gcode_X5() {
     SerialUSB.print("DEBUG: ST=");
     SerialUSB.print(led_st.situational);
     SerialUSB.print(" WIFI=");
-    SerialUSB.println(get_wifi_status());
+    SerialUSB.print(get_wifi_status());
+    SerialUSB.print(" GPIO=");
+    SerialUSB.print(digitalRead(R_IO1));
+    SerialUSB.print(" ");
+    SerialUSB.println(digitalRead(R_IO2));
   }
 }
 
