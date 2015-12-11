@@ -1089,6 +1089,8 @@ void setup()
   pinMode(HOME_BTN_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HOME_BTN_PIN),
     on_home_btn_press, FALLING);
+
+  analogReadResolution(12);
 }
 
 void inline report_ln() {
@@ -1983,11 +1985,14 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     data = 0;
     for (int j = 0; j < 3; j++)
     {
+		//Start detecting metal plate existed by Shuo 12/11
+		if (avg[j] > NO_METAL_PLATE_FSR_VALUE)
+			return -200;
+		//End
       data += ratio[j] * avg[j];
       if (sd[j] * 3 > avg[j] * 0.01)
         flag = 0;
     }
-    
     return flag;
   }
 
@@ -2019,13 +2024,19 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     read_FSR(data, 20, ratio);
     float threshold = data;
     int fsr_flag = -1;
+	int fsr_result;
+	//downward
     while ((destination[Z_AXIS] -= 0.00625) > -1.5 && fsr_flag < 0)
     {
       fsr_flag--;
       prepare_move_raw();
       st_synchronize();
       
-      read_FSR(data, 20, ratio);
+	  fsr_result = read_FSR(data, 20, ratio);
+	  //Start detecting metal plate existed by Shuo 12/11
+	  if (fsr_result < -150)
+		  return fsr_result;
+	  //end
       if (fsr_flag > -500)
       {
         if (data < threshold)
@@ -2075,6 +2086,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     z_val += 0.2;
     float up, down;
     float value[3] = {0};
+	
     for (int i = 0; i < 30; i++)
     {
       destination[Z_AXIS] = z_val + 0.25;
@@ -2083,16 +2095,22 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       delay(200);
       
       int timeout = 0;
-      while (!read_FSR(up, 200, ratio) && timeout < 20)
-        timeout++;
+	  while (!(fsr_result = read_FSR(up, 200, ratio)) && timeout < 20) {
+		  if (fsr_result < -150)
+			  return fsr_result;
+		  timeout++;
+	  }
       destination[Z_AXIS] = (z_val -= 0.0125) ;
       prepare_move_raw();
       st_synchronize();
       delay(200);
       
       timeout = 0;
-      while (!read_FSR(down, 200, ratio) && timeout < 20)
-        timeout++;
+	  while (!(fsr_result = read_FSR(down, 200, ratio)) && timeout < 20) {
+		  if (fsr_result < -150)
+			  return fsr_result;
+		  timeout++;
+	  }
 
       for (int j = 2; j > 0; j--)
         value[j] = value[j - 1];
@@ -2197,6 +2215,16 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     destination[Y_AXIS] = y - z_probe_offset[Y_AXIS];
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
+
+	float data;
+	float ratio[3];
+	//Start detecting metal plate existed by Shuo 12/11
+	int fsr_result;
+	fsr_result=read_FSR(data, 20, ratio);
+	if (fsr_result <= -200) {
+		return fsr_result;
+	}
+	//End
     destination[Z_AXIS] = 6;
     prepare_move();
     st_synchronize();
@@ -4427,7 +4455,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       {
         probe_value = probe_bed(x, y);
         count++;
-      } while (probe_value < -10 && count < 10);
+      } while (probe_value < -10 && probe_value > -150 && count < 3);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
       SERIAL_ECHO(" Y:");

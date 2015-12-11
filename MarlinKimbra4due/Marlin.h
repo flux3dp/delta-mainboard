@@ -402,6 +402,7 @@ typedef struct FilamentDetect {
 #define PI_WIFI_ASSOCOATING 'A'
 #define PI_WIFI_DISCONNECTED 'D'
 
+#define NO_METAL_PLATE_FSR_VALUE 3800
 typedef struct GlobalVariable {
   unsigned int home_btn_press;
 };
