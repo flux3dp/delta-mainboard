@@ -1105,35 +1105,27 @@ void inline report_ln() {
 void loop() {
   if (buflen < BUFSIZE - 1) get_command();
 
-  #ifdef SDSUPPORT
-    card.checkautostart(false);
-  #endif
-
   if (buflen) {
-    #ifdef SDSUPPORT
-      if (card.saving) {
-        if (strstr_P(cmdbuffer[bufindr], PSTR("M29")) == NULL) {
-          card.write_command(cmdbuffer[bufindr]);
-          if (card.logging)
-            process_commands();
-          else
-            SERIAL_PROTOCOLLNPGM(MSG_OK);
-        }
-        else {
-          card.closefile();
-          SERIAL_PROTOCOLLNPGM(MSG_FILE_SAVED);
-        }
-      }
-      else
-        process_commands();
-    #else
-      process_commands();
-    #endif // SDSUPPORT
+    bool ret = process_commands();
+
+    if(!ret) {
+      SERIAL_ECHO_START;
+      SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
+      SERIAL_ECHO(cmdbuffer[bufindr]);
+      SERIAL_ECHOLNPGM("\"");
+
+      SERIAL_PROTOCOLLN("ER BAD_CMD");
+    }
+
     buflen--;
     bufindr = (bufindr + 1) % BUFSIZE;
 
     if(play_st.enable_linecheck) {
       report_ln();
+    } else if(ret) {
+      if(!play_st.enable_linecheck) {
+        SERIAL_PROTOCOLLN(MSG_OK);
+      }
     }
   }
   // Check heater every n milliseconds
@@ -10560,7 +10552,7 @@ inline void gcode_X900()
 /*****************************************************
 *** Process Commands and dispatch them to handlers ***
 ******************************************************/
-void process_commands() 
+bool process_commands() 
 {
   if(code_seen('G'))
   {
@@ -10644,9 +10636,9 @@ void process_commands()
       case 92: // G92
         gcode_G92();
         break;
+      default:
+        return false;
     }
-
-    SERIAL_PROTOCOLLN(MSG_OK);
   }
 
   else if(code_seen('M')) 
@@ -10996,15 +10988,14 @@ void process_commands()
         gcode_SET_Z_PROBE_OFFSET();
         break;
 #endif // CUSTOM_M_CODE_SET_Z_PROBE_OFFSET
+      default:
+        return false;
     }
-
-    SERIAL_PROTOCOLLN(MSG_OK);
   }
 
   else if (code_seen('T')) 
   {
     gcode_T();
-    SERIAL_PROTOCOLLN(MSG_OK);
   }
   else if (code_seen('X')) 
   {
@@ -11015,35 +11006,27 @@ void process_commands()
         break;
       case 1: 
         gcode_X1();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 2:   
         gcode_X2();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 3:   
         gcode_X3();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 4:   
         gcode_X4();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 5:
         gcode_X5();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 6:   
         gcode_X6();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 7:   
         gcode_X7();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;      
       case 8:   
         gcode_X8();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 78:
         gcode_X78();
@@ -11053,20 +11036,12 @@ void process_commands()
         break;
       case 200:
         gcode_X200();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       case 900:
         gcode_X900();
-        SERIAL_PROTOCOLLN(MSG_OK);
         break;
       default:
-        SERIAL_ECHO_START;
-        SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
-        SERIAL_ECHO(cmdbuffer[bufindr]);
-        SERIAL_ECHOLNPGM("\"");
-
-        SERIAL_PROTOCOLLN("ER BAD_CMD");
-        break;
+        return false;
     }
   }
   //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
@@ -11088,26 +11063,16 @@ void process_commands()
         gcode_C4();
         break;
       default:
-        SERIAL_ECHO_START;
-        SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
-        SERIAL_ECHO(cmdbuffer[bufindr]);
-        SERIAL_ECHOLNPGM("\"");
-
-        SERIAL_PROTOCOLLN("ER BAD_CMD");
-        break;
+        return false;
     }
   }
   else 
   {
-    SERIAL_ECHO_START;
-    SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
-    SERIAL_ECHO(cmdbuffer[bufindr]);
-    SERIAL_ECHOLNPGM("\"");
-
-    SERIAL_PROTOCOLLN("ER BAD_CMD");
+    return false;
   }
 
   ClearToSend();
+  return true;
 }
 
 void FlushSerialRequestResend() {

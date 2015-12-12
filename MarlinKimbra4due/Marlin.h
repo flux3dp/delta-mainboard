@@ -113,7 +113,7 @@ FORCE_INLINE void serialprintPGM(const char *str) {
 }
 
 void get_command();
-void process_commands();
+bool process_commands();
 
 void manage_inactivity(bool ignore_stepper_queue=false);
 
