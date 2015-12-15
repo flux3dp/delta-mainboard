@@ -6387,16 +6387,6 @@ inline void gcode_M226() {
   }
 #endif // PIDTEMP
 
-#ifdef PREVENT_DANGEROUS_EXTRUDE
-  /**
-   * M302: Allow cold extrudes, or set the minimum extrude S<temperature>.
-   */
-  inline void gcode_M302() {
-    set_extrude_min_temp(code_seen('S') ? code_value() : 0);
-  }
-
-#endif // PREVENT_DANGEROUS_EXTRUDE
-
 /**
  * M303: PID relay autotune
  *       S<temperature> sets the target temperature. (default target temperature = 150C)
@@ -10870,11 +10860,8 @@ bool process_commands()
         break;
 #endif // PIDTEMP
 
-#ifdef PREVENT_DANGEROUS_EXTRUDE
-      case 302: // allow cold extrudes, or set the minimum extrude temperature
-        gcode_M302();
+      case 302: // No use
         break;
-#endif // PREVENT_DANGEROUS_EXTRUDE
 
       case 303: // M303 PID autotune
         gcode_M303();
