@@ -2026,7 +2026,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     int fsr_flag = -1;
 	int fsr_result;
 	//downward
-    while ((destination[Z_AXIS] -= 0.00625) > -1.5 && fsr_flag < 0)
+    while ((destination[Z_AXIS] -= 0.00625) > (MANUAL_Z_HOME_POS-243.5)  && fsr_flag < 0)
     {
       fsr_flag--;
       prepare_move_raw();
@@ -2054,10 +2054,6 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
         else
           delayMicroseconds(200);
       }
-
-	  if (destination[Z_AXIS] <= -1.5) {
-		  return -300;
-	  }
       
     }
     float z_val = destination[Z_AXIS];
@@ -4470,7 +4466,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       */
 
       SERIAL_PROTOCOL_F(probe_value, 4);
-	  SERIAL_ECHO(" Retry= ");
+	  SERIAL_EOL;
+	  SERIAL_ECHO("DEBUG: Retry= ");
 	  SERIAL_ECHO(count);
       SERIAL_EOL;
 

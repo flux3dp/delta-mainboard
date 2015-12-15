@@ -157,7 +157,7 @@ const bool FIL_RUNOUT_INVERTING = false;
 //Manual homing switch locations:
 #define MANUAL_X_HOME_POS 0
 #define MANUAL_Y_HOME_POS 0
-#define MANUAL_Z_HOME_POS 240//205      // Distance between nozzle and print surface after homing.
+#define MANUAL_Z_HOME_POS 242//205      // Distance between nozzle and print surface after homing.
 
 // Travel limits after homing (units are in mm)
 #define X_MAX_POS PRINTER_RADIUS
