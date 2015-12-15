@@ -4461,7 +4461,6 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(" Y:");
       SERIAL_ECHO(y);
       SERIAL_ECHO(" = ");
-
       /*
       // NOTE: Change probe_value because FSR is obtuse in center
       float d = pow(pow(x, 2) + pow(y, 2), 0.5);
@@ -4471,6 +4470,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       */
 
       SERIAL_PROTOCOL_F(probe_value, 4);
+	  SERIAL_ECHO(" Retry= ");
+	  SERIAL_ECHO(count);
       SERIAL_EOL;
 
       SERIAL_ECHO("Carriage Positions: [");
@@ -7784,6 +7785,9 @@ inline void gcode_X2()
   if (code_seen('O'))
   {
     pleds = code_value_short();
+	pleds += 50;
+	if (pleds > 255)
+		pleds = 255;
     if(pleds >= 0 & pleds <= 255)
     {
       analogWrite(M_IO2, pleds);
@@ -10881,7 +10885,7 @@ bool process_commands()
         gcode_M304();
         break;
 #endif // PIDTEMPBED
-
+		
 #if HAS_MICROSTEPS
       case 350: // M350 Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
         gcode_M350();
