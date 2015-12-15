@@ -396,6 +396,7 @@ typedef struct FilamentDetect {
 #define PI_RUNNING_WAIT_HEAD 'H'
 #define PI_PAUSED 'P'
 #define PI_ERROR 'E'
+#define PI_UPDATE 'U'
 #define PI_SLEEP 'S'
 
 #define PI_WIFI_CONNECTED 'C'

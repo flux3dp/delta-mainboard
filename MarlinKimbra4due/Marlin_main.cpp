@@ -846,6 +846,14 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		led_st.mode[0] = LED_OFF;
 		led_st.mode[1] = LED_WAVE;
 		break;
+  case PI_UPDATE: //更新中
+		led_st.param_a[0] = 0.0015;
+		led_st.param_b[0] = 666.6666;
+		led_st.mode[0] = LED_BLINK;
+		led_st.param_a[1] = 0.0015;
+		led_st.param_b[1] = 0;
+		led_st.mode[1] = LED_BLINK;
+		break;
 	default:
   	led_st.mode[0] = LED_OFF;
 		led_st.param_a[1] = 0.01;
