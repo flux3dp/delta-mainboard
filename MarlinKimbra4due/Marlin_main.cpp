@@ -20,6 +20,7 @@
  */
 
 #include "Marlin.h"
+#include "manage_led.h"
 
 //aven_0812
 #include "vector_3.h"
@@ -276,21 +277,10 @@ struct GlobalVariable global = {
 
 struct FilamentDetect filament_detect = {false, 0};
 
-// manage_led
-inline float _led_wave_atom(float a, float b) {
-  float v = abs(1 - fmod(a * (millis() - b), 2));
-  if(v < 0.15) return v * 1.04533;
-  else if(v < 0.85) return v * 0.336143 + 0.106379;
-  else return v * 4.05267 - 3.05267;
-}
-#define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
-// #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
-#define _led_blink(i) _led_blink_atom(led_st.param_a[i], led_st.param_b[i])
-#define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])
 const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
 struct LedStatus led_st = {
-  'P',              // situational Prepare
+  'W',              // situational Prepare
   0,                // last update
   0,                // god mode
   { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
@@ -780,9 +770,6 @@ inline char get_wifi_status() {
 }
 
 inline char get_led_status() {
-  // override status for debug
-  if (led_st.god_mode) return led_st.god_mode;
-
   if (play_st.enable_linecheck == 1) {  // if running
     switch(play_st.stashed) {
       case 0: return PI_RUNNING;
@@ -795,20 +782,22 @@ inline char get_led_status() {
 }
 
 inline void update_led_flags(char operation_flag, char wifi_flag) {
-  switch(wifi_flag) {
-    case PI_WIFI_CONNECTED:
-      if(led_st.mode[2] != LED_ON) led_st.mode[2] = LED_WAVE_2_ON;
-      break;
-    case PI_WIFI_ASSOCOATING:
-      if(led_st.mode[2] != LED_WAVE) {
-        led_st.mode[2] = LED_WAVE;
-        led_st.param_a[2] = 0.0009;
-        led_st.param_b[2] = millis();
-      }
-      break;
-    case PI_WIFI_DISCONNECTED:
-      led_st.mode[2] = LED_OFF;
-      break;
+  if(operation_flag != 'W') {
+    switch(wifi_flag) {
+      case PI_WIFI_CONNECTED:
+        if(led_st.mode[2] != LED_ON) led_st.mode[2] = LED_WAVE_2_ON;
+        break;
+      case PI_WIFI_ASSOCOATING:
+        if(led_st.mode[2] != LED_WAVE) {
+          led_st.mode[2] = LED_WAVE;
+          led_st.param_a[2] = 0.0009;
+          led_st.param_b[2] = millis();
+        }
+        break;
+      case PI_WIFI_DISCONNECTED:
+        led_st.mode[2] = LED_OFF;
+        break;
+    }
   }
 
 	switch (operation_flag) {
@@ -856,10 +845,10 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		break;
 	default:
   	led_st.mode[0] = LED_OFF;
-		led_st.param_a[1] = 0.01;
-		led_st.param_b[1] = millis();
-  	led_st.mode[1] = LED_BLINK;
-  	break;
+  	led_st.mode[1] = LED_OFF;
+  	led_st.mode[2] = LED_BLINK;
+		led_st.param_a[2] = 0.01;
+		led_st.param_b[2] = millis();
 	}
 }
 
@@ -877,6 +866,10 @@ void manage_led()
     } else {
       new_situational = get_led_status();
     }
+  }
+
+  if (led_st.god_mode) {
+    new_situational = led_st.god_mode;
   }
 
   if(new_situational != led_st.situational) {
@@ -927,9 +920,19 @@ void manage_led()
 }
 
 
-
 void on_home_btn_press() {
   global.home_btn_press += 1;
+}
+
+bool inline enter_boot_mode() {
+  int counter = 0;
+  while(led_st.situational == 'W' && !digitalRead(HOME_BTN_PIN)) {
+    counter += 1;
+    manage_inactivity();
+    delay(10);
+    if(counter > 500) return true;
+  }
+  return false;
 }
 
 void setup()
@@ -1141,6 +1144,10 @@ void loop() {
   manage_inactivity();
   checkHitEndstops();
   manage_led();
+
+  if(led_st.situational == 'W' && enter_boot_mode()) {
+    led_st.god_mode = 'U';
+  }
 }
 
 void inline proc_heigh_level_control(const char* cmd) {
@@ -7842,22 +7849,11 @@ inline void gcode_X4()
 }
 
 inline void gcode_X5() {
-  if(code_seen('P')) {
-    analogWrite(led_pins[1], 0);
-    analogWrite(led_pins[2], 0);
-    analogWrite(led_pins[0], code_value_short());
-  }
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
   } else {
-    SerialUSB.print("DEBUG: ST=");
-    SerialUSB.print(led_st.situational);
-    SerialUSB.print(" WIFI=");
-    SerialUSB.print(get_wifi_status());
-    SerialUSB.print(" GPIO=");
-    SerialUSB.print(digitalRead(R_IO1));
-    SerialUSB.print(" ");
-    SerialUSB.println(digitalRead(R_IO2));
+    SerialUSB.print("INFO: ST=");
+    SerialUSB.println(led_st.situational);
   }
 }
 
@@ -11413,38 +11409,6 @@ void calculate_delta(float cartesian[3]){
 
 #endif
 
-#ifdef TEMP_STAT_LEDS
-static bool blue_led = false;
-static bool red_led = false;
-static uint32_t stat_update = 0;
-
-void handle_status_leds(void) {
-  float max_temp = 0.0;
-  if(millis() > stat_update) {
-    stat_update += 500; // Update every 0.5s
-    for (int8_t cur_extruder = 0; cur_extruder < EXTRUDERS; ++cur_extruder) {
-       max_temp = max(max_temp, degHotend(cur_extruder));
-       max_temp = max(max_temp, degTargetHotend(cur_extruder));
-    }
-    #if HAS_TEMP_BED
-      max_temp = max(max_temp, degTargetBed());
-      max_temp = max(max_temp, degBed());
-    #endif
-    if((max_temp > 55.0) && (red_led == false)) {
-      digitalWrite(STAT_LED_RED, 1);
-      digitalWrite(STAT_LED_BLUE, 0);
-      red_led = true;
-      blue_led = false;
-    }
-    if((max_temp < 54.0) && (blue_led == false)) {
-      digitalWrite(STAT_LED_RED, 0);
-      digitalWrite(STAT_LED_BLUE, 1);
-      red_led = false;
-      blue_led = true;
-    }
-  }
-}
-#endif
 
 void enable_all_steppers() {
   enable_x();

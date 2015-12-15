@@ -380,43 +380,10 @@ typedef struct FilamentDetect {
   unsigned long last_trigger;
 } FilamentDetect;
 
-#define LED_OFF 0
-#define LED_WAVE 1
-#define LED_BLINK 2
-#define LED_ON 3
-#define LED_WAVE_2_ON 4
-#define LED_WAVE_2_OFF 5
-#define LED_STATIC 6
-
-#define PI_NOT_DEFINED '?'
-#define PI_WAKINGUP 'W'
-#define PI_IDLE 'I'
-#define PI_FATEL 'F'
-#define PI_RUNNING 'R'
-#define PI_RUNNING_WAIT_HEAD 'H'
-#define PI_PAUSED 'P'
-#define PI_ERROR 'E'
-#define PI_UPDATE 'U'
-#define PI_SLEEP 'S'
-
-#define PI_WIFI_CONNECTED 'C'
-#define PI_WIFI_ASSOCOATING 'A'
-#define PI_WIFI_DISCONNECTED 'D'
-
 #define NO_METAL_PLATE_FSR_VALUE 3800
 typedef struct GlobalVariable {
   unsigned int home_btn_press;
 };
-
-typedef struct LedStatus {
-  char situational;
-  unsigned long last_update;
-  char god_mode;
-
-  char mode[3];
-  float param_a[3];
-  float param_b[3];
-} LedStatus;
 
 typedef struct PlayStatus {
   int enable_linecheck;
