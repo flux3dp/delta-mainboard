@@ -831,9 +831,10 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		led_st.mode[1] = LED_BLINK;
 		break;
 	case PI_RUNNING_WAIT_HEAD: //橘燈呼吸燈 準備中
-		led_st.param_a[0] = 0.0008;
-		led_st.mode[0] = LED_OFF;
-		led_st.mode[1] = LED_WAVE;
+    led_st.mode[0] = LED_OFF;
+    led_st.param_a[1] = 0.0008;
+    led_st.param_b[1] = millis();
+    led_st.mode[1] = LED_WAVE;
 		break;
   case PI_UPDATE: //更新中
 		led_st.param_a[0] = 0.0015;
@@ -843,6 +844,12 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		led_st.param_b[1] = 0;
 		led_st.mode[1] = LED_BLINK;
 		break;
+  case PI_STARTING_TASK:
+    led_st.param_a[0] = 0.003;
+    led_st.param_b[0] = millis();
+    led_st.mode[0] = LED_BLINK;
+    led_st.mode[1] = LED_OFF;
+    break;
 	default:
   	led_st.mode[0] = LED_OFF;
   	led_st.mode[1] = LED_OFF;
@@ -8238,10 +8245,13 @@ inline void gcode_C1()
     SERIAL_PROTOCOLLN("CTRL LINECHECK_ENABLED");
     play_st.enable_linecheck = 1;
     play_st.last_no = 0;
+    play_st.stashed = 0;
+    led_st.god_mode = 0;
   } else if (code_seen('F')) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
+    led_st.god_mode = 0;
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
@@ -8257,6 +8267,8 @@ inline void gcode_C2()
   if (code_seen('O') || code_seen('E'))
   {
     if (play_st.stashed == 0) {
+      play_st.stashed = code_seen('E') ? code_value_short() : 1;
+
       // Remember current status
       play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
       play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
@@ -8270,8 +8282,8 @@ inline void gcode_C2()
       // Retraction
       feedrate = 500;
       destination[E_AXIS] = current_position[E_AXIS] - 5;
-	  prepare_move();
-	  //prepare_move_raw();
+      prepare_move();
+      //prepare_move_raw();
       st_synchronize();
 
       feedrate = 300;
@@ -8279,7 +8291,6 @@ inline void gcode_C2()
       prepare_move_raw();
       st_synchronize();
 
-      play_st.stashed = code_seen('E') ? code_value_short() : 1;
       SERIAL_PROTOCOLLN("CTRL STASH");
     } else {
       SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
