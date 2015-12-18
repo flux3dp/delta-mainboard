@@ -17,6 +17,7 @@
 #define PI_ERROR 'E'
 #define PI_UPDATE 'U'
 #define PI_SLEEP 'S'
+#define PI_STARTING_TASK 's'
 
 #define PI_WIFI_CONNECTED 'C'
 #define PI_WIFI_ASSOCOATING 'A'
