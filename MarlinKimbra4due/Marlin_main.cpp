@@ -875,7 +875,7 @@ void manage_led()
     }
   }
 
-  if (led_st.god_mode) {
+  if (new_situational != 'F' && led_st.god_mode) {
     new_situational = led_st.god_mode;
   }
 
