@@ -25,6 +25,7 @@
 
 typedef struct LedStatus {
   char situational;
+  char wifi;
   unsigned long last_update;
   char god_mode;
 

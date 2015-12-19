@@ -281,6 +281,7 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
 struct LedStatus led_st = {
   'W',              // situational Prepare
+  'D',              // Wifi Prepare
   0,                // last update
   0,                // god mode
   { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
@@ -879,9 +880,11 @@ void manage_led()
     new_situational = led_st.god_mode;
   }
 
-  if(new_situational != led_st.situational) {
+  if(new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
+
     update_led_flags(new_situational, new_wifi_flag);
     led_st.situational = new_situational;
+    led_st.wifi = new_wifi_flag;
   }
 
 	for (int i = 0; i<3; i++) {
