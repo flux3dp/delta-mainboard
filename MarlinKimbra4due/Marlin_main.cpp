@@ -1179,7 +1179,7 @@ void inline proc_heigh_level_control(const char* cmd) {
   } else if(strcmp(cmd, "LOAD_FILAMENT") == 0) {
     
   } else if(strcmp(cmd, "EJECT_FILAMENT") == 0) {
-    
+
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
   }
@@ -1994,15 +1994,12 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     int max_val[3], min_val[3];
 
     read_fsr_helper(count, avg, sd, max_val, min_val);
-    
+
     bool flag = 1;
+
     data = 0;
     for (int j = 0; j < 3; j++)
     {
-		//Start detecting metal plate existed by Shuo 12/11
-		if (avg[j] > NO_METAL_PLATE_FSR_VALUE)
-			return -200;
-		//End
       data += ratio[j] * avg[j];
       if (sd[j] * 3 > avg[j] * 0.01)
         flag = 0;
