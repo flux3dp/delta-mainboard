@@ -281,6 +281,7 @@ const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
 struct LedStatus led_st = {
   'W',              // situational Prepare
+  'D',              // Wifi Prepare
   0,                // last update
   0,                // god mode
   { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
@@ -875,13 +876,15 @@ void manage_led()
     }
   }
 
-  if (led_st.god_mode) {
+  if (new_situational != 'F' && led_st.god_mode) {
     new_situational = led_st.god_mode;
   }
 
-  if(new_situational != led_st.situational) {
+  if(new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
+
     update_led_flags(new_situational, new_wifi_flag);
     led_st.situational = new_situational;
+    led_st.wifi = new_wifi_flag;
   }
 
 	for (int i = 0; i<3; i++) {
@@ -1179,7 +1182,7 @@ void inline proc_heigh_level_control(const char* cmd) {
   } else if(strcmp(cmd, "LOAD_FILAMENT") == 0) {
     
   } else if(strcmp(cmd, "EJECT_FILAMENT") == 0) {
-    
+
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
   }
@@ -1994,15 +1997,12 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     int max_val[3], min_val[3];
 
     read_fsr_helper(count, avg, sd, max_val, min_val);
-    
+
     bool flag = 1;
+
     data = 0;
     for (int j = 0; j < 3; j++)
     {
-		//Start detecting metal plate existed by Shuo 12/11
-		if (avg[j] > NO_METAL_PLATE_FSR_VALUE)
-			return -200;
-		//End
       data += ratio[j] * avg[j];
       if (sd[j] * 3 > avg[j] * 0.01)
         flag = 0;
