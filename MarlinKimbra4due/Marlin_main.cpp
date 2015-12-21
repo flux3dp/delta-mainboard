@@ -2073,8 +2073,12 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
         else
           delayMicroseconds(200);
       }
+	
       
     }
+	if (destination[Z_AXIS] < (MANUAL_Z_HOME_POS - 243.5))
+		return -300;
+
     float z_val = destination[Z_AXIS];
     prepare_move_raw();
     st_synchronize();
@@ -7791,9 +7795,11 @@ inline void gcode_X2()
   if (code_seen('O'))
   {
     pleds = code_value_short();
-	pleds += 50;
-	if (pleds > 255)
-		pleds = 255;
+	//pleds += 50;
+	//if (pleds > 255)
+	//	pleds = 255;
+	//else if (pleds == 50)
+	//	pleds = 0;
     if(pleds >= 0 & pleds <= 255)
     {
       analogWrite(M_IO2, pleds);

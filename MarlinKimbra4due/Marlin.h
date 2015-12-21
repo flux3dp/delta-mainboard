@@ -380,6 +380,10 @@ typedef struct FilamentDetect {
   unsigned long last_trigger;
 } FilamentDetect;
 
+<<<<<<< HEAD
+//#define NO_METAL_PLATE_FSR_VALUE 4095
+=======
+>>>>>>> bb084487703278175c3f0eb19ce8902483d02dc4
 typedef struct GlobalVariable {
   unsigned int home_btn_press;
 };
