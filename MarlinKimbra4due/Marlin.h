@@ -397,4 +397,9 @@ typedef struct PlayStatus {
   float stashed_extruder;
 } PlayStatus;
 
+//To detect G28 that doesn't touch micro switch
+extern volatile bool endstop_x_hit;
+extern volatile bool endstop_y_hit;
+extern volatile bool endstop_z_hit;
+static volatile bool endstop_has_hit[3];
 #endif //MARLIN_H

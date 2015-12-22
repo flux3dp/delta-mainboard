@@ -1862,14 +1862,28 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
     if (axis == X_AXIS ? HOMEAXIS_DO(X) : axis == Y_AXIS ? HOMEAXIS_DO(Y) : axis == Z_AXIS ? HOMEAXIS_DO(Z) : 0) {
 
+		
       int axis_home_dir = home_dir(axis);
       current_position[axis] = 0;
       sync_plan_position();
-      destination[axis] = 1.5 * max_length[axis] * axis_home_dir;
+      destination[axis] = 3 * max_length[axis] * axis_home_dir;
       feedrate = homing_feedrate[axis];
       line_to_destination();
       st_synchronize();
 
+	  switch (axis) {
+	  case 0:
+		  endstop_has_hit[axis] = endstop_x_hit;
+		  break;
+	  case 1:
+		  endstop_has_hit[axis] = endstop_y_hit;
+		  break;
+	  case 2:
+		  endstop_has_hit[axis] = endstop_z_hit;
+		  break;
+
+	  }
+	  
       enable_endstops(false);  // Ignore Z probe while moving away from the top microswitch.
       current_position[axis] = 0;
       sync_plan_position();
@@ -1904,6 +1918,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
       // Set the axis position to its home position (plus home offsets)
       axis_is_at_home(axis);
+
 
       destination[axis] = current_position[axis];
       feedrate = 0.0;
@@ -3757,6 +3772,8 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
     sync_plan_position_delta();
 
+	
+
   #endif //DELTA
 
 #if 0 //aven_0807
@@ -4067,8 +4084,12 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
 		endstops_hit_on_purpose(); // clear endstop hit flags
 		SERIAL_PROTOCOLLN("ER G28_FAILED");
+	}else if(!(endstop_has_hit[0] && endstop_has_hit[1] && endstop_has_hit[2])) {
+		endstop_has_hit[0] = endstop_has_hit[1] = endstop_has_hit[2] = false;
+		SERIAL_PROTOCOLLN("ER G28_FAILED");
 	}
 
+	
 
   feedrate = saved_feedrate;
   feedmultiply = saved_feedmultiply;
