@@ -231,7 +231,7 @@ const char errormagic[] PROGMEM = "Error:";
 const char echomagic[] PROGMEM = "echo:";
 const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
 static float offset[3] = { 0 };
- float feedrate = 1500.0, next_feedrate, saved_feedrate;
+ float feedrate = 2000.0, next_feedrate, saved_feedrate;
 static long gcode_N, Stopped_gcode_LastN = 0;
 static bool relative_mode = false;  //Determines Absolute or Relative Coordinates
 static char cmdbuffer[BUFSIZE][MAX_CMD_SIZE];
@@ -4066,6 +4066,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 		st_synchronize();
 
 		endstops_hit_on_purpose(); // clear endstop hit flags
+		SERIAL_PROTOCOLLN("ER G28_FAILED");
 	}
 
 
@@ -4074,7 +4075,6 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
   G28_f = 0; //aven_0807
-  //SERIAL_PROTOCOLLN("ER G28_FAILED");
 
 }
 
