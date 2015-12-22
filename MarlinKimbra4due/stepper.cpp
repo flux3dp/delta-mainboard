@@ -488,12 +488,12 @@ HAL_STEP_TIMER_ISR {
                 #if defined(X_MAX_PIN) && X_MAX_PIN >= 0
                   UPDATE_ENDSTOP(x, X, max, MAX);
 					//bool x_max_endstop = (READ(X_MAX_PIN) == X_MAX_ENDSTOP_INVERTING); 
-					//	if (x_max_endstop && old_x_max_endstop && (current_block->steps[X_X] > 0)) {
+					//if (x_max_endstop && old_x_max_endstop && (current_block->steps[X_AXIS] > 0)) {
 					//	  
-					//			endstops_trigsteps[X_X] = count_position[X_X]; 
-					//			endstop_x_hit = true; 
-					//			step_events_completed = current_block->step_event_count; 
-					//	} 
+					//		endstops_trigsteps[X_AXIS] = count_position[X_AXIS]; 
+					//		endstop_x_hit = true; 
+					//		step_events_completed = current_block->step_event_count; 
+					//} 
 					//old_x_max_endstop = x_max_endstop;
                 #endif
               }
@@ -668,21 +668,23 @@ HAL_STEP_TIMER_ISR {
     #endif //!ADVANCE
 
 
-	if (G28_f == 1 && READ(M_IO1)==LOW)
+	if (G28_f == 1)
 	{
-		X_APPLY_DIR(!INVERT_X_DIR, 0);
-		count_direction[X_AXIS] = 1;
-		Y_APPLY_DIR(!INVERT_Y_DIR, 0);
-		count_direction[Y_AXIS] = 1;
-		Z_APPLY_DIR(!INVERT_Z_DIR, 0);
-		count_direction[Z_AXIS] = 1;
-		endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
-		endstop_x_hit = true;
-		endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
-		endstop_y_hit = true;
-		endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
-		endstop_z_probe_hit = true;
-		step_events_completed = current_block->step_event_count;
+		if (READ(M_IO1) == LOW) {
+			X_APPLY_DIR(!INVERT_X_DIR, 0);
+			count_direction[X_AXIS] = 1;
+			Y_APPLY_DIR(!INVERT_Y_DIR, 0);
+			count_direction[Y_AXIS] = 1;
+			Z_APPLY_DIR(!INVERT_Z_DIR, 0);
+			count_direction[Z_AXIS] = 1;
+			endstops_trigsteps[X_AXIS] = count_position[X_AXIS];
+			endstop_x_hit = true;
+			endstops_trigsteps[Y_AXIS] = count_position[Y_AXIS];
+			endstop_y_hit = true;
+			endstops_trigsteps[Z_AXIS] = count_position[Z_AXIS];
+			endstop_z_probe_hit = true;
+			step_events_completed = current_block->step_event_count;
+		}
 	}
 
     // Take multiple steps per interrupt (For high speed moves)

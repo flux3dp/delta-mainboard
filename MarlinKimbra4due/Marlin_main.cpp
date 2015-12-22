@@ -3704,7 +3704,6 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   feedmultiply = 100;
   refresh_cmd_timeout();
 
-  //SERIAL_PROTOCOLLN("G28 alarmIO testing1125_1");
   enable_endstops(true);
 
   set_destination_to_current();
@@ -4075,7 +4074,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
   G28_f = 0; //aven_0807
-
+  //SERIAL_PROTOCOLLN("ER G28_FAILED");
 
 }
 
@@ -7318,9 +7317,9 @@ inline void gcode_T() {
             SERIAL_PROTOCOLLN((int)active_extruder);
           #else 
             active_driver = active_extruder = target_extruder;
-            SERIAL_ECHO_START;
-            SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
-            SERIAL_PROTOCOLLN((int)active_extruder);
+            //SERIAL_ECHO_START;
+            //SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
+            //SERIAL_PROTOCOLLN((int)active_extruder);
 
           #endif // end MKR4 || NPR2
         #endif // end no DUAL_X_CARRIAGE
@@ -7333,6 +7332,10 @@ inline void gcode_T() {
         // Move to the old position if 'F' was in the parameters
         if (make_move && !Stopped) prepare_move();
       }
+
+	  SERIAL_ECHO_START;
+	  SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
+	  SERIAL_PROTOCOLLN((int)active_extruder);
 
       #ifdef EXT_SOLENOID
         st_synchronize();
