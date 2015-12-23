@@ -231,7 +231,7 @@ const char errormagic[] PROGMEM = "Error:";
 const char echomagic[] PROGMEM = "echo:";
 const char axis_codes[NUM_AXIS] = {'X', 'Y', 'Z', 'E'};
 static float offset[3] = { 0 };
- float feedrate = 2000.0, next_feedrate, saved_feedrate;
+ float feedrate = 1500.0, next_feedrate, saved_feedrate;
 static long gcode_N, Stopped_gcode_LastN = 0;
 static bool relative_mode = false;  //Determines Absolute or Relative Coordinates
 static char cmdbuffer[BUFSIZE][MAX_CMD_SIZE];
