@@ -1184,9 +1184,8 @@ void inline proc_heigh_level_control(const char* cmd) {
   } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
     global.home_btn_press++;
 
-  } else if(strcmp(cmd, "LOAD_FILAMENT") == 0) {
-    
-  } else if(strcmp(cmd, "EJECT_FILAMENT") == 0) {
+  } else if(strcmp(cmd, "OOPS") == 0) {
+    report_ln();
 
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
