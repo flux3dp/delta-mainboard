@@ -8373,7 +8373,6 @@ inline void gcode_C2()
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
 }
-
 inline void gcode_C3(int t=0) {
   if(t > 2) t = 0;
   target_extruder = t;
@@ -8413,7 +8412,6 @@ inline void gcode_C3(int t=0) {
         delay(10);
         continue;
     }
-
     read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
     if(avg[0] > max_value_base) max_value_base = avg[0];
@@ -8427,6 +8425,9 @@ inline void gcode_C3(int t=0) {
     else if(new_speed - speed < -700) speed -= 700;
     else speed = new_speed;
 
+	if (speed < 150)
+		speed = 150;
+	//SerialUSB.println(speed);
     feedrate = speed;
     destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
 
