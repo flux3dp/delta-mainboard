@@ -852,7 +852,7 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
     led_st.mode[1] = LED_OFF;
     break;
   case PI_WAKINGUP:
-    led_st.param_a[0] = 0.0003;
+    led_st.param_a[0] = 0.0008;
     led_st.mode[0] = LED_WAVE;
     led_st.mode[1] = LED_OFF;
     break;
