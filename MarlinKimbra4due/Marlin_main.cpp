@@ -806,7 +806,7 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
 		break;
 	case PI_IDLE: //白燈呼吸燈 系統待機
-		led_st.param_a[0] = 0.001;
+		led_st.param_a[0] = 0.0004;
     led_st.param_b[0] = millis();
 		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
@@ -833,7 +833,7 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		break;
 	case PI_RUNNING_WAIT_HEAD: //橘燈呼吸燈 準備中
     led_st.mode[0] = LED_OFF;
-    led_st.param_a[1] = 0.0008;
+    led_st.param_a[1] = 0.0004;
     led_st.param_b[1] = millis();
     led_st.mode[1] = LED_WAVE;
 		break;
@@ -7812,19 +7812,16 @@ inline void gcode_X2()
   st_synchronize();
   if (code_seen('F'))
   {
+	  play_st.stashed_laser_pwm = pleds;
     analogWrite(M_IO2, 0);
   }
 
   if (code_seen('O'))
   {
     pleds = code_value_short();
-	//pleds += 50;
-	//if (pleds > 255)
-	//	pleds = 255;
-	//else if (pleds == 50)
-	//	pleds = 0;
     if(pleds >= 0 & pleds <= 255)
     {
+		play_st.stashed_laser_pwm = pleds;
       analogWrite(M_IO2, pleds);
     }
   }
@@ -8303,6 +8300,7 @@ inline void gcode_C2()
     if (play_st.stashed == 0) {
       play_st.stashed = code_seen('E') ? code_value_short() : 1;
 
+	  analogWrite(M_IO2, 0);
       // Remember current status
       play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
       play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
@@ -8320,11 +8318,15 @@ inline void gcode_C2()
       //prepare_move_raw();
       st_synchronize();
 
-      feedrate = 300;
-      destination[Z_AXIS] = current_position[Z_AXIS] + 30;
-      prepare_move_raw();
-      st_synchronize();
-
+	  if (current_position[Z_AXIS] < 210) {
+		  feedrate = 300;
+		  if (current_position[Z_AXIS] + 30 > 210)
+			  destination[Z_AXIS] = 210;
+		  else
+			  destination[Z_AXIS] = current_position[Z_AXIS] + 30;
+		  prepare_move_raw();
+		  st_synchronize();
+	  }
       SERIAL_PROTOCOLLN("CTRL STASH");
     } else {
       SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
@@ -8333,22 +8335,7 @@ inline void gcode_C2()
     if (play_st.stashed == 0) {
       SERIAL_PROTOCOLLN("ER NOT_STASHED");
     } else {
-      destination[X_AXIS] = play_st.stashed_position[X_AXIS];
-      destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
-      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS] + 8.0;
-	  destination[E_AXIS] = current_position[E_AXIS];
-      feedrate = 6000;
-      prepare_move_raw();
-      st_synchronize();
-
-	  //destination[X_AXIS] = current_position[X_AXIS];
-	  //destination[Y_AXIS] = current_position[Y_AXIS];
-	  //destination[Z_AXIS] = current_position[Z_AXIS];
-   //   destination[E_AXIS] = current_position[E_AXIS] + 3;
-   //   feedrate = 300;
-   //   prepare_move_raw();
-   //   st_synchronize();
-
+		feedrate = 6000;
 	  destination[X_AXIS] = current_position[X_AXIS];
 	  destination[Y_AXIS] = current_position[Y_AXIS];
       destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
@@ -8362,6 +8349,7 @@ inline void gcode_C2()
       //  plan_set_e_position(current_position[i]);
       //}
 
+	  analogWrite(M_IO2, play_st.stashed_laser_pwm);
       feedrate = play_st.stashed_feedrate;
       target_extruder = play_st.stashed_extruder;
 
