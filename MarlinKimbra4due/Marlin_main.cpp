@@ -285,7 +285,7 @@ struct LedStatus led_st = {
   0,                // last update
   0,                // god mode
   { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
-  {0.0003, 1, 1},   // param_a
+  {0.0008, 1, 1},   // param_a
   {0, 0, 0}         // param_b
 };
 
@@ -8385,20 +8385,32 @@ inline void gcode_C3(int t=0) {
   st_synchronize();
 
 
-  
+  unsigned long timer = 0;
   float avg[3], sd[3];
   int dummy1[3], dummy2[3];
   read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
   int max_value_base = avg[0] + sd[0] * 3;
   int speed = 150;
+  bool check_filament = code_seen('+');
 
   global.home_btn_press = 0;
   while(global.home_btn_press == 0) {
-    if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+    if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
         delay(10);
+        manage_inactivity();
         continue;
     }
+
+    if(millis() - timer > 500) {
+      if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+        SERIAL_PROTOCOLLN("CTRL FILAMENT-");
+      } else {
+        SERIAL_PROTOCOLLN("CTRL FILAMENT+");
+      }
+      timer = millis();
+    }
+
     read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
     if(avg[0] > max_value_base) max_value_base = avg[0];
@@ -8412,9 +8424,9 @@ inline void gcode_C3(int t=0) {
     else if(new_speed - speed < -700) speed -= 700;
     else speed = new_speed;
 
-	if (speed < 150)
-		speed = 150;
-	//SerialUSB.println(speed);
+    if (speed < 150) {
+        speed = 150;
+    }
     feedrate = speed;
     destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
 
@@ -8435,7 +8447,7 @@ inline void gcode_C4(int t=0) {
   destination[Z_AXIS] = current_position[Z_AXIS];
   float e_pos = current_position[E_AXIS];
 
-  if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+  if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
     SERIAL_PROTOCOLLN("ok");
     return;
   }
@@ -8446,7 +8458,7 @@ inline void gcode_C4(int t=0) {
 
   feedrate = 6000;
   for(int i=0;i<9;i++) {
-    if(filament_detect.enable && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+    if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
       SERIAL_PROTOCOLLN("ok");
       break;
     }
