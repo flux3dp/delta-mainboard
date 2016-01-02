@@ -8396,12 +8396,6 @@ inline void gcode_C3(int t=0) {
 
   global.home_btn_press = 0;
   while(global.home_btn_press == 0) {
-    if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-        delay(10);
-        manage_inactivity();
-        continue;
-    }
-
     if(millis() - timer > 500) {
       if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
         SERIAL_PROTOCOLLN("CTRL FILAMENT-");
@@ -8409,6 +8403,12 @@ inline void gcode_C3(int t=0) {
         SERIAL_PROTOCOLLN("CTRL FILAMENT+");
       }
       timer = millis();
+    }
+
+    if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+        delay(10);
+        manage_inactivity();
+        continue;
     }
 
     read_fsr_helper(5, avg, sd, dummy1, dummy2);
