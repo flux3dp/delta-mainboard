@@ -7812,7 +7812,7 @@ inline void gcode_X2()
   st_synchronize();
   if (code_seen('F'))
   {
-	  play_st.stashed_laser_pwm = pleds;
+	  play_st.stashed_laser_pwm = 0;
     analogWrite(M_IO2, 0);
   }
 
@@ -7822,6 +7822,8 @@ inline void gcode_X2()
     if(pleds >= 0 & pleds <= 255)
     {
 		play_st.stashed_laser_pwm = pleds;
+		SerialUSB.print("PWM=");
+		SerialUSB.println(play_st.stashed_laser_pwm);
       analogWrite(M_IO2, pleds);
     }
   }
