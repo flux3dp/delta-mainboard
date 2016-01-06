@@ -7791,19 +7791,16 @@ inline void gcode_X1()
     pleds = code_value_short();
     if(pleds == 1)
     {
-      SerialUSB.println("LSA1 ON");
       digitalWrite(S_LAS1, HIGH);
     }
     if(pleds == 2)
     {
-      SerialUSB.println("LSA2 ON");
       digitalWrite(S_LAS2, HIGH);
     }
     if(pleds == 0)
     {
-      SerialUSB.println("LSA1&LSA2 ON");
       digitalWrite(S_LAS1, HIGH);
-    digitalWrite(S_LAS2, HIGH);
+      digitalWrite(S_LAS2, HIGH);
     }
   }
 }
@@ -8302,6 +8299,7 @@ inline void gcode_C2()
       play_st.stashed = code_seen('E') ? code_value_short() : 1;
 	  st_synchronize();
 	  analogWrite(M_IO2, 0);
+
       // Remember current status
       play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
       play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
@@ -8316,18 +8314,21 @@ inline void gcode_C2()
       feedrate = 500;
       destination[E_AXIS] = current_position[E_AXIS] - 5;
       prepare_move();
-      //prepare_move_raw();
       st_synchronize();
 
-	  if (current_position[Z_AXIS] < 210) {
-		  feedrate = 300;
-		  if (current_position[Z_AXIS] + 30 > 210)
-			  destination[Z_AXIS] = 210;
-		  else
-			  destination[Z_AXIS] = current_position[Z_AXIS] + 30;
-		  prepare_move_raw();
-		  st_synchronize();
-	  }
+      if (current_position[Z_AXIS] < 210) {
+        destination[Z_AXIS] = min(current_position[Z_AXIS] + 5, 210);
+        feedrate = 300;
+        prepare_move_raw();
+        st_synchronize();
+      }
+      if (current_position[Z_AXIS] < 210) {
+        destination[Z_AXIS] = min(current_position[Z_AXIS] + 25, 210);
+        feedrate = 2500;
+        prepare_move_raw();
+        st_synchronize();
+      }
+
       SERIAL_PROTOCOLLN("CTRL STASH");
 
 
