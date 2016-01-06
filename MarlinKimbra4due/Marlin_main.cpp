@@ -293,6 +293,7 @@ struct PlayStatus play_st = {
   0, // enable_linecheck
   0, // stashed
   0, // next_no
+  0, //laser pwm=0
 };
 
 float k_value= 0.03;
@@ -7822,8 +7823,6 @@ inline void gcode_X2()
     if(pleds >= 0 & pleds <= 255)
     {
 		play_st.stashed_laser_pwm = pleds;
-		SerialUSB.print("PWM=");
-		SerialUSB.println(play_st.stashed_laser_pwm);
       analogWrite(M_IO2, pleds);
     }
   }
@@ -8301,7 +8300,7 @@ inline void gcode_C2()
   {
     if (play_st.stashed == 0) {
       play_st.stashed = code_seen('E') ? code_value_short() : 1;
-
+	  st_synchronize();
 	  analogWrite(M_IO2, 0);
       // Remember current status
       play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
@@ -8330,6 +8329,8 @@ inline void gcode_C2()
 		  st_synchronize();
 	  }
       SERIAL_PROTOCOLLN("CTRL STASH");
+
+
     } else {
       SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
     }
@@ -8337,6 +8338,7 @@ inline void gcode_C2()
     if (play_st.stashed == 0) {
       SERIAL_PROTOCOLLN("ER NOT_STASHED");
     } else {
+		
 		feedrate = 6000;
 	  destination[X_AXIS] = current_position[X_AXIS];
 	  destination[Y_AXIS] = current_position[Y_AXIS];
@@ -8344,12 +8346,6 @@ inline void gcode_C2()
 	  destination[E_AXIS] = current_position[E_AXIS];
       prepare_move_raw();
       st_synchronize();
-
-	  //current_position[E_AXIS] = play_st.stashed_extruder_position[E_AXIS];
-      //for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
-      //  current_position[i] = play_st.stashed_extruder_position[i];
-      //  plan_set_e_position(current_position[i]);
-      //}
 
 	  analogWrite(M_IO2, play_st.stashed_laser_pwm);
       feedrate = play_st.stashed_feedrate;

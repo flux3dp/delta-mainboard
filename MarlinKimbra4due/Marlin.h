@@ -390,12 +390,12 @@ typedef struct PlayStatus {
   int enable_linecheck;
   int stashed;
   unsigned long last_no;
-
+  int stashed_laser_pwm;
   float stashed_position[3];
   float stashed_extruder_position[NUM_AXIS - 3];
   float stashed_feedrate;
   float stashed_extruder;
-  uint32_t stashed_laser_pwm;
+  
 } PlayStatus;
 
 //To detect G28 that doesn't touch micro switch
