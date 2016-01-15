@@ -1141,7 +1141,8 @@ void loop() {
       SERIAL_ECHO(cmdbuffer[bufindr]);
       SERIAL_ECHOLNPGM("\"");
 
-      SERIAL_PROTOCOLLN("ER BAD_CMD");
+      SERIAL_PROTOCOL("ER BAD_CMD ");
+      SERIAL_PROTOCOL(cmdbuffer[bufindr]);
     }
 
     buflen--;
@@ -1181,7 +1182,9 @@ void inline proc_heigh_level_control(const char* cmd) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
-
+    led_st.god_mode = 0;
+    play_st.stashed_laser_pwm = 0;
+    analogWrite(M_IO2, 0);
   } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
     global.home_btn_press++;
 
@@ -8281,6 +8284,9 @@ inline void gcode_C1()
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
     led_st.god_mode = 0;
+    play_st.stashed_laser_pwm = 0;
+    analogWrite(M_IO2, 0);
+
   } else {
     SERIAL_PROTOCOLLN("ER BAD_CMD");
   }
@@ -8297,8 +8303,8 @@ inline void gcode_C2()
   {
     if (play_st.stashed == 0) {
       play_st.stashed = code_seen('E') ? code_value_short() : 1;
-	  st_synchronize();
-	  analogWrite(M_IO2, 0);
+      st_synchronize();
+      analogWrite(M_IO2, 0);
 
       // Remember current status
       play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
