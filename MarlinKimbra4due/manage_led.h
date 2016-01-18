@@ -6,6 +6,7 @@
 #define LED_WAVE_2_ON 4
 #define LED_WAVE_2_OFF 5
 #define LED_STATIC 6
+#define LED_FLASH 7
 
 #define PI_NOT_DEFINED '?'
 #define PI_WAKINGUP 'W'
@@ -18,6 +19,17 @@
 #define PI_UPDATE 'U'
 #define PI_SLEEP 'S'
 #define PI_STARTING_TASK 's'
+
+#define PI_ERROR_1 '1'
+#define PI_ERROR_2 '2'
+#define PI_ERROR_3 '3'
+#define PI_ERROR_4 '4'
+#define PI_ERROR_5 '5'
+#define PI_ERROR_6 '6'
+#define PI_ERROR_7 '7'
+#define PI_ERROR_8 '8'
+#define PI_ERROR_9 '9'
+
 
 #define PI_WIFI_CONNECTED 'C'
 #define PI_WIFI_ASSOCOATING 'A'
@@ -41,6 +53,18 @@ inline float _led_wave_atom(float a, float b) {
   else if(v < 0.85) return v * 0.336143 + 0.106379;
   else return v * 4.05267 - 3.05267;
 }
+
+inline int _led_special(int param_a, int param_b) {
+  int delay_ratio = 1000 + param_a * 25;
+  int led_cycle = param_a * 600 + delay_ratio;
+  int offset = (millis() - param_b) % led_cycle;
+  if((led_cycle - offset) < delay_ratio) {
+    return 255;
+  } else {
+    return (((offset / 300) + 1) % 2) * 255;
+  }
+}
+
 #define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
 // #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
 #define _led_blink(i) _led_blink_atom(led_st.param_a[i], led_st.param_b[i])

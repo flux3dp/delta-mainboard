@@ -776,7 +776,7 @@ inline char get_led_status() {
     switch(play_st.stashed) {
       case 0: return PI_RUNNING;
       case 1: return PI_PAUSED;
-      default: return PI_ERROR;
+      default: return play_st.stashed;
     }
   } else {
     return PI_IDLE;
@@ -857,6 +857,20 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
     led_st.mode[0] = LED_WAVE;
     led_st.mode[1] = LED_OFF;
     break;
+  case PI_ERROR_1:
+  case PI_ERROR_2:
+  case PI_ERROR_3:
+  case PI_ERROR_4:
+  case PI_ERROR_5:
+  case PI_ERROR_6:
+  case PI_ERROR_7:
+  case PI_ERROR_8:
+  case PI_ERROR_9:
+    led_st.param_a[1] = operation_flag - PI_ERROR_1 + 1;
+    led_st.param_b[1] = millis();
+    led_st.mode[0] = LED_OFF;
+    led_st.mode[1] = LED_FLASH;
+    break;
 	default:
   	led_st.mode[0] = LED_OFF;
   	led_st.mode[1] = LED_OFF;
@@ -928,6 +942,10 @@ void manage_led()
 		case LED_STATIC:
 			analogWrite(led_pins[i], int(led_st.param_a[i]));
 			break;
+    case LED_FLASH:
+      analogWrite(led_pins[i],
+                  _led_special(led_st.param_a[i], led_st.param_b[i]));
+      break;
 		default:
 			analogWrite(led_pins[i], 0);
 			break;
