@@ -10524,7 +10524,7 @@ inline void gcode_X78()
 inline void gcode_X111()
 {
   SerialUSB.print("CRTL VERSION ");
-  SerialUSB.print(FIREWARE_VERSION);
+  SerialUSB.print(FIRMWARE_VERSION);
 
   #ifdef VERSION_CONTROL
     SerialUSB.print(" ");
@@ -10900,17 +10900,17 @@ bool process_commands()
 
       case 302: // No use
         break;
-
+#ifdef PIDTEMP
       case 303: // M303 PID autotune
         gcode_M303();
         break;
-
+#endif // PIDTEMP
 #ifdef PIDTEMPBED
       case 304: // M304
         gcode_M304();
         break;
 #endif // PIDTEMPBED
-		
+
 #if HAS_MICROSTEPS
       case 350: // M350 Set microstepping mode. Warning: Steps per unit remains unchanged. S code sets stepping mode for all drivers.
         gcode_M350();
@@ -10934,7 +10934,6 @@ bool process_commands()
       case 365: // M365 Set SCARA scaling for X Y Z
       gcode_M365(); break;
 #endif // SCARA
-
       case 400: // M400 finish all moves
         gcode_M400();
         break;
