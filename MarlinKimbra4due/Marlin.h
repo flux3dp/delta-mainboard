@@ -70,7 +70,8 @@
     #define MYSERIAL MSerial
   #endif
 #endif
-
+#define SERVO_LEVELING (defined(ENABLE_AUTO_BED_LEVELING) && PROBE_SERVO_DEACTIVATION_DELAY > 0)
+#define ROUND(x, y) (roundf(x * (float)(1e ## y)) / (float)(1e ## y))
 #define SERIAL_CHAR(x) MYSERIAL.write(x)
 #define SERIAL_EOL SERIAL_CHAR('\n')
 
