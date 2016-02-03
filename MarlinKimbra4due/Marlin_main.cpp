@@ -1152,7 +1152,6 @@ void loop() {
 
   if (buflen) {
     bool ret = process_commands();
-
     if(!ret) {
       SERIAL_ECHO_START;
       SERIAL_ECHOPGM(MSG_UNKNOWN_COMMAND);
@@ -1171,6 +1170,7 @@ void loop() {
     } else if(ret) {
       if(!play_st.enable_linecheck) {
         SERIAL_PROTOCOLLN(MSG_OK);
+		
       }
     }
   }
@@ -7837,7 +7837,15 @@ inline void gcode_X2()
 
   if (code_seen('O'))
   {
+
     pleds = code_value_short();
+	if (code_seen('N'))
+	{
+		if (play_st.enable_linecheck == 0) {
+			//SERIAL_PROTOCOLLN("X2ER NCODE_NOT_ACCEPTED");
+			return;
+		}
+	}
     if(pleds >= 0 & pleds <= 255)
     {
 		play_st.stashed_laser_pwm = pleds;
