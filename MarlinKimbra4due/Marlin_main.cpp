@@ -8311,6 +8311,7 @@ inline void gcode_C1()
     led_st.god_mode = 0;
   } else if (code_seen('F')) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
+    filament_detect.enable = false;
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
     led_st.god_mode = 0;
