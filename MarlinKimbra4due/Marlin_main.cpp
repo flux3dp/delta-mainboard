@@ -1845,6 +1845,10 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 #endif //aven_0813
 
 
+inline int fsr2val(int fsr_val) {
+  return 4096 - fsr_val;
+}
+
 inline void read_fsr_helper(int times, float avg[3], float sd[3],
                             int max_value[3], int min_value[3]) {
     int dataset[3][200];
@@ -8308,6 +8312,7 @@ inline void gcode_C1()
     led_st.god_mode = 0;
   } else if (code_seen('F')) {
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
+    filament_detect.enable = false;
     play_st.enable_linecheck = 0;
     play_st.stashed = 0;
     led_st.god_mode = 0;
@@ -8422,7 +8427,8 @@ inline void gcode_C3(int t=0) {
   int dummy1[3], dummy2[3];
   read_fsr_helper(5, avg, sd, dummy1, dummy2);
 
-  int max_value_base = avg[0] + sd[0] * 3;
+  int ref_base = fsr2val(avg[0] + sd[0] * 3);
+  int ref_current = 150;
   int speed = 150;
   bool check_filament = code_seen('+');
 
@@ -8437,18 +8443,27 @@ inline void gcode_C3(int t=0) {
       timer = millis();
     }
 
+    read_fsr_helper(5, avg, sd, dummy1, dummy2);
+    ref_current = fsr2val(avg[0]);
     if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-        delay(10);
-        manage_inactivity();
-        continue;
+        if(ref_current > 2796) {
+          // If no filament but user press FSR hard enough,
+          // let moter it run slowly
+          ref_current = max(ref_current - 2796, ref_base);
+        } else {
+          delay(10);
+          manage_inactivity();
+          continue;
+        }
     }
 
-    read_fsr_helper(5, avg, sd, dummy1, dummy2);
+    if(ref_current < ref_base) ref_base = ref_current;
+    // if(avg[0] > ref_base) ref_base = avg[0];
+    if(ref_base < 600) ref_base = 600;
+    // if(ref_base < 3500) ref_base = 3500;
 
-    if(avg[0] > max_value_base) max_value_base = avg[0];
-    if(max_value_base > 3500) max_value_base = 3500;
-
-    int new_speed = (max_value_base - avg[0]) * 6;
+    int new_speed = (ref_current - ref_base) * 6;
+    // int new_speed = (ref_base - avg[0]) * 6;
     if(new_speed > 6000) new_speed = 6000;
     new_speed = (new_speed / 500) * 500 + 150;
 
