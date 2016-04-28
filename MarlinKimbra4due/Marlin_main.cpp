@@ -1863,7 +1863,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
         for(int x=0;x<times;x++) sum += dataset[i][x];
         avg[i] = (float)sum / (float)times;
         float v = 0;
-        for(int x=1;x<times;x++) v += pow(avg[i] - dataset[i][x], 2);
+        for(int x=0;x<times;x++) v += pow(avg[i] - dataset[i][x], 2);
         sd[i] = pow(v / (float)(times - 1), 0.5);
     }
 }
@@ -2150,6 +2150,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       delay(200);
       
       int timeout = 0;
+	  //check if fsr average value < 3*Standard Deviation (normal distribution) 
 	  while (!(fsr_result = read_FSR(up, 200, ratio)) && timeout < 20) {
 		  if (fsr_result < -150)
 			  return fsr_result;
@@ -10515,7 +10516,33 @@ inline void gcode_X8()
   }
 }
 
+inline void gcode_X9()
+{
+	st_synchronize();
+	if (code_seen('F'))
+	{
+		//play_st.stashed_laser_pwm = 0;
+		analogWrite(STP6, 0);
+	}
 
+	if (code_seen('O'))
+	{
+
+		pleds = code_value_short();
+		//if (code_seen('N'))
+		//{
+		//	if (play_st.enable_linecheck == 0) {
+		//		//SERIAL_PROTOCOLLN("X2ER NCODE_NOT_ACCEPTED");
+		//		return;
+		//	}
+		//}
+		if (pleds >= 0 & pleds <= 255)
+		{
+			//play_st.stashed_laser_pwm = pleds;
+			analogWrite(STP6, pleds);
+		}
+	}
+}
 inline void gcode_X78()
 {
   SerialUSB.print("FSR0 ");
@@ -11097,6 +11124,9 @@ bool process_commands()
       case 8:   
         gcode_X8();
         break;
+	  case 9:
+		  gcode_X9();
+		  break;
       case 78:
         gcode_X78();
         break;
