@@ -2042,7 +2042,21 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     int max_val[3], min_val[3];
 
     read_fsr_helper(count, avg, sd, max_val, min_val);
-
+	//SerialUSB.print("avg=");
+	//SerialUSB.print(avg[0]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print(avg[1]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print(avg[2]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print("std=");
+	//SerialUSB.print(sd[0]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print(sd[1]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print(sd[2]);
+	//SerialUSB.print(" ");
+	//SerialUSB.print("\n");
     bool flag = 1;
 
     data = 0;
@@ -2077,11 +2091,20 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       ratio[(i + 2) % 3] += point[(i + 1) % 3][0] * destination[Y_AXIS] - point[(i + 1) % 3][1] * destination[X_AXIS];
       ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
     }
-
+	SerialUSB.print("ratio=");
+	SerialUSB.print(ratio[0]);
+	SerialUSB.print(" ");
+	SerialUSB.print(ratio[1]);
+	SerialUSB.print(" ");
+	SerialUSB.print(ratio[2]);
+	SerialUSB.print("\n");
     float data;
     
-    read_FSR(data, 20, ratio);
+    read_FSR(data, 200, ratio);
     float threshold = data;
+	SerialUSB.print("threshold=");
+	SerialUSB.print(threshold);
+	SerialUSB.print("\n");
     int fsr_flag = -1;
 	int fsr_result;
 	//downward
@@ -2098,15 +2121,17 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 	  //end
       if (fsr_flag > -500)
       {
-        if (data < threshold)
-        {
-          threshold = data;
-          
-        }
+    //    if (data < threshold)
+    //    {
+    //      threshold = data;
+		  //SerialUSB.print("*threshold=");
+		  //SerialUSB.print(threshold);
+		  //SerialUSB.print("\n");
+    //    }
       }
       else
       {
-        if (data < threshold * 0.998)
+        if (data < threshold *0.98)
         {
           fsr_flag = 1;
         } 
@@ -2119,7 +2144,9 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 	if (destination[Z_AXIS] < (MANUAL_Z_HOME_POS - 243.5))
 		return -300;
 
-    float z_val = destination[Z_AXIS];
+	float z_val_first;
+    float z_val = z_val_first=destination[Z_AXIS];
+	
     prepare_move_raw();
     st_synchronize();
 
@@ -2144,7 +2171,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
     z_val += 0.2;
     float up, down;
-    float value[3] = {0};
+    float value[3] = {0,0,0};
 	
     for (int i = 0; i < 30; i++)
     {
@@ -2156,8 +2183,11 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       int timeout = 0;
 	  //check if fsr average value < 3*Standard Deviation (normal distribution) 
 	  while (!(fsr_result = read_FSR(up, 200, ratio)) && timeout < 20) {
-		  if (fsr_result < -150)
+		  if (fsr_result < -150) {
+			  SerialUSB.print("read up fail\n");
 			  return fsr_result;
+		  }
+			  
 		  timeout++;
 	  }
       destination[Z_AXIS] = (z_val -= 0.0125) ;
@@ -2167,36 +2197,82 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       
       timeout = 0;
 	  while (!(fsr_result = read_FSR(down, 200, ratio)) && timeout < 20) {
-		  if (fsr_result < -150)
+		  if (fsr_result < -150) {
+			  SerialUSB.print("read down fail\n");
 			  return fsr_result;
+		  }
+			  
 		  timeout++;
 	  }
 
+	  //value[2]=value[1]
+	  //value[1]=value[0]
+	  //value[0]=up-down
+	  
       for (int j = 2; j > 0; j--)
         value[j] = value[j - 1];
+
+	  SerialUSB.print("value=");
+	  SerialUSB.print(value[0]);
+	  SerialUSB.print(" ");
+	  SerialUSB.print(value[1]);
+	  SerialUSB.print(" ");
+	  SerialUSB.print(value[2]);
+	  SerialUSB.print("\n");
+	  SerialUSB.print("i=");
+	  SerialUSB.print(i);
+	  SerialUSB.print("\n");
+
       value[0] = up - down;
-      if (value[0] < up * 0.005)
-        value[0] = 1;
-      if (value[2] == 0) 
-      {
-        if (value[0] > 1)
-        {
-          z_val += 0.1;
-          value[1] = 0;
-        }
-      }
-      else if (value[2] > 1)
-      {
-        if (value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
-        {
-          destination[Z_AXIS] += 1;
-          prepare_move_raw();
-          st_synchronize();
-          return z_val + 0.0375;
-        }
-        else
-          return -100;
-      }
+
+	  SerialUSB.print("*up=");
+	  SerialUSB.print(up);
+	  SerialUSB.print(" ");
+	  SerialUSB.print("*down=");
+	  SerialUSB.print(down);
+	  SerialUSB.print("\n");
+
+	  destination[Z_AXIS] += 1;
+	  prepare_move_raw();
+	  st_synchronize();
+	  return z_val_first;// z_val + 0.0375;
+
+      //if (value[0] < up * 0.005 )
+      //  value[0] = 1;
+      //if (value[2] == 0) 
+      //{
+      //  if (value[0] > 1)
+      //  {
+      //    z_val += 0.1;
+      //    value[1] = 0;
+      //  }
+      //}
+      //else
+		//if (value[2] > 1 && value[1] > 1 && value[0] > 1)
+		//{
+		//	  SerialUSB.print("value=");
+		//	  SerialUSB.print(value[0]);
+		//	  SerialUSB.print(" ");
+		//	  SerialUSB.print(value[1]);
+		//	  SerialUSB.print(" ");
+		//	  SerialUSB.print(value[2]);
+		//	  SerialUSB.print("\n");
+		//	  SerialUSB.print("i=");
+		//	  SerialUSB.print(i);
+		//	  SerialUSB.print("\n");
+		//	if (value[0] * 0.99 > value[1] && value[1] * 0.99 > value[2])
+		//	{
+		//	  destination[Z_AXIS] += 1;
+		//	  prepare_move_raw();
+		//	  st_synchronize();
+		//	  return z_val_first;// z_val + 0.0375;
+		//	}
+		//	else {
+		//		SerialUSB.print("value not convergence\n");
+		//		return -100;
+		//	}
+  //        
+		//}
       
     }
     
@@ -6954,6 +7030,8 @@ inline void gcode_M503() {
 #ifdef DELTA
   //M666: Set delta endstop and geometry adjustment
   inline void gcode_M666() {
+	  SerialUSB.print(cmdbuffer[bufindr]);
+	  SerialUSB.print("\n");
     if ( !(code_seen('P'))) {
       float saved_endstop_adj[4] = {0};
       for(int8_t i=0; i < 3; i++) 
