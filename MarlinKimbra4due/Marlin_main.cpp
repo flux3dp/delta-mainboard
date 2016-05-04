@@ -2138,49 +2138,26 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     
     feedrate = 600;
 
-    z_val += 0.2;
-    float up, down;
     float value[3] = {0,0,0};
 	
-    for (int i = 0; i < 30; i++)
+    for (int i = 0; i < 3; i++)
     {
-      destination[Z_AXIS] = z_val + 0.25;
-      prepare_move_raw();
-      st_synchronize();
-      delay(200);
-      
       int timeout = 0;
-	  //check if fsr average value < 3*Standard Deviation (normal distribution) 
-	  while (!(fsr_result = read_FSR(up, 200, ratio)) && timeout < 20) {
-		  if (fsr_result < -150) {
-			  return fsr_result;
-		  }
-			  
-		  timeout++;
-	  }
+
       destination[Z_AXIS] = (z_val -= 0.0125) ;
       prepare_move_raw();
       st_synchronize();
-      delay(200);
+      delay(100);
       
       timeout = 0;
-	  while (!(fsr_result = read_FSR(down, 200, ratio)) && timeout < 20) {
-		  if (fsr_result < -150) {
-			  return fsr_result;
-		  }
-			  
+	  //check if fsr average value < 3*Standard Deviation (normal distribution) 
+	  while (!(fsr_result = read_FSR(value[i], 200, ratio)) && timeout < 20) {
 		  timeout++;
 	  }
-	  
-      for (int j = 2; j > 0; j--)
-        value[j] = value[j - 1];
-      value[0] = up - down;
-	  destination[Z_AXIS] += 1;
-	  prepare_move_raw();
-	  st_synchronize();
-	  return z_val_first;
-      
     }
+	if (value[0] > value[1] && value[1] >value[2]) {
+		return z_val_first;
+	}
     
     
     return -100;
