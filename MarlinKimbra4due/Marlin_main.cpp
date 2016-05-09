@@ -8324,6 +8324,8 @@ inline void gcode_C2()
 		  int16_t z_raise = 25;
 		  if (code_seen('Z')) {
 			  z_raise = code_value_short();
+			  if (z_raise < 0)
+				  z_raise = 25;
 		  }
         destination[Z_AXIS] = min(current_position[Z_AXIS] + z_raise, 210);
         feedrate = 2500;
