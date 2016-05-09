@@ -2160,14 +2160,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 	if (value[0] > value[1] && value[1] >value[2]) {
 		return z_val_first+0.05;
 	}
-	SerialUSB.print("value=");
-	SerialUSB.print(value[0]);
-	SerialUSB.print(" ");
-	SerialUSB.print(value[1]);
-	SerialUSB.print(" ");
-	SerialUSB.print(value[2]);
-	SerialUSB.print("\n");
-    
+
     return -100;
   }
 
@@ -8328,7 +8321,11 @@ inline void gcode_C2()
         st_synchronize();
       }
       if (current_position[Z_AXIS] < 210) {
-        destination[Z_AXIS] = min(current_position[Z_AXIS] + 25, 210);
+		  int16_t z_raise = 25;
+		  if (code_seen('Z')) {
+			  z_raise = code_value_short();
+		  }
+        destination[Z_AXIS] = min(current_position[Z_AXIS] + z_raise, 210);
         feedrate = 2500;
         prepare_move_raw();
         st_synchronize();
