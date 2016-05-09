@@ -2075,7 +2075,9 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       ratio[(i + 2) % 3] = point[i][0] * point[(i + 1) % 3][1] - point[i][1] * point[(i + 1) % 3][0];
       ratio[(i + 2) % 3] += point[(i + 1) % 3][0] * destination[Y_AXIS] - point[(i + 1) % 3][1] * destination[X_AXIS];
       ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
+	  
     }
+
     float data;
     
     read_FSR(data, 200, ratio);
@@ -2156,9 +2158,15 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 	  }
     }
 	if (value[0] > value[1] && value[1] >value[2]) {
-		return z_val_first;
+		return z_val_first+0.05;
 	}
-    
+	SerialUSB.print("value=");
+	SerialUSB.print(value[0]);
+	SerialUSB.print(" ");
+	SerialUSB.print(value[1]);
+	SerialUSB.print(" ");
+	SerialUSB.print(value[2]);
+	SerialUSB.print("\n");
     
     return -100;
   }
