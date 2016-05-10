@@ -3606,6 +3606,10 @@ inline void wait_bed() {
  * G0, G1: Coordinated movement of X Y Z E axes
  */
 inline void gcode_G0_G1() {
+  if (code_seen('T')) {
+    gcode_T();
+  }
+
   if (!Stopped) {
     get_coordinates(); // For X Y Z E F
     prepare_move();
