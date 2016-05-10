@@ -8940,70 +8940,30 @@ inline void gcode_X6()
     odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
     odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
 
-    //odelta[0] = st_get_position(X_AXIS);
-    //odelta[1] = st_get_position(Y_AXIS);
-    //odelta[2] = st_get_position(Z_AXIS);
     cdelta[0] = cdelta[0] + odelta[0];
     cdelta[1] = cdelta[1] + odelta[1];
     cdelta[2] = cdelta[2] + odelta[2];
 
-#if 0
-    SerialUSB.print(i);
-    SerialUSB.print(" X: ");
-    SerialUSB.print(cdelta[0]);
-    SerialUSB.print(" Y: ");
-    SerialUSB.print(cdelta[1]);
-    SerialUSB.print(" Z: ");
-    SerialUSB.println(cdelta[2]);
-#endif
-  }
-
-  //cdelta[0] = (cdelta[0]/80) - 403.23;
-  //cdelta[1] = (cdelta[1]/80) - 403.23;
-  //cdelta[2] = (cdelta[2]/80) - 403.23;
   enable_endstops(false);
 
   cdelta[0] = h_constant - cdelta[0] - endstop_adj[0];
   cdelta[1] = h_constant - cdelta[1] - endstop_adj[1];
   cdelta[2] = h_constant - cdelta[2] - endstop_adj[2];
 
-  SerialUSB.print("h_constant: ");
-  SerialUSB.println(h_constant);
-
-  //cdelta[0] = 403.23 - cdelta[0];
-  //cdelta[1] = 403.23 - cdelta[1];
-  //cdelta[2] = 403.23 - cdelta[2];
-
-  //SerialUSB.print(i);
-  //SerialUSB.print("X: ");
-  //SerialUSB.print(cdelta[0]);
-  //SerialUSB.print(" Y: ");
-  //SerialUSB.print(cdelta[1]);
-  //SerialUSB.print(" Z: ");
-  //SerialUSB.println(cdelta[2]);
-
-  //gcode_X19(cdelta);
+  // SerialUSB.print("h_constant: ");
+  // SerialUSB.println(h_constant);
 
   actuator_to_cartesian(cdelta);
 
-  SerialUSB.println("@X22:");
-  SerialUSB.print("X:");
+  SerialUSB.print("DATA HOME ");
   SerialUSB.print(cartesian[X_AXIS]);
-  SerialUSB.print(" Y:");
+  SerialUSB.print(" ");
   SerialUSB.print(cartesian[Y_AXIS]);
-  SerialUSB.print(" Z:");
-  SerialUSB.print(cartesian[Z_AXIS]);
-
-  SerialUSB.print(" Count X:");
-  SerialUSB.print(cdelta[X_AXIS]);
-  SerialUSB.print(" Y:");
-  SerialUSB.print(cdelta[Y_AXIS]);
-  SerialUSB.print(" Z:");
-  SerialUSB.println(cdelta[Z_AXIS]);
+  SerialUSB.print(" ");
+  SerialUSB.println(cartesian[Z_AXIS]);
 
   delay(100);
   gcode_G28();
-  delay(500);
 }
 
 void step(int num,boolean dir,int steps)
