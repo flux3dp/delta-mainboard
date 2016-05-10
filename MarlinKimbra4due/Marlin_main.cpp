@@ -8943,6 +8943,7 @@ inline void gcode_X6()
     cdelta[0] = cdelta[0] + odelta[0];
     cdelta[1] = cdelta[1] + odelta[1];
     cdelta[2] = cdelta[2] + odelta[2];
+  }
 
   enable_endstops(false);
 
