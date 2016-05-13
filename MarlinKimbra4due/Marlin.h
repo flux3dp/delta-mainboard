@@ -404,3 +404,28 @@ extern volatile bool endstop_y_hit;
 extern volatile bool endstop_z_hit;
 static volatile bool endstop_has_hit[3];
 #endif //MARLIN_H
+
+/*
+* PWM Capture using Arduino Due Timer Counters
+*
+* Available channels:
+*   TC    Chan   NVIC irq   Handler       PMC ID   Arduino Pin		IO
+*   TC0   0      TC0_IRQn   TC0_Handler   ID_TC0   D2     (TIOA0)	PB25
+*   TC0   1      TC1_IRQn   TC1_Handler   ID_TC1   D61/A7 (TIOA1)	PA2
+*   TC2   0      TC6_IRQn   TC6_Handler   ID_TC6   D5     (TIOA6)	PC25
+*   TC2   1      TC7_IRQn   TC7_Handler   ID_TC7   D3     (TIOA7)	PC28
+*   TC2   2      TC8_IRQn   TC8_Handler   ID_TC8   D11    (TIOA8)	PD7
+*
+* Change the following defines to use different channels as input.
+*
+*/
+#define PWM_OUT_PIN 13
+#define CAPTURE_TC TC0//TC2//TC2//TC0//TC2//
+#define CAPTURE_CHANNEL 0//2//0//1//1//
+#define CAPTURE_IRQn TC0_IRQn//TC8_IRQn//TC6_IRQn//TC1_IRQn//TC7_IRQn//
+#define CAPTURE_Handler TC0_Handler//TC8_Handler//TC6_Handler//TC1_Handler//TC7_Handler//
+#define CAPTURE_ID ID_TC0//ID_TC8//ID_TC6//ID_TC1//ID_TC7//
+#define CAPTURE_PIN 2//11//5//A7//3//
+#define CAPTURE_CLOCK_SELECTION TC_CMR_TCCLKS_TIMER_CLOCK3
+#define ComPort SerialUSB
+// clock divisors corresponding to CAPTURE_CLOCK_SELECTION

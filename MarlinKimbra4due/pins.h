@@ -316,7 +316,6 @@
 
 
 
-//aven_0429
 /****************************************************************************************
 * 405
 * 
@@ -442,7 +441,6 @@
 #define Z_MIN_PIN          -1//26
 #define Z_MAX_PIN          C_STOP//34
 
-//aven_0817
 #define Z_PROBE_PIN        -1
 //#define Z_PROBE_PIN        F0_STOP//29//26//15
 
@@ -478,7 +476,7 @@
 
 #define HEATER_BED_PIN     -1//8    // BED
 
-#define HEATER_0_PIN       13//9
+#define HEATER_0_PIN       -1//13//9
 #define HEATER_1_PIN       -1//10
 #define HEATER_2_PIN       -1//11
 
@@ -491,7 +489,6 @@
 #define TEMP_3_PIN         -1   // ANALOG NUMBERING
 #define TEMP_4_PIN         -1   // ANALOG NUMBERING
 
-//aven 0504 - TI TPS2552
 #define U5EN 3 //PC28
 #define U5FAULT 72//PC30
 #define S_LAS1 5 //PC25
@@ -541,7 +538,7 @@
 
   #endif //ULTRA_LCD
 
-  //#if defined(FILAMENT_RUNOUT_SENSOR) //aven_test0826
+  //#if defined(FILAMENT_RUNOUT_SENSOR)
   // #define FILRUNOUT_PIN      F0_STOP
   //#endif
 

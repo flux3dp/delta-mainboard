@@ -1,4 +1,4 @@
-//copy from smoothie //aven_0812
+//copy from smoothie
 
 #include "Vector_3.h"
 

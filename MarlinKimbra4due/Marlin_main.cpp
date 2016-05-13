@@ -21,8 +21,6 @@
 
 #include "Marlin.h"
 #include "manage_led.h"
-
-//aven_0812
 #include "vector_3.h"
 
 
@@ -263,13 +261,77 @@ unsigned long rpi_wifi_active = 0;
 bool rpi_io1_flag;
 bool rpi_io2_flag;
 
-
-//aven_0509
-// FLUX defines
 int pleds=0;
-
 int motors=0;
 int motorc=0;
+
+uint32_t last_time = 0, last_tone_time = 0;
+static const uint32_t divisors[5] = { 2, 8, 32, 128, 0 };
+volatile uint32_t captured_pulses = 0;
+volatile uint32_t captured_ra = 0;
+volatile uint32_t captured_rb = 0;
+uint32_t frequency, duty_cycle, active_time;
+static uint32_t test_last_time = 0;
+bool trigger = 0;
+
+void CAPTURE_Handler() {
+	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
+		captured_pulses++;
+		captured_ra = CAPTURE_TC->TC_CHANNEL[CAPTURE_CHANNEL].TC_RA;
+		captured_rb = CAPTURE_TC->TC_CHANNEL[CAPTURE_CHANNEL].TC_RB;
+	}
+}
+
+void PWM_Capture_Config(void) {
+	// configure the PIO pin as peripheral
+	const PinDescription *config = &g_APinDescription[CAPTURE_PIN];
+	PIO_Configure(
+		config->pPort,
+		config->ulPinType,
+		config->ulPin,
+		config->ulPinConfiguration
+		);
+
+	// enable timer peripheral clock
+	pmc_enable_periph_clk(CAPTURE_ID);
+
+	// configure the timer
+	TC_Configure(CAPTURE_TC, CAPTURE_CHANNEL,
+		CAPTURE_CLOCK_SELECTION /* Clock Selection */
+		| TC_CMR_LDRA_RISING /* RA Loading: rising edge of TIOA */
+		| TC_CMR_LDRB_FALLING /* RB Loading: falling edge of TIOA */
+		| TC_CMR_ABETRG /* External Trigger: TIOA */
+		| TC_CMR_ETRGEDG_FALLING /* External Trigger Edge: Falling edge */
+		);
+
+	// configure TC interrupts
+	NVIC_DisableIRQ(CAPTURE_IRQn);
+	NVIC_ClearPendingIRQ(CAPTURE_IRQn);
+	NVIC_SetPriority(CAPTURE_IRQn, 1);
+	NVIC_EnableIRQ(CAPTURE_IRQn);
+
+	// enable interrupts
+	CAPTURE_TC->TC_CHANNEL[CAPTURE_CHANNEL].TC_IER = TC_IER_LDRBS;
+
+	// start timer counter
+	CAPTURE_TC->TC_CHANNEL[CAPTURE_CHANNEL].TC_CCR = TC_CCR_CLKEN | TC_CCR_SWTRG;
+	//testing
+	analogWrite(PWM_OUT_PIN, 100);
+}
+
+void pwm_capture_test(void) {
+	//if (micros() - last_tone_time > 200) {
+	//	last_tone_time = micros();
+	//	digitalWrite(PWM_OUT_PIN, trigger);
+	//	trigger = !trigger;
+	//}
+	//if (millis() - test_last_time < 2100) {
+	//	return;
+	//}
+	//test_last_time = millis();
+	
+}
+
 
 struct GlobalVariable global = {
   0 //home_btn_press
@@ -299,18 +361,15 @@ struct PlayStatus play_st = {
 float k_value= 0.03;
 float u_value;
 
-//aven_0807
+//For G28+ to detect shake when homing.
 int G28_f = 0;
 
-//aven_0812
 #define ROUND(x, y) (roundf(x * (float)(1e ## y)) / (float)(1e ## y))
 
 float cartesian[3] = { 0, 0, 0 };
 float odelta[3] = { 0, 0, 0 };
 float cdelta[3] = { 0, 0, 0 };
 
-
-//aven_0815
 float h_offset=0;
 
 #ifndef DELTA
@@ -374,7 +433,7 @@ float h_offset=0;
 
 #ifdef DELTA
 
-  float saved_endstop_adj[3] = { 0 }; //aven_0813
+  float saved_endstop_adj[3] = { 0 };
   float endstop_adj[3] = { 0, 0, 0 };
   float tower_adj[6] = { 0, 0, 0, 0, 0, 0 };
   float delta_radius; // = DEFAULT_delta_radius;
@@ -425,7 +484,7 @@ float h_offset=0;
   
   static float z_offset;
   static float bed_level_x, bed_level_y, bed_level_z;
-  static float bed_safe_z = 45; //used for initial bed probe safe distance (to avoid crashing into bed) //aven_0813
+  static float bed_safe_z = 45; //used for initial bed probe safe distance (to avoid crashing into bed)
   static float bed_level_c = 20; //used for inital bed probe safe distance (to avoid crashing into bed)
   static float bed_level_ox, bed_level_oy, bed_level_oz;
   static int loopcount;
@@ -449,18 +508,15 @@ float h_offset=0;
   int meas_delay_cm = MEASUREMENT_DELAY_CM;                     //distance delay setting
 #endif
 
-//#ifdef FILAMENT_RUNOUT_SENSOR //aven_test0826
-  static bool filrunoutEnqued = false;
-  bool printing = false;
-//#endif
+static bool filrunoutEnqued = false;
+bool printing = false;
+
 
 #ifdef SDSUPPORT
   static bool fromsd[BUFSIZE];
 #endif //!SDSUPPORT
 
-//#ifdef FILAMENTCHANGEENABLE //aven_test0826
   bool filament_changing = false;
-//#endif
 
 #if defined(IDLE_OOZING_PREVENT) || defined(EXTRUDER_RUNOUT_PREVENT)
   unsigned long axis_last_activity = 0;
@@ -971,16 +1027,12 @@ bool inline enter_boot_mode() {
 
 void setup()
 {
-
-//aven_0509
-  //Serial.begin(115200);
   SerialUSB.begin(115200);
-
+  
   #if MB(ALLIGATOR)
     setup_alligator_board();// Initialize Alligator Board
   #endif
   setup_killpin();
-  //setup_filrunoutpin(); //aven_test0826
   setup_powerhold();
   MYSERIAL.begin(BAUDRATE);
   SERIAL_PROTOCOLLNPGM("start");
@@ -1055,21 +1107,14 @@ void setup()
     FirmwareTest();
   #endif // FIRMWARE_TEST
 
-//aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off start
   pinMode(S_LAS1, OUTPUT);//PC25
   pinMode(S_LAS2, OUTPUT);//PC26
 
-//aven 0504 - TI TPS2552
+//TI TPS2552 USB current limiting
   pinMode(U5EN, OUTPUT);
   pinMode(U5FAULT, INPUT_PULLUP);
-
-  //digitalWrite(U5EN, HIGH);
   digitalWrite(U5EN, LOW);
-
-//aven 0708
   pinMode(M_IO1, INPUT_PULLUP);//PD7
-
-//aven_0825
   pinMode(M_IO2,OUTPUT); //PD8 Laser PWM
   digitalWrite(M_IO2, 0);
 
@@ -1084,17 +1129,9 @@ void setup()
   analogWrite(LED_P1, 255);
   analogWrite(LED_P2, 255);
   analogWrite(LED_P3, 255);
-
   digitalWrite(S_LAS1, LOW);
   digitalWrite(S_LAS2, LOW);
-
-   
-
-//aven 0504 - HOME_K  
   pinMode(HOME_K,INPUT);
-
-  //fan_run();
-
   // LED Control
   pinMode(R_IO1,INPUT);
   pinMode(R_IO2,INPUT);
@@ -1102,8 +1139,6 @@ void setup()
   rpi_io2_flag = digitalRead(R_IO2) == HIGH;
   led_st.param_b[0] = millis();
 
-
-  //aven 0716
   pinMode(REFC1,OUTPUT); 
   pinMode(REFC2,OUTPUT);
   pinMode(REFC3,OUTPUT); 
@@ -1114,7 +1149,6 @@ void setup()
   digitalWrite(REFC3, LOW);
   digitalWrite(REFC4, LOW);
 
-  //aven 0724
   pinMode(EN1,OUTPUT); 
   pinMode(EN2,OUTPUT);
   pinMode(EN3,OUTPUT); 
@@ -1136,6 +1170,7 @@ void setup()
     on_home_btn_press, FALLING);
 
   analogReadResolution(12);
+  PWM_Capture_Config();
 }
 
 void inline report_ln() {
@@ -1183,6 +1218,7 @@ void loop() {
   if(led_st.situational == 'W' && enter_boot_mode()) {
     led_st.god_mode = 'U';
   }
+
 }
 
 void inline proc_heigh_level_control(const char* cmd) {
@@ -1364,9 +1400,7 @@ long code_value_long() { return strtol(strchr_pointer + 1, NULL, 10); }
 
 int16_t code_value_short() { return (int16_t)strtol(strchr_pointer + 1, NULL, 10); }
 
-//aven test
 float code_value_float() { return strtol(strchr_pointer + 1, NULL, 10); }
-//aven test
 
 bool code_seen(char code) {
   strchr_pointer = strchr(cmdbuffer[bufindr], code);
@@ -1450,7 +1484,7 @@ inline void sync_plan_position() {
 inline void set_current_to_destination() { memcpy(current_position, destination, sizeof(current_position)); }
 inline void set_destination_to_current() { memcpy(destination, current_position, sizeof(destination)); }
 
-#if 0 //aven_0813
+#if 0 
 #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
   static void axis_is_at_home(int axis) {
 
@@ -1842,7 +1876,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
   #define HOMEAXIS(LETTER) homeaxis(LETTER##_AXIS)
 #endif // Cartesian || CoreXY || Scara
 
-#endif //aven_0813
+#endif
 
 
 inline int fsr2val(int fsr_val) {
@@ -2446,7 +2480,6 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
                          ) + cartesian[Z_AXIS];
   }
 
- //aven_0817
  void calculate_delta_tower(float r, float delta_tower[])
  {
   DELTA_DIAGONAL_ROD_2 = delta_diagonal_rod * delta_diagonal_rod;
@@ -2598,7 +2631,6 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
   return 1;
   }
 
-  //aven_0817
   // Adjust print surface height by linear interpolation over the bed_level array.
   void adjust_delta(float cartesian[3])
   {
@@ -2645,7 +2677,6 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     */
   }
 
-//aven_0813
   void apply_endstop_adjustment(float x_endstop, float y_endstop, float z_endstop) {
 
     memcpy(saved_endstop_adj, endstop_adj, sizeof(saved_endstop_adj));
@@ -3306,15 +3337,10 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     return retval;
   }
 
-  //aven_0812
   void actuator_to_cartesian( float delta[3])
   {
     
-    //Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS]+endstop_adj[0] );
-    //Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS]+endstop_adj[1] );
-    //Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS]+endstop_adj[2] );
-
-    //aven_0815
+    
   Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
     Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
     Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
@@ -3359,7 +3385,6 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
   //SerialUSB.print(cartesian[Z_AXIS]);
   
   }
-//aven_0812
 #endif //DELTA
 
 #ifdef IDLE_OOZING_PREVENT
@@ -3762,7 +3787,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
   #endif //DELTA
 
-#if 0 //aven_0807
+#if 0 
   #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
 
     #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
@@ -4044,7 +4069,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 #ifdef SCARA
 	sync_plan_position_delta();
 #endif //SCARA
-#endif //aven_0807
+#endif 
 
 
 #ifdef ENDSTOPS_ONLY_FOR_HOMING
@@ -4081,7 +4106,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   feedmultiply = saved_feedmultiply;
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
-  G28_f = 0; //aven_0807
+  G28_f = 0; 
 
 }
 
@@ -4867,7 +4892,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
         if (loopcount < iterations) {
 
-      //aven_0813
+
       delay(500);  
           home_delta_axis();
 
@@ -5826,7 +5851,7 @@ inline void gcode_M114() {
   SerialUSB.println(st_get_position(Z_AXIS));
   #endif
 
-#if 0 //aven_0813
+#if 0
   #ifdef SCARA
     SERIAL_PROTOCOLPGM("SCARA Theta:");
     SERIAL_PROTOCOL(delta[X_AXIS]);
@@ -5907,8 +5932,8 @@ inline void gcode_M119() {
     SERIAL_PROTOCOLPGM(MSG_E_MIN);
     SERIAL_PROTOCOLLN(((!READ(E_MIN_PIN)^E_MIN_ENDSTOP_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
   #endif
-  //#if HAS_FILRUNOUT //aven_test0826
-  //aven_0817 FILAMENT RUNOUT
+  //#if HAS_FILRUNOUT 
+  //FILAMENT RUNOUT
     //SERIAL_PROTOCOLPGM(MSG_FILRUNOUT_PIN);
     SERIAL_PROTOCOLPGM(MSG_FILAMENT_RUNOUT_PIN);
     SERIAL_PROTOCOLLN(((!READ(F0_STOP)^FIL_RUNOUT_INVERTING)?MSG_ENDSTOP_HIT:MSG_ENDSTOP_OPEN));
@@ -6705,7 +6730,7 @@ inline void gcode_M503() {
 
 #endif // ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED
 
-//#ifdef FILAMENTCHANGEENABLE //aven_test0826
+//#ifdef FILAMENTCHANGEENABLE 
   /**
    * M600: Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
    */
@@ -6774,7 +6799,7 @@ inline void gcode_M503() {
     int old_target_temperature_bed = target_temperature_bed;
     timer.set_max_delay(60000); // 1 minute
 
-#if 0  //aven_test0826
+#if 0 
     PRESSBUTTON:  
     LCD_ALERTMESSAGEPGM(MSG_FILAMENTCHANGE);
     while (!lcd_clicked()) {
@@ -6817,7 +6842,7 @@ inline void gcode_M503() {
       sleep = false;
       beep = true;
       cnt = 0;
-      //goto PRESSBUTTON;//aven_test0826
+      //goto PRESSBUTTON;
     }
 
     //return to normal
@@ -6834,7 +6859,7 @@ inline void gcode_M503() {
     sync_plan_position();
 
     // HOME X & Y & Z(only Delta)
-    //gcode_G28(true,true); //aven_tets0826
+    //gcode_G28(true,true);
     gcode_G28();
     #ifdef DELTA
       calculate_delta(lastpos);
@@ -7380,7 +7405,7 @@ inline void gcode_T() {
 inline void gcode_G28(boolean home_x = false, boolean home_y = false) 
 {
 
-  G28_f = 1;//aven_0807
+  G28_f = 1;
   
   #ifdef ENABLE_AUTO_BED_LEVELING
     plan_bed_level_matrix.set_to_identity();
@@ -7445,7 +7470,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
   #endif //DELTA
 
-#if 0 //aven_0807
+#if 0
   #if defined(CARTESIAN) || defined(COREXY) || defined(SCARA)
 
     #if Z_HOME_DIR > 0                      // If homing away from BED do Z first
@@ -7727,7 +7752,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   #ifdef SCARA
     sync_plan_position_delta();
   #endif //SCARA
-#endif //aven_0807
+#endif 
 
 
   #ifdef ENDSTOPS_ONLY_FOR_HOMING
@@ -7738,7 +7763,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   feedmultiply = saved_feedmultiply;
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
-  G28_f = 0; //aven_0807
+  G28_f = 0;
 }
 #endif
 
@@ -8511,7 +8536,6 @@ inline void gcode_X18()
 
 }
 
-//aven_0813
 inline void gcode_X19()
 {
     //delta[X_AXIS]=180.04;
@@ -8840,7 +8864,7 @@ inline void gcode_X6()
   float h_constant = h_cal[0];
 #endif  
 
-  //aven_0817
+
   //for(int i=0 ; i<600 ; i++)
   for(int i=0 ; i<3 ; i++)
   {
@@ -8865,8 +8889,7 @@ inline void gcode_X6()
     sync_plan_position();
 
     for (int i = X_AXIS; i <= Z_AXIS; i++) 
-    {
-      //aven_0817  
+    { 
       //destination[i] = 1;
       destination[i] = 600;
 
@@ -8896,7 +8919,7 @@ inline void gcode_X6()
 
 
     }
-    //aven_0817  
+
     //feedrate = 1.732 * homing_feedrate[X_AXIS];
     feedrate = 1 * homing_feedrate[X_AXIS];
 
@@ -10518,7 +10541,29 @@ inline void gcode_X78()
       SerialUSB.println("*U5EN OFF");
     }
   }
+  if (code_seen('P')) {
+	  ComPort.print("Captured "); ComPort.print(captured_pulses);
+	  ComPort.println(" pulses from TC since last read");
+	  captured_pulses = 0;
 
+	  // frequency in Hz
+	  frequency
+		  = (F_CPU / divisors[CAPTURE_CLOCK_SELECTION]) / captured_rb;
+
+	  // duty cycle in percent
+	  duty_cycle
+		  = (captured_rb - captured_ra) * 100 / captured_rb;
+
+	  // time active in microseconds
+	  active_time
+		  = ((captured_rb - captured_ra) * 1000) /
+		  ((F_CPU / divisors[CAPTURE_CLOCK_SELECTION]) / 1000);
+
+	  ComPort.print("Captured wave frequency = "); ComPort.print(frequency);
+	  ComPort.print(" Hz, Duty cycle = "); ComPort.print(duty_cycle);
+	  ComPort.print(" %, Pulse width = "); ComPort.print(active_time);
+	  ComPort.println(" us");
+  }
   //SerialUSB.println("ok");
 }
 
@@ -10651,7 +10696,7 @@ bool process_commands()
 
 #ifdef DELTA
 
-#if 1 //aven 0724 Mark as not used    
+#if 1 
       case 29: // G29 Detailed Z-Probe, probes the bed at more points.
         gcode_G29();
         break;
@@ -11085,7 +11130,7 @@ bool process_commands()
         return false;
     }
   }
-  //aven_0415_2015 add cmd for S_LSA1 & S_LSA2 on/off end
+
   else if(code_seen('C')) {
     int cCode = code_value_short();
 
@@ -11188,7 +11233,7 @@ void clamp_to_software_endstops(float target[3]) {
 
 void prepare_move() {
 
-#if 0 //aven_0813
+#if 0
   #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
     axis_is_moving = true;
   #endif
@@ -11198,7 +11243,7 @@ void prepare_move() {
   clamp_to_software_endstops(destination);
   refresh_cmd_timeout();
 
-#if 0 //aven_0813
+#if 0
   #ifdef SCARA //for now same as delta-code
 
     float difference[NUM_AXIS];
@@ -11274,7 +11319,7 @@ void prepare_move() {
 
   #endif // DELTA
 
-#if 0 //aven_0813
+#if 0
   #ifdef DUAL_X_CARRIAGE
     if (active_extruder_parked) {
       if (dual_x_carriage_mode == DXC_DUPLICATION_MODE && active_extruder == 0) {
@@ -11320,7 +11365,7 @@ void prepare_move() {
     }
   #endif // !defined(DELTA) && !defined(SCARA)
 
-#if 0 //aven_0813
+#if 0
   #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
     axis_last_activity = millis();
     axis_is_moving = false;
@@ -11678,7 +11723,7 @@ void kill()
   while(1) { /* Intentionally left empty */ } // Wait for reset
 }
 
-//#if HAS_FILRUNOUT //aven_test0826
+//#if HAS_FILRUNOUT 
   void filrunout() {
     //if (filrunoutEnqued == false) {
       //filrunoutEnqued = true;

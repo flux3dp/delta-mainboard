@@ -33,7 +33,7 @@
   #include <SPI.h>
 #endif
 
-extern int G28_f; //aven_0807
+extern int G28_f; 
 extern float feedrate, next_feedrate;
 //===========================================================================
 //============================= public variables ============================
@@ -562,7 +562,7 @@ HAL_STEP_TIMER_ISR {
 
         #ifdef Z_PROBE_ENDSTOP
 
-//		if(G28_f == 1)//aven_0807
+//		if(G28_f == 1)
 //		{
 //          UPDATE_ENDSTOP(z, Z, probe, PROBE);
 //          z_probe_endstop = (READ(Z_PROBE_PIN) == Z_PROBE_ENDSTOP_INVERTING);
@@ -574,7 +574,7 @@ HAL_STEP_TIMER_ISR {
 ////        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
 //          }
 //          old_z_probe_endstop = z_probe_endstop;
-//		} //aven_0807
+//		} 
         #endif
         
       } // check_endstops
@@ -625,7 +625,7 @@ HAL_STEP_TIMER_ISR {
         
         #ifdef Z_PROBE_ENDSTOP
 //
-//		if(G28_f != 0)//aven_0807
+//		if(G28_f != 0)
 //		{
 //          UPDATE_ENDSTOP(z, Z, probe, PROBE);
 //          z_probe_endstop=(READ(M_IO1) == Z_PROBE_ENDSTOP_INVERTING);
@@ -636,7 +636,7 @@ HAL_STEP_TIMER_ISR {
 ////        	  if (z_probe_endstop && old_z_probe_endstop) SERIAL_ECHOLN("z_probe_endstop = true");
 //          }
 //          old_z_probe_endstop = z_probe_endstop;
-//		} //aven_0807 
+//		} 
         #endif
 
       } // check_endstops
