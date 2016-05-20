@@ -316,7 +316,7 @@ void PWM_Capture_Config(void) {
 	// start timer counter
 	CAPTURE_TC->TC_CHANNEL[CAPTURE_CHANNEL].TC_CCR = TC_CCR_CLKEN | TC_CCR_SWTRG;
 	//testing
-	analogWrite(PWM_OUT_PIN, 100);
+	//analogWrite(PWM_OUT_PIN, 100);
 }
 
 void pwm_capture_test(void) {
@@ -8925,6 +8925,14 @@ inline void gcode_X6()
 
     line_to_destination();
     st_synchronize();
+
+	HOMEAXIS(X);
+
+	HOMEAXIS(Y);
+
+	HOMEAXIS(Z);
+
+	sync_plan_position_delta();
 
     odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
     odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
