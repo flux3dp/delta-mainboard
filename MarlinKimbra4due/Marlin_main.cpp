@@ -3603,21 +3603,6 @@ inline void wait_bed() {
 
 
 /**
- * G0, G1: Coordinated movement of X Y Z E axes
- */
-inline void gcode_G0_G1() {
-  if (code_seen('T')) {
-    gcode_T();
-  }
-
-  if (!Stopped) {
-    get_coordinates(); // For X Y Z E F
-    prepare_move();
-    //ClearToSend();
-  }
-}
-
-/**
  * G2: Clockwise Arc
  * G3: Counterclockwise Arc
  */
@@ -4490,6 +4475,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(" Y:");
       SERIAL_ECHO(y);
       SERIAL_ECHO(" = ");
+
       /*
       // NOTE: Change probe_value because FSR is obtuse in center
       float d = pow(pow(x, 2) + pow(y, 2), 0.5);
@@ -4512,6 +4498,11 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(saved_position[Z_AXIS]);
       SERIAL_ECHOLN("]");
       //retract_z_probe();
+
+      SerialUSB.print("DATA ZPROBE ");
+      SERIAL_PROTOCOL_F(probe_value, 4);
+      SerialUSB.print("\n");
+
       return;
     }
 
@@ -7355,6 +7346,21 @@ inline void gcode_T() {
       #endif // EXT_SOLENOID
 
     #endif // EXTRUDERS > 1
+  }
+}
+
+/**
+ * G0, G1: Coordinated movement of X Y Z E axes
+ */
+inline void gcode_G0_G1() {
+  if (code_seen('T')) {
+    gcode_T();
+  }
+
+  if (!Stopped) {
+    get_coordinates(); // For X Y Z E F
+    prepare_move();
+    //ClearToSend();
   }
 }
 
@@ -10523,8 +10529,43 @@ inline void gcode_X78()
     }
   }
 
-  //SerialUSB.println("ok");
 }
+
+inline void gcode_X87() {
+  if(code_seen('F')) {
+    int flags = code_value();
+
+    SerialUSB.print("DATA READ");
+    if(flags & 1) {
+      int min_value[3], max_value[3];
+      float avg[3], sd[3];
+      read_fsr_helper(20, avg, sd, min_value, max_value);
+
+      SerialUSB.print(" X:");
+      SerialUSB.print(avg[0]);
+      SerialUSB.print(" Y:");
+      SerialUSB.print(avg[1]);
+      SerialUSB.print(" Z:");
+      SerialUSB.print(avg[2]);
+    }
+    if(flags & 2) {
+      SerialUSB.print(" F0:");
+      SerialUSB.print(READ(F0_STOP)^FIL_RUNOUT_INVERTING);
+    }
+    if(flags & 4) {
+      SerialUSB.print(" F1:");
+      SerialUSB.print(READ(F1_STOP)^FIL_RUNOUT_INVERTING);
+    }
+    if(flags & 8) {
+      SerialUSB.print(" MB:");
+      SerialUSB.print(READ(HOME_BTN_PIN)^1);
+    }
+    SerialUSB.print("\n");
+  } else {
+    SerialUSB.println("ER MISSING_PARAMS");
+  }
+}
+
 
 inline void gcode_X111()
 {
@@ -11075,6 +11116,9 @@ bool process_commands()
 		  break;
       case 78:
         gcode_X78();
+        break;
+      case 87:
+        gcode_X87();
         break;
       case 111:
         gcode_X111();
