@@ -2173,29 +2173,57 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
     
     feedrate = 600;
-
-    float value[3] = {0,0,0};
 	
-    for (int i = 0; i < 3; i++)
-    {
-      int timeout = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		destination[Z_AXIS] = z_val + 0.25;
+		prepare_move_raw();
+		st_synchronize();
+		delay(100);
 
-      destination[Z_AXIS] = (z_val -= 0.0125) ;
-      prepare_move_raw();
-      st_synchronize();
-      delay(100);
-      
-      timeout = 0;
-	  //check if fsr average value < 3*Standard Deviation (normal distribution) 
-	  while (!(fsr_result = read_FSR(value[i], 200, ratio)) && timeout < 20) {
-		  timeout++;
-	  }
-    }
-	if (value[0] > value[1] && value[1] >value[2]) {
-		return z_val_first+0.05;
+		destination[Z_AXIS] = (z_val -= 0.0125);
+		prepare_move_raw();
+		st_synchronize();
+		delay(100);
+	}
+	float value[3] = { 0,0,0 };
+	
+	for (int i = 0; i < 3; i++)
+	{
+		fsr_flag = -1;
+		destination[Z_AXIS] = (z_val_first + 0.3*(i+1));
+		prepare_move_raw();
+		st_synchronize();
+		delay(100);
+		read_FSR(data, 200, ratio);
+		threshold = data;
+		while ((destination[Z_AXIS] -= 0.00625) >(MANUAL_Z_HOME_POS - 243.5) && fsr_flag < 0)
+		{
+			fsr_flag--;
+			prepare_move_raw();
+			st_synchronize();
+
+			fsr_result = read_FSR(data, 20, ratio);
+
+			if (data < threshold *0.98)
+			{
+				fsr_flag = 1;
+				value[i] = destination[Z_AXIS];
+			}
+			else
+				delayMicroseconds(200);
+		}
+		
+	}
+	destination[Z_AXIS] = (z_val_first + 1.0);
+	prepare_move_raw();
+	st_synchronize();
+	if (max(max(abs(value[0] - value[1]), abs(value[2] - value[1])), abs(value[2] - value[0]))<0.05) {
+		return (value[0]+ value[1] + value[2])/3.0 +0.1;
 	}
 
-    return -100;
+	   return -100;
+
   }
 
   void calibrate_print_surface(float z_offset)
@@ -8926,13 +8954,17 @@ inline void gcode_X6()
     line_to_destination();
     st_synchronize();
 
-	HOMEAXIS(X);
+	//endstops_hit_on_purpose(); // clear endstop hit flags
 
-	HOMEAXIS(Y);
+	//						   // Destination reached
+	//for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
+	//HOMEAXIS(X);
 
-	HOMEAXIS(Z);
+	//HOMEAXIS(Y);
 
-	sync_plan_position_delta();
+	//HOMEAXIS(Z);
+
+	//sync_plan_position_delta();
 
     odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
     odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
@@ -8949,8 +8981,8 @@ inline void gcode_X6()
   cdelta[1] = h_constant - cdelta[1] - endstop_adj[1];
   cdelta[2] = h_constant - cdelta[2] - endstop_adj[2];
 
-  // SerialUSB.print("h_constant: ");
-  // SerialUSB.println(h_constant);
+  SerialUSB.print("h_constant: ");
+  SerialUSB.println(h_constant);
 
   actuator_to_cartesian(cdelta);
 
