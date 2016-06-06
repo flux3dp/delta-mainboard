@@ -273,7 +273,7 @@ volatile uint32_t captured_rb = 0;
 uint32_t frequency, duty_cycle, active_time;
 static uint32_t test_last_time = 0;
 bool trigger = 0;
-
+float Laser_Gamma = 2.2;
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -7876,10 +7876,33 @@ inline void gcode_X2()
 	}
     if(pleds >= 0 & pleds <= 255)
     {
+		//pleds = ROUND(pleds*0.6549, 0) + 88;// ROUND(pleds*0.84314, 0) + 40;//
+		//pleds = ROUND(pow(pleds / 256.0, 1.0 / Laser_Gamma) * 255,0);
+		if (pleds) {
+			pleds = ROUND(pow(pleds / 256.0, 1.0 / Laser_Gamma) * 255, 0);
+		}
+		
 		play_st.stashed_laser_pwm = pleds;
       analogWrite(M_IO2, pleds);
     }
   }
+
+  if (code_seen('Q')) {
+	  SerialUSB.print("Laser_Gamma=");
+	  SerialUSB.print(Laser_Gamma);
+	  SerialUSB.print("\n");
+	  SerialUSB.print("Laser_PWM=");
+	  SerialUSB.print(pleds);
+	  SerialUSB.print("\n");
+  }
+
+  if (code_seen('R')) {
+	  Laser_Gamma= code_value();
+	  //SerialUSB.print("Laser_Gamma=");
+	  //SerialUSB.print(Laser_Gamma);
+	  //SerialUSB.print("\n");
+  }
+
 }
 
 inline void gcode_X3()
