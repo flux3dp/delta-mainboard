@@ -7,6 +7,7 @@
 #define LED_WAVE_2_OFF 5
 #define LED_STATIC 6
 #define LED_FLASH 7
+#define LED_WAVE2 8
 
 #define PI_NOT_DEFINED '?'
 #define PI_WAKINGUP 'W'
@@ -18,6 +19,7 @@
 #define PI_ERROR 'E'
 #define PI_UPDATE 'U'
 #define PI_SLEEP 'S'
+#define PI_WIFI_HOSTED 'h'
 #define PI_STARTING_TASK 's'
 
 #define PI_ERROR_1 '1'
@@ -34,7 +36,7 @@
 #define PI_WIFI_CONNECTED 'C'
 #define PI_WIFI_ASSOCOATING 'A'
 #define PI_WIFI_DISCONNECTED 'D'
-
+#define NoAction 'N'
 typedef struct LedStatus {
   char situational;
   char wifi;

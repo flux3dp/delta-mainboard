@@ -785,64 +785,12 @@ void servo_init()
   #endif
 }
 
-
-inline char get_pi_status() {
-  if (rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
-    // rpi does not change R_IO1 status, check if timeout
-    if (rpi_last_active) {
-      if (millis() - rpi_last_active > 5000) {
-        return PI_FATEL;
-      }
-      else {
-        return PI_NOT_DEFINED;
-      }
-    } else {
-      return PI_WAKINGUP;
-    }
-  }
-  else {
-    // rpi change R_IO1 flag, update status
-    rpi_io1_flag = !rpi_io1_flag;
-    rpi_last_active = millis();
-    return PI_NOT_DEFINED;
-  }
-}
-
-inline char get_wifi_status() {
-   if(rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
-     if(millis() - rpi_wifi_active > 5000) {
-       // rpi wifi status does not change over 5s
-       if(rpi_io2_flag)  // wifi is up
-         return PI_WIFI_CONNECTED;
-       else if(!rpi_io2_flag)  // sleep
-         return PI_WIFI_DISCONNECTED;
-     } else {
-       return PI_WIFI_ASSOCOATING;
-     }
-   } else {
-     // rpi wifi status is changed, wave led
-     rpi_io2_flag = !rpi_io2_flag;
-     rpi_wifi_active = millis();
-     return PI_WIFI_ASSOCOATING;
-   }
-}
-
-inline char get_led_status() {
-  if (play_st.enable_linecheck == 1) {  // if running
-    switch(play_st.stashed) {
-      case 0: return PI_RUNNING;
-      case 1: return PI_PAUSED;
-      default: return play_st.stashed;
-    }
-  } else {
-    return PI_IDLE;
-  }
-}
-
 inline void update_led_flags(char operation_flag, char wifi_flag) {
   if(operation_flag != 'W') {
     switch(wifi_flag) {
       case PI_WIFI_CONNECTED:
+		  led_st.param_a[2] = 0.0009;
+		  led_st.param_b[2] = millis();
         if(led_st.mode[2] != LED_ON) led_st.mode[2] = LED_WAVE_2_ON;
         break;
       case PI_WIFI_ASSOCOATING:
@@ -852,6 +800,18 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
           led_st.param_b[2] = millis();
         }
         break;
+	  case PI_WIFI_HOSTED:
+		  if (led_st.mode[2] != LED_WAVE2) {
+			  led_st.mode[2] = LED_WAVE2;
+			  led_st.param_a[2] = 0.00045;
+			  led_st.param_b[2] = millis();
+		  }
+		  break;
+	  case PI_SLEEP:
+		  led_st.mode[0] = LED_OFF;
+		  led_st.mode[1] = LED_OFF;
+		  led_st.mode[2] = LED_OFF;
+		break;
       case PI_WIFI_DISCONNECTED:
         led_st.mode[2] = LED_OFF;
         break;
@@ -936,29 +896,121 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 	}
 }
 
+inline char get_status_from_io() {
+	bool io1 = (digitalRead(R_IO1) == HIGH);
+	bool io2 = (digitalRead(R_IO2) == HIGH);
+
+	if (rpi_io1_flag == io1 && rpi_io2_flag == io2) {
+		if (rpi_last_active || rpi_wifi_active) {
+			if (millis() - rpi_last_active > 6000) {
+				return PI_FATEL;
+			}
+		}
+		else {
+			return PI_WAKINGUP;
+		}
+	}else if (rpi_io1_flag != io1 && rpi_io2_flag == io2) {
+		rpi_last_active = millis();
+		rpi_io1_flag = !rpi_io1_flag;
+		if (millis() - rpi_wifi_active > 5000) {
+			return io2 ? PI_WIFI_CONNECTED : PI_SLEEP;
+		}
+	}else if (rpi_io1_flag == io1 && rpi_io2_flag != io2) {
+		rpi_wifi_active = millis();
+		rpi_io2_flag = !rpi_io2_flag;
+		if (millis() - rpi_last_active > 5000) {
+			return io1 ? PI_WIFI_HOSTED : PI_SLEEP;
+		}
+	}else{
+		rpi_io1_flag = !rpi_io1_flag;
+		rpi_io2_flag = !rpi_io2_flag;
+		rpi_last_active = rpi_wifi_active = millis();
+		return PI_WIFI_ASSOCOATING;
+	}
+	//Status go on.
+	return PI_NOT_DEFINED;
+	
+}
+
+inline char get_pi_status() {
+	if (rpi_io1_flag == (digitalRead(R_IO1) == HIGH)) {
+		// rpi does not change R_IO1 status, check if timeout
+		if (rpi_last_active) {
+			if (millis() - rpi_last_active > 5000) {
+				return PI_FATEL;
+			}
+			else {
+				return PI_NOT_DEFINED;
+			}
+		}
+		else {
+			return PI_WAKINGUP;
+		}
+	}
+	else {
+		// rpi change R_IO1 flag, update status
+		rpi_io1_flag = !rpi_io1_flag;
+		rpi_last_active = millis();
+		return PI_NOT_DEFINED;
+	}
+}
+
+inline char get_wifi_status() {
+	if (rpi_io2_flag == (digitalRead(R_IO2) == HIGH)) {
+		if (millis() - rpi_wifi_active > 5000) {
+			// rpi wifi status does not change over 5s
+			if (rpi_io2_flag)  // wifi is up
+				return PI_WIFI_CONNECTED;
+			else if (!rpi_io2_flag)  // sleep
+				return PI_WIFI_DISCONNECTED;
+		}
+		else {
+			return PI_WIFI_ASSOCOATING;
+		}
+	}
+	else {
+		// rpi wifi status is changed, wave led
+		rpi_io2_flag = !rpi_io2_flag;
+		rpi_wifi_active = millis();
+		return PI_WIFI_ASSOCOATING;
+	}
+}
+
+inline char get_led_status() {
+	if (play_st.enable_linecheck == 1) {  // if running
+		switch (play_st.stashed) {
+		case 0: return PI_RUNNING;
+		case 1: return PI_PAUSED;
+		default: return play_st.stashed;
+		}
+	}
+	else {
+		return PI_IDLE;
+	}
+}
+
 void manage_led()
 {
   if (millis() - led_st.last_update < 30) return;
   led_st.last_update = millis();
 
-  char new_situational = get_pi_status();
-  char new_wifi_flag = get_wifi_status();
+  char new_situational;
+  char new_wifi_flag;
 
-  if (new_situational == PI_NOT_DEFINED) {
-    if(new_wifi_flag == PI_WIFI_DISCONNECTED) {
-      new_situational = PI_SLEEP;
-    } else {
-      new_situational = get_led_status();
-    }
+  new_situational = get_status_from_io();
+  //Normal status:Idle,Running,Pause
+  if (new_situational != PI_SLEEP && new_situational != PI_FATEL && new_situational != PI_WAKINGUP) {
+		new_wifi_flag = new_situational;
+		new_situational = get_led_status();
+
   }
-
   if (new_situational != 'F' && led_st.god_mode) {
     new_situational = led_st.god_mode;
   }
 
   if(new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
-
-    update_led_flags(new_situational, new_wifi_flag);
+	  if (new_wifi_flag != PI_NOT_DEFINED)
+		update_led_flags(new_situational, new_wifi_flag);
     led_st.situational = new_situational;
     led_st.wifi = new_wifi_flag;
   }
@@ -3369,11 +3421,11 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
   {
     
     
-  Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
+	Vector3 tower1( delta_tower1_x, delta_tower1_y, delta[X_AXIS] );
     Vector3 tower2( delta_tower2_x, delta_tower2_y, delta[Y_AXIS] );
     Vector3 tower3( delta_tower3_x, delta_tower3_y, delta[Z_AXIS] );
 
-  Vector3 s12 = tower1.sub(tower2);
+	Vector3 s12 = tower1.sub(tower2);
     Vector3 s23 = tower2.sub(tower3);
     Vector3 s13 = tower1.sub(tower3);
 
@@ -7878,9 +7930,9 @@ inline void gcode_X2()
     {
 		//pleds = ROUND(pleds*0.6549, 0) + 88;// ROUND(pleds*0.84314, 0) + 40;//
 		//pleds = ROUND(pow(pleds / 256.0, 1.0 / Laser_Gamma) * 255,0);
-		if (pleds) {
-			pleds = ROUND(pow(pleds / 256.0, 1.0 / Laser_Gamma) * 255, 0);
-		}
+		//if (pleds) {
+		//	pleds = ROUND(pleds*0.6549, 0) + 88;
+		//}
 		
 		play_st.stashed_laser_pwm = pleds;
       analogWrite(M_IO2, pleds);
@@ -10590,9 +10642,9 @@ inline void gcode_X78()
   SerialUSB.print("FSR2 ");
   SerialUSB.println(analogRead(2));
   SerialUSB.print("R_IO1 ");
-  SerialUSB.println(analogRead(R_IO1));
+  SerialUSB.println(digitalRead(R_IO1));
   SerialUSB.print("R_IO2 ");
-  SerialUSB.println(analogRead(R_IO2));
+  SerialUSB.println(digitalRead(R_IO2));
   SerialUSB.print("M_IO1 ");
   SerialUSB.println(digitalRead(M_IO1));
   SerialUSB.print("F0_STOP ");
@@ -10636,6 +10688,17 @@ inline void gcode_X78()
 	  ComPort.print(" Hz, Duty cycle = "); ComPort.print(duty_cycle);
 	  ComPort.print(" %, Pulse width = "); ComPort.print(active_time);
 	  ComPort.println(" us");
+  }
+  if (code_seen('Q')) {
+	  ComPort.print("situational = ");
+	  ComPort.println(led_st.situational);
+	  ComPort.print("wifi_flag = ");
+	  ComPort.println(led_st.wifi);
+	  ComPort.print("rpi_io1_flag = ");
+	  ComPort.println(rpi_io1_flag);
+	  ComPort.print("rpi_io2_flag = ");
+	  ComPort.println(rpi_io2_flag);
+	  
   }
 
 }

@@ -13,7 +13,6 @@
 // Center-to-center distance of the holes in the diagonal push rods.
 //#define DEFAULT_DELTA_DIAGONAL_ROD 208.0      // mm
 #define DEFAULT_DELTA_DIAGONAL_ROD 189.75      // mm
-//#define DEFAULT_DELTA_DIAGONAL_ROD 190.6
 
 // Horizontal offset from middle of printer to smooth rod center.
 //#define DELTA_SMOOTH_ROD_OFFSET 127.1      // mm
@@ -41,7 +40,7 @@
 #define AUTOCALIBRATION_PRECISION 0.05      // mm
 
 // Effective horizontal distance bridged by diagonal push rods.
-//#define DEFAULT_DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)
+//#define DEFAULT_DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)//=97.25
 #define DEFAULT_DELTA_RADIUS 96.7//96.7
 
 // Z-Probe variables
