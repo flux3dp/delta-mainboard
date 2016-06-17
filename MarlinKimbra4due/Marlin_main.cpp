@@ -902,32 +902,41 @@ inline char get_status_from_io() {
 
 	if (rpi_io1_flag == io1 && rpi_io2_flag == io2) {
 		if (rpi_last_active || rpi_wifi_active) {
-			if (millis() - rpi_last_active > 6000) {
+			//SerialUSB.print("1\n");
+			if ((millis() - rpi_last_active > 6000) && (millis() - rpi_wifi_active > 6000)) {
+				//SerialUSB.print("2\n");
 				return PI_FATEL;
 			}
 		}
 		else {
+			//SerialUSB.print("3\n");
 			return PI_WAKINGUP;
 		}
 	}else if (rpi_io1_flag != io1 && rpi_io2_flag == io2) {
 		rpi_last_active = millis();
 		rpi_io1_flag = !rpi_io1_flag;
+		//SerialUSB.print("4\n");
 		if (millis() - rpi_wifi_active > 5000) {
+			//SerialUSB.print("5\n");
 			return io2 ? PI_WIFI_CONNECTED : PI_SLEEP;
 		}
 	}else if (rpi_io1_flag == io1 && rpi_io2_flag != io2) {
 		rpi_wifi_active = millis();
 		rpi_io2_flag = !rpi_io2_flag;
+		//SerialUSB.print("6\n");
 		if (millis() - rpi_last_active > 5000) {
+			//SerialUSB.print("7\n");
 			return io1 ? PI_WIFI_HOSTED : PI_SLEEP;
 		}
 	}else{
 		rpi_io1_flag = !rpi_io1_flag;
 		rpi_io2_flag = !rpi_io2_flag;
 		rpi_last_active = rpi_wifi_active = millis();
+		//SerialUSB.print("8\n");
 		return PI_WIFI_ASSOCOATING;
 	}
 	//Status go on.
+	//SerialUSB.print("9\n");
 	return PI_NOT_DEFINED;
 	
 }
@@ -1021,6 +1030,9 @@ void manage_led()
 			analogWrite(led_pins[i], 0);
 			break;
 		case LED_WAVE:
+			analogWrite(led_pins[i], int(_led_wave(i) * 255));
+			break;
+		case LED_WAVE2:
 			analogWrite(led_pins[i], int(_led_wave(i) * 255));
 			break;
 		case LED_BLINK:
@@ -2243,7 +2255,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 	for (int i = 0; i < 3; i++)
 	{
 		fsr_flag = -1;
-		destination[Z_AXIS] = (z_val_first + 0.3*(i+1));
+		destination[Z_AXIS] = (z_val_first + 0.3*(i+2));
 		prepare_move_raw();
 		st_synchronize();
 		delay(100);
@@ -8977,88 +8989,102 @@ inline void gcode_X6()
   float h_constant = h_cal[0];
 #endif  
 
-
-  //for(int i=0 ; i<600 ; i++)
-  for(int i=0 ; i<3 ; i++)
+  for (int i = 0; i<3; i++)
   {
-    saved_feedrate = feedrate;
-    saved_feedmultiply = feedmultiply;
-    feedmultiply = 100;
-    refresh_cmd_timeout();
+	  saved_feedrate = feedrate;
+	  saved_feedmultiply = feedmultiply;
+	  feedmultiply = 100;
+	  refresh_cmd_timeout();
 
-    enable_endstops(true);
+	  enable_endstops(true);
 
-    set_destination_to_current();
+	  set_destination_to_current();
 
-    feedrate = 0.0;
+	  feedrate = 0.0;
 
-    bool  homeX = code_seen(axis_codes[X_AXIS]),
-    homeY = code_seen(axis_codes[Y_AXIS]),
-    homeZ = code_seen(axis_codes[Z_AXIS]),
-    homeE = code_seen(axis_codes[E_AXIS]);
+	  bool  homeX = code_seen(axis_codes[X_AXIS]),
+		  homeY = code_seen(axis_codes[Y_AXIS]),
+		  homeZ = code_seen(axis_codes[Z_AXIS]),
+		  homeE = code_seen(axis_codes[E_AXIS]);
 
-    home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
-    for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
-    sync_plan_position();
+	  home_all_axis = !(homeX || homeY || homeZ || homeE || home_x || home_y) || (homeX && homeY && homeZ);
+	  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
+	  sync_plan_position();
 
-    for (int i = X_AXIS; i <= Z_AXIS; i++) 
-    { 
-      //destination[i] = 1;
-      destination[i] = 600;
+	  for (int i = X_AXIS; i <= Z_AXIS; i++)
+	  {
+		  //destination[i] = 1;
+		  destination[i] = 600;
 
 #if 1
-      if(READ(A_STOP)==1)
-      {
-        //SerialUSB.println("A STOP!");
-        //disable_x();
-        destination[0] = 0;
-      }
+		  if (READ(A_STOP) == 1)
+		  {
+			  //SerialUSB.println("A STOP!");
+			  //disable_x();
+			  destination[0] = 0;
+		  }
 
-      if(READ(B_STOP)==1)
-      {
-        //SerialUSB.println("B STOP!");
-        //disable_y();
-        destination[1] = 0;
-      }
+		  if (READ(B_STOP) == 1)
+		  {
+			  //SerialUSB.println("B STOP!");
+			  //disable_y();
+			  destination[1] = 0;
+		  }
 
-      if(READ(C_STOP)==1)
-      {
-        //SerialUSB.println("C STOP!");
-        //disable_e();
-        destination[2] = 0;
-      }
+		  if (READ(C_STOP) == 1)
+		  {
+			  //SerialUSB.println("C STOP!");
+			  //disable_e();
+			  destination[2] = 0;
+		  }
 #endif
-      check_axes_activity();
+		  check_axes_activity();
 
 
-    }
+	  }
 
-    //feedrate = 1.732 * homing_feedrate[X_AXIS];
-    feedrate = 1 * homing_feedrate[X_AXIS];
+	  //feedrate = 1.732 * homing_feedrate[X_AXIS];
+	  feedrate = 1 * homing_feedrate[X_AXIS];
 
-    line_to_destination();
-    st_synchronize();
+	  line_to_destination();
+	  st_synchronize();
 
-	//endstops_hit_on_purpose(); // clear endstop hit flags
+	  //endstops_hit_on_purpose(); // clear endstop hit flags
 
-	//						   // Destination reached
-	//for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
-	//HOMEAXIS(X);
+	  //						   // Destination reached
+	  //for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
+	  //HOMEAXIS(X);
 
-	//HOMEAXIS(Y);
+	  //HOMEAXIS(Y);
 
-	//HOMEAXIS(Z);
+	  //HOMEAXIS(Z);
 
-	//sync_plan_position_delta();
+	  //sync_plan_position_delta();
 
-    odelta[0] = st_get_position(X_AXIS)/axis_steps_per_unit[X_AXIS];
-    odelta[1] = st_get_position(Y_AXIS)/axis_steps_per_unit[Y_AXIS];
-    odelta[2] = st_get_position(Z_AXIS)/axis_steps_per_unit[Z_AXIS];
+	  odelta[0] = st_get_position(X_AXIS) / axis_steps_per_unit[X_AXIS];
+	  odelta[1] = st_get_position(Y_AXIS) / axis_steps_per_unit[Y_AXIS];
+	  odelta[2] = st_get_position(Z_AXIS) / axis_steps_per_unit[Z_AXIS];
+	  SerialUSB.print("odelta0: ");
+	  SerialUSB.println(odelta[0]);
+	  SerialUSB.print("odelta1: ");
+	  SerialUSB.println(odelta[1]);
+	  SerialUSB.print("odelta2: ");
+	  SerialUSB.println(odelta[2]);
 
-    cdelta[0] = cdelta[0] + odelta[0];
-    cdelta[1] = cdelta[1] + odelta[1];
-    cdelta[2] = cdelta[2] + odelta[2];
+	  cdelta[0] = cdelta[0] + odelta[0];
+	  cdelta[1] = cdelta[1] + odelta[1];
+	  cdelta[2] = cdelta[2] + odelta[2];
+
+	  SerialUSB.print("cdelta: ");
+	  SerialUSB.println(cdelta[0]);
+	  SerialUSB.print("cdelta: ");
+	  SerialUSB.println(cdelta[1]);
+	  SerialUSB.print("cdelta: ");
+	  SerialUSB.println(cdelta[2]);
   }
+
+
+  
 
   enable_endstops(false);
 
@@ -9078,8 +9104,8 @@ inline void gcode_X6()
   SerialUSB.print(" ");
   SerialUSB.println(cartesian[Z_AXIS]);
 
-  delay(100);
-  gcode_G28();
+  //delay(100);
+  //gcode_G28();
 }
 
 void step(int num,boolean dir,int steps)
