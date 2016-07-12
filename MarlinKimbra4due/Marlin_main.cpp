@@ -264,7 +264,9 @@ bool rpi_io2_flag;
 int pleds=0;
 int motors=0;
 int motorc=0;
-
+/*
+PWM capture variants
+*/
 uint32_t last_time = 0, last_tone_time = 0;
 static const uint32_t divisors[5] = { 2, 8, 32, 128, 0 };
 volatile uint32_t captured_pulses = 0;
@@ -273,7 +275,18 @@ volatile uint32_t captured_rb = 0;
 uint32_t frequency, duty_cycle, active_time;
 static uint32_t test_last_time = 0;
 bool trigger = 0;
+
+/*
+Laser gamma tunning variants
+*/
 float Laser_Gamma = 2.2;
+
+/*
+Z probe debug variants
+*/
+float latest_avg[3], latest_sd[3];
+int latest_max_val[3], latest_min_val[3];
+
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -1944,7 +1957,7 @@ inline void set_destination_to_current() { memcpy(destination, current_position,
 
 
 inline int fsr2val(int fsr_val) {
-  return 4096 - fsr_val;
+  return 4095 - fsr_val;
 }
 
 inline void read_fsr_helper(int times, float avg[3], float sd[3],
@@ -2140,14 +2153,22 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     int max_val[3], min_val[3];
 
     read_fsr_helper(count, avg, sd, max_val, min_val);
-    bool flag = 1;
+	for (int j = 0; j < 3; j++) {
+		latest_avg[j] = avg[j];
+		latest_sd[j] = sd[j];
+		latest_max_val[j] = max_val[j];
+		latest_min_val[j] = min_val[j];
+	}
+	
 
+	latest_max_val[3], latest_min_val[3];
+    bool flag = 1;
     data = 0;
     for (int j = 0; j < 3; j++)
     {
       data += ratio[j] * avg[j];
-      if (sd[j] * 3 > avg[j] * 0.01)
-        flag = 0;
+	  if (sd[j] * 3 > avg[j] * 0.01)
+		  flag = 0;
     }
     return flag;
   }
@@ -2175,47 +2196,34 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       ratio[(i + 2) % 3] += destination[X_AXIS] * point[i][1] - destination[Y_AXIS] * point[i][0];
 	  
     }
-
+    
     float data;
     
     read_FSR(data, 200, ratio);
     float threshold = data;
     int fsr_flag = -1;
-	int fsr_result;
 	//downward
-    while ((destination[Z_AXIS] -= 0.00625) > (MANUAL_Z_HOME_POS-243.5)  && fsr_flag < 0)
+    while (destination[Z_AXIS] > (max_pos[Z_AXIS] -243.5)  && fsr_flag < 0)
     {
+      destination[Z_AXIS] -= 0.00625;
       fsr_flag--;
       prepare_move_raw();
       st_synchronize();
       
-	  fsr_result = read_FSR(data, 20, ratio);
-	  //Start detecting metal plate existed by Shuo 12/11
-	  if (fsr_result < -150)
-		  return fsr_result;
-	  //end
-      if (fsr_flag > -500)
+	  read_FSR(data, 20, ratio);
+      if (data < threshold *0.98)
       {
-
-      }
-      else
-      {
-        if (data < threshold *0.98)
-        {
           fsr_flag = 1;
-        } 
-        else
+      }
+      else {
+          if (destination[Z_AXIS] < (max_pos[Z_AXIS] - 243.5))
+              return -300;
           delayMicroseconds(200);
       }
-	
-      
     }
-	if (destination[Z_AXIS] < (MANUAL_Z_HOME_POS - 243.5))
-		return -300;
-
+    
 	float z_val_first;
     float z_val = z_val_first=destination[Z_AXIS];
-	
     prepare_move_raw();
     st_synchronize();
 
@@ -2261,13 +2269,13 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		delay(100);
 		read_FSR(data, 200, ratio);
 		threshold = data;
-		while ((destination[Z_AXIS] -= 0.00625) >(MANUAL_Z_HOME_POS - 243.5) && fsr_flag < 0)
+		while ((destination[Z_AXIS] -= 0.00625) >(max_pos[Z_AXIS] - 243.5) && fsr_flag < 0)
 		{
 			fsr_flag--;
 			prepare_move_raw();
 			st_synchronize();
 
-			fsr_result = read_FSR(data, 20, ratio);
+			read_FSR(data, 20, ratio);
 
 			if (data < threshold *0.98)
 			{
@@ -2348,7 +2356,48 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       SERIAL_EOL;
     }
   }
-
+bool Test_FSR(void) {
+	float result=1;
+	String ERmsg = "ER FSR ";
+	for (int i = 0; i < 3; i++) {
+		uint32_t fsr_adc_val = analogRead(i);
+		switch (i) {
+			case 0:
+				if (fsr_adc_val <= 5) {
+					result = 0;
+					ERmsg += " X-";
+				}
+				else if (fsr_adc_val >= 4090) {
+					result = 0;
+					ERmsg += " XO";
+				}
+				break;
+			case 1:
+				if (fsr_adc_val <= 5) {
+					result = 0;
+					ERmsg += " Y-";
+				}
+				else if (fsr_adc_val >= 4090) {
+					result = 0;
+					ERmsg += " YO";
+				}
+				break;
+			case 2:
+				if (fsr_adc_val <= 5) {
+					result = 0;
+					ERmsg += " Z-";
+				}
+				else if (fsr_adc_val >= 4090) {
+					result = 0;
+					ERmsg += " ZO";
+				}
+				break;
+		}
+	}
+	if(!result)
+		SerialUSB.println(ERmsg);
+	return result;
+}
   float probe_bed(float x, float y)
   {
     //Probe bed at specified location and return z height of bed
@@ -2362,16 +2411,10 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
 
-	float data;
-	float ratio[3];
-	//Start detecting metal plate existed by Shuo 12/11
-	int fsr_result;
-	fsr_result=read_FSR(data, 20, ratio);
-	if (fsr_result <= -200) {
-		return fsr_result;
-	}
-	//End
-    destination[Z_AXIS] = 6;
+	bool FSR_Test_Result=Test_FSR();
+	if (!FSR_Test_Result)
+		return -400;
+    destination[Z_AXIS] = 6+(max_pos[Z_AXIS]>MANUAL_Z_HOME_POS?(max_pos[Z_AXIS]-MANUAL_Z_HOME_POS):0);//absolute z UPON 6
     prepare_move();
     st_synchronize();
     return z_probe() + z_probe_offset[Z_AXIS];
@@ -4586,7 +4629,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       {
         probe_value = probe_bed(x, y);
         count++;
-      } while (probe_value < -10 && probe_value > -150 && count < 3);
+      } while (probe_value < -99.0 && probe_value > -101.0 && count < 3);
       SERIAL_ECHO("Bed Z-Height at X:");
       SERIAL_ECHO(x);
       SERIAL_ECHO(" Y:");
@@ -4603,6 +4646,35 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
       SERIAL_PROTOCOL_F(probe_value, 4);
 	  SERIAL_EOL;
+	  SERIAL_ECHO("FSR_Average: [");
+	  SERIAL_ECHO(latest_avg[X_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_avg[Y_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_avg[Z_AXIS]);
+	  SERIAL_ECHOLN("]");
+	  SERIAL_ECHO("FSR_Std: [");
+	  SERIAL_ECHO(latest_sd[X_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_sd[Y_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_sd[Z_AXIS]);
+	  SERIAL_ECHOLN("]");
+	  SERIAL_ECHO("FSR_Max: [");
+	  SERIAL_ECHO(latest_max_val[X_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_max_val[Y_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_max_val[Z_AXIS]);
+	  SERIAL_ECHOLN("]");
+	  SERIAL_ECHO("FSR_Min: [");
+	  SERIAL_ECHO(latest_min_val[X_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_min_val[Y_AXIS]);
+	  SERIAL_ECHO(", ");
+	  SERIAL_ECHO(latest_min_val[Z_AXIS]);
+	  SERIAL_ECHOLN("]");
+
 	  SERIAL_ECHO("DEBUG: Retry= ");
 	  SERIAL_ECHO(count);
       SERIAL_EOL;
