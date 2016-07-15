@@ -182,32 +182,32 @@
 
 #include "language_en.h" // English
 
-#if LANGUAGE_CHOICE == 2 // Polish
-  #include "language_pl.h"
-#elif LANGUAGE_CHOICE == 3 // French
-  #include "language_fr.h"
-#elif LANGUAGE_CHOICE == 4 // German
-  #include "language_de.h"
-#elif LANGUAGE_CHOICE == 5 // Spanish
-  #include "language_es.h"
-#elif LANGUAGE_CHOICE == 6 // Russian
-  #include "language_ru.h"
-#elif LANGUAGE_CHOICE == 7 // Italian
-  #include "language_it.h"
-#elif LANGUAGE_CHOICE == 8 // Portuguese
-  #include "language_pt.h"
-#elif LANGUAGE_CHOICE == 9 // Finnish
-  #include "language_fi.h"
-#elif LANGUAGE_CHOICE == 10 // Aragonese
-  #include "language_an.h"
-#elif LANGUAGE_CHOICE == 11 // Dutch
-  #include "language_nl.h"
-#elif LANGUAGE_CHOICE == 12 // Catalan
-  #include "language_ca.h"
-#elif LANGUAGE_CHOICE == 13 // Basque-Euskera
-  #include "language_eu.h"
-#elif LANGUAGE_CHOICE == 14 // Portuguese - Brasil
-  #include "language_pt-br.h"
-#endif
+// #if LANGUAGE_CHOICE == 2 // Polish
+//   #include "language_pl.h"
+// #elif LANGUAGE_CHOICE == 3 // French
+//   #include "language_fr.h"
+// #elif LANGUAGE_CHOICE == 4 // German
+//   #include "language_de.h"
+// #elif LANGUAGE_CHOICE == 5 // Spanish
+//   #include "language_es.h"
+// #elif LANGUAGE_CHOICE == 6 // Russian
+//   #include "language_ru.h"
+// #elif LANGUAGE_CHOICE == 7 // Italian
+//   #include "language_it.h"
+// #elif LANGUAGE_CHOICE == 8 // Portuguese
+//   #include "language_pt.h"
+// #elif LANGUAGE_CHOICE == 9 // Finnish
+//   #include "language_fi.h"
+// #elif LANGUAGE_CHOICE == 10 // Aragonese
+//   #include "language_an.h"
+// #elif LANGUAGE_CHOICE == 11 // Dutch
+//   #include "language_nl.h"
+// #elif LANGUAGE_CHOICE == 12 // Catalan
+//   #include "language_ca.h"
+// #elif LANGUAGE_CHOICE == 13 // Basque-Euskera
+//   #include "language_eu.h"
+// #elif LANGUAGE_CHOICE == 14 // Portuguese - Brasil
+//   #include "language_pt-br.h"
+// #endif
 
 #endif //__LANGUAGE_H
