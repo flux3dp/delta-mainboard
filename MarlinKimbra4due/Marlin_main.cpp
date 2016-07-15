@@ -64,6 +64,7 @@
   #include "firmware_test.h"
 #endif
 
+#include <assert.h>
 // look here for descriptions of G-codes: http://linuxcnc.org/handbook/gcode/g-code.html
 // http://objects.reprap.org/wiki/Mendel_User_Manual:_RepRapGCodes
 
@@ -1037,55 +1038,50 @@ void manage_led()
     led_st.wifi = new_wifi_flag;
   }
 
-	for (int i = 0; i<3; i++) {
-		switch (led_st.mode[i]) {
-		case LED_OFF:
-			analogWrite(led_pins[i], 0);
-			break;
-		case LED_WAVE:
-			analogWrite(led_pins[i], int(_led_wave(i) * 255));
-			break;
-		case LED_WAVE2:
-			analogWrite(led_pins[i], int(_led_wave(i) * 255));
-			break;
-		case LED_BLINK:
-			analogWrite(led_pins[i], (_led_blink(i) > 0.5) ? 255 : 0);
-			break;
-		case LED_ON:
-			analogWrite(led_pins[i], 255);
-			break;
-		case LED_WAVE_2_ON:
-			if (_led_wave(i) > 0.95) {
-				analogWrite(led_pins[i], 255);
-				led_st.mode[i] = LED_ON;
-			}
-			else {
-				analogWrite(led_pins[i], int(_led_wave(i) * 255));
-			}
-			break;
-		case LED_WAVE_2_OFF:
-			if (_led_wave(i) < 0.05) {
-				analogWrite(led_pins[i], 0);
-				led_st.mode[i] = LED_OFF;
-			}
-			else {
-				analogWrite(led_pins[i], int(_led_wave(i) * 255));
-			}
-			break;
-		case LED_STATIC:
-			analogWrite(led_pins[i], int(led_st.param_a[i]));
-			break;
-    case LED_FLASH:
-      analogWrite(led_pins[i],
-                  _led_special(led_st.param_a[i], led_st.param_b[i]));
+  uint32_t pwm = 0;
+  volatile float val;
+  for (int i = 0; i<3; i++) {
+    switch (led_st.mode[i]) {
+    case LED_OFF:
+      pwm = 0;
       break;
-		default:
-			analogWrite(led_pins[i], 0);
-			break;
-		}
-	}
+    case LED_WAVE:
+      val = _led_wave(i);
+      pwm = (uint32_t)(val * 255);
+      break;
+    case LED_WAVE2:
+      pwm = (uint32_t)(_led_wave(i) * 255);
+      break;
+    case LED_BLINK:
+      pwm = (_led_blink(i) > 0.5) ? 255 : 0;
+      break;
+    case LED_ON:
+      pwm = 255;
+      break;
+    case LED_WAVE_2_ON:
+      pwm = (uint32_t)(_led_wave(i) * 255);
+      if(pwm > 242) {
+        pwm = 255;
+        led_st.mode[i] = LED_ON;
+      }
+      break;
+    case LED_WAVE_2_OFF:
+      pwm = (uint32_t)(_led_wave(i) * 255);
+      if(pwm < 12) {
+        pwm = 0;
+        led_st.mode[i] = LED_OFF;
+      }
+      break;
+    case LED_STATIC:
+      pwm = (uint32_t)(led_st.param_a[i]);
+      break;
+    case LED_FLASH:
+      pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
+      break;
+    }
+    analogWrite(led_pins[i], pwm);
+  }
 }
-
 
 void on_home_btn_press() {
   global.home_btn_press += 1;
