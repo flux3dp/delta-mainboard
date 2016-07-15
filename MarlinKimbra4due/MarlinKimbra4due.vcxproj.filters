@@ -1,0 +1,306 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="原始程式檔">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="標頭檔">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="資源檔">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MarlinKimbra4due.ino" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="__vm\.MarlinKimbra4due.vsarduino.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="BlinkM.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="boards.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="cardreader.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Conditionals.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ConfigurationStore.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration_adv.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration_Cartesian.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration_Corexy.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration_Delta.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Configuration_Scara.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="DOGMbitmaps.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_6x9_marlin.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_HD44780_C.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_HD44780_J.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_HD44780_W.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_ISO10646_1.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_ISO10646_5_Cyrillic.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_ISO10646_Kana.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_font_data_Marlin_symbols.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="dogm_lcd_implementation.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ExternalDac.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="fastio.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="firmware_test.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="HAL.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_an.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_ca.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_de.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_en.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_es.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_eu.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_fi.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_fr.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_it.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_kana_utf8.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_nl.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_pl.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_pt-br.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_pt.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="language_ru.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="manage_led.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Marlin.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="motion_control.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="pins.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="pins2tool.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="planner.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="qr_solve.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SanityCheck.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Sd2Card.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Sd2PinMap.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdBaseFile.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdFatConfig.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdFatStructs.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdFatUtil.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdFile.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdInfo.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SdVolume.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Servo.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ServoTimers.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="speed_lookuptable.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="stepper.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="stepper_indirection.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="temperature.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="thermistortables.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ultralcd.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ultralcd_implementation_hitachi_HD44780.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="ultralcd_st7920_u8glib_rrd.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="utf_mapper.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="vector_3.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="watchdog.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BlinkM.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="cardreader.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ConfigurationStore.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="digipot_mcp4451.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ExternalDac.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="HAL.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Marlin_main.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="motion_control.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="planner.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="qr_solve.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Sd2Card.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="SdBaseFile.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="SdFatUtil.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="SdFile.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="SdVolume.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Servo.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="stepper.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="stepper_indirection.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="temperature.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="ultralcd.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="vector_3.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="watchdog.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

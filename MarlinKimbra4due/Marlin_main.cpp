@@ -2242,7 +2242,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     saved_position[X_AXIS] = float((st_get_position(X_AXIS)) / axis_steps_per_unit[X_AXIS]);
     saved_position[Y_AXIS] = float((st_get_position(Y_AXIS)) / axis_steps_per_unit[Y_AXIS]);
     saved_position[Z_AXIS] = float((st_get_position(Z_AXIS)) / axis_steps_per_unit[Z_AXIS]);
-
+    
     
     feedrate = 600;
 	
@@ -2287,7 +2287,8 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		}
 		
 	}
-	destination[Z_AXIS] = (z_val_first + 1.0);
+    feedrate = 3600;
+	destination[Z_AXIS] = (z_val_first + 6.0);
 	prepare_move_raw();
 	st_synchronize();
 	if (max(max(abs(value[0] - value[1]), abs(value[2] - value[1])), abs(value[2] - value[0]))<0.05) {
@@ -9121,18 +9122,6 @@ inline void gcode_X6()
 	  line_to_destination();
 	  st_synchronize();
 
-	  //endstops_hit_on_purpose(); // clear endstop hit flags
-
-	  //						   // Destination reached
-	  //for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = destination[i];
-	  //HOMEAXIS(X);
-
-	  //HOMEAXIS(Y);
-
-	  //HOMEAXIS(Z);
-
-	  //sync_plan_position_delta();
-
 	  odelta[0] = st_get_position(X_AXIS) / axis_steps_per_unit[X_AXIS];
 	  odelta[1] = st_get_position(Y_AXIS) / axis_steps_per_unit[Y_AXIS];
 	  odelta[2] = st_get_position(Z_AXIS) / axis_steps_per_unit[Z_AXIS];
@@ -9177,7 +9166,7 @@ inline void gcode_X6()
   SerialUSB.println(cartesian[Z_AXIS]);
 
   //delay(100);
-  //gcode_G28();
+  gcode_G28();
 }
 
 void step(int num,boolean dir,int steps)
