@@ -50,7 +50,11 @@ typedef struct LedStatus {
 
 // manage_led
 inline float _led_wave_atom(float a, float b) {
-  float v = abs(1 - fmod(a * (millis() - b), 2));
+  float n = a * (millis() - b);
+  int x = (int)n;
+  float f = n - (float)x;
+  float v = abs(1 - ((x%2)+f));
+  //float v = abs(1 - fmod(a * (millis() - b), 2));
   if(v < 0.15) return v * 1.04533;
   else if(v < 0.85) return v * 0.336143 + 0.106379;
   else return v * 4.05267 - 3.05267;
@@ -67,7 +71,16 @@ inline int _led_special(int param_a, int param_b) {
   }
 }
 
-#define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
+inline float _led_blink_atom(float a, float b) {
+    float n = a * (millis() - b);
+    int x = (int)n;
+    float f = n - (float)x;
+    float v = abs(1 - ((x % 2) + f));
+    //float v = abs(1 - fmod(a * (millis() - b), 2));
+    return v;
+}
+
+//#define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
 // #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
 #define _led_blink(i) _led_blink_atom(led_st.param_a[i], led_st.param_b[i])
 #define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])

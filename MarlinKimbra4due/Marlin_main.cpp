@@ -6175,6 +6175,67 @@ inline void gcode_M140() {
   }
 #endif // HAS_TEMP_BED
 
+inline void gcode_M137() {
+    if (code_seen('E')) {
+        active_driver = active_extruder = 1;
+        pinMode(F1_STOP,INPUT);
+    }
+    else if (code_seen('O')) {
+        active_driver = active_extruder = 0;
+        pinMode(F1_STOP, OUTPUT);
+    }
+}
+
+/*
+GPIO ouput
+*/
+inline void gcode_M138() {
+    int16_t extensionPort;
+    for (int i = 0; i<4; i++) {
+        if (code_seen('G')) {
+            extensionPort = code_value_short();
+            switch (extensionPort) {
+            case 1:
+                
+                SerialUSB.print("GPIO1:");
+                SerialUSB.println(READ(F1_STOP));
+                break;
+            case 2:
+                SerialUSB.print("GPIO2:");
+                SerialUSB.println(READ(EN6));
+                break;
+            case 3:
+                SerialUSB.print("GPIO3:");
+                SerialUSB.println(READ(STP6));
+                break;
+            case 4:
+                SerialUSB.print("GPIO4:");
+                SerialUSB.println(READ(DIR6));
+                break;
+            }
+        }
+    }
+
+}
+
+/*
+GPIO output
+*/
+inline void gcode_M139() {
+    uint16_t gpioValue;
+    char extensionPortName[4]={'A','B','C','D'};
+    uint16_t extensionPortNum[4]={ F1_STOP,EN6,STP6,DIR6};
+    pinMode(F1_STOP, OUTPUT);
+    for(int i=0;i<4;i++){
+        if (code_seen(extensionPortName[i])) {
+            gpioValue = code_value_short();
+            digitalWrite(extensionPortNum[i], gpioValue);
+        }
+    }   
+    
+}
+
+
 /**
  * M200: Set filament diameter and set E axis units to cubic millimeters (use S0 to set back to millimeters).
  *       T<extruder>
@@ -7319,208 +7380,18 @@ inline void gcode_T() {
       if (next_feedrate > 0.0) feedrate = next_feedrate;
     }
     #if EXTRUDERS > 1
-      #ifdef NPR2
-        if(target_extruder != old_color)
-      #else
-        if(target_extruder != active_extruder)
-      #endif // NPR2
+      if (target_extruder != active_extruder)
       {
         // Save current position to return to after applying extruder offset
         set_destination_to_current();
-        #ifdef DUAL_X_CARRIAGE
-          if (dual_x_carriage_mode == DXC_AUTO_PARK_MODE && Stopped == false &&
-            (delayed_move_time != 0 || current_position[X_AXIS] != x_home_pos(active_extruder)))
-          {
-            // Park old head: 1) raise 2) move to park position 3) lower
-            plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS] + TOOLCHANGE_PARK_ZLIFT, current_position[E_AXIS], max_feedrate[Z_AXIS], active_extruder, active_driver);
-            plan_buffer_line(x_home_pos(active_extruder), current_position[Y_AXIS], current_position[Z_AXIS] + TOOLCHANGE_PARK_ZLIFT, current_position[E_AXIS], max_feedrate[X_AXIS], active_extruder, active_driver);
-            plan_buffer_line(x_home_pos(active_extruder), current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], max_feedrate[Z_AXIS], active_extruder, active_driver);
-            st_synchronize();
-          }
-
-          // apply Y & Z extruder offset (x offset is already used in determining home pos)
-          current_position[Y_AXIS] = current_position[Y_AXIS] -
-                        hotend_offset[Y_AXIS][active_extruder] +
-                        hotend_offset[Y_AXIS][target_extruder];
-          current_position[Z_AXIS] = current_position[Z_AXIS] -
-                        hotend_offset[Z_AXIS][active_extruder] +
-                        hotend_offset[Z_AXIS][target_extruder];
-
-          active_extruder = target_extruder;
-
-          // This function resets the max/min values - the current position may be overwritten below.
-          axis_is_at_home(X_AXIS);
-
-          if (dual_x_carriage_mode == DXC_FULL_CONTROL_MODE) {
-            current_position[X_AXIS] = inactive_extruder_x_pos;
-            inactive_extruder_x_pos = destination[X_AXIS];
-          }
-          else if (dual_x_carriage_mode == DXC_DUPLICATION_MODE) {
-            active_extruder_parked = (active_extruder == 0); // this triggers the second extruder to move into the duplication position
-            if (active_extruder == 0 || active_extruder_parked)
-              current_position[X_AXIS] = inactive_extruder_x_pos;
-            else
-              current_position[X_AXIS] = destination[X_AXIS] + duplicate_extruder_x_offset;
-            inactive_extruder_x_pos = destination[X_AXIS];
-            extruder_duplication_enabled = false;
-          }
-          else {
-            // record raised toolhead position for use by unpark
-            memcpy(raised_parked_position, current_position, sizeof(raised_parked_position));
-            raised_parked_position[Z_AXIS] += TOOLCHANGE_UNPARK_ZLIFT;
-            active_extruder_parked = true;
-            delayed_move_time = 0;
-          }
-        #else // !DUAL_X_CARRIAGE
-          // Offset hotend (only by XY)
-          #if HOTENDS > 1
+        // Offset hotend (only by XY)
+        #if HOTENDS > 1
             for (int i=X_AXIS; i<=Y_AXIS; i++)
-              current_position[i] += hotend_offset[i][target_extruder] - hotend_offset[i][active_extruder];
-          #endif // HOTENDS > 1
+                current_position[i] += hotend_offset[i][target_extruder] - hotend_offset[i][active_extruder];
+        #endif // HOTENDS > 1
 
-          #if defined(MKR4) && (EXTRUDERS > 1)
-            #if (EXTRUDERS == 4) && (E0E2_CHOICE_PIN >1) && (E1E3_CHOICE_PIN > 1) && (DRIVER_EXTRUDERS == 2)
-              st_synchronize(); // Finish all movement
-              disable_e();
-              switch(target_extruder)
-              {
-              case 0:
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                WRITE(E1E3_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              case 1:
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                WRITE(E1E3_CHOICE_PIN,LOW);
-                active_driver = 1;
-                delay(500); // 500 microseconds delay for relay
-                enable_e1();             
-                break;
-              case 2:
-                WRITE(E0E2_CHOICE_PIN,HIGH);
-                WRITE(E1E3_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e2();
-                break;
-              case 3:
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                WRITE(E1E3_CHOICE_PIN,HIGH);
-                active_driver = 1;
-                delay(500); // 500 microseconds delay for relay
-                enable_e3();
-                break;
-              }            
-            #elif (EXTRUDERS == 3) && (E0E2_CHOICE_PIN >1) && (DRIVER_EXTRUDERS == 2)
-              st_synchronize(); // Finish all movement
-              disable_e();
-              switch(target_extruder)
-              {
-              case 0:
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              case 1:
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                active_driver = 1;
-                delay(500); // 500 microseconds delay for relay
-                enable_e1();
-                break;
-              case 2:
-                WRITE(E0E2_CHOICE_PIN,HIGH);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e2();
-                break;
-              }
-            #elif (EXTRUDERS == 3) && (E0E1_CHOICE_PIN >1) && (E0E2_CHOICE_PIN >1) && (DRIVER_EXTRUDERS == 1)
-              st_synchronize(); // Finish all movement
-              disable_e();
-              switch(target_extruder)
-              {
-              case 0:
-                WRITE(E0E1_CHOICE_PIN,LOW);
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              case 1:
-                WRITE(E0E1_CHOICE_PIN,HIGH);
-                WRITE(E0E2_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              case 2:
-                WRITE(E0E1_CHOICE_PIN,HIGH);
-                WRITE(E0E2_CHOICE_PIN,HIGH);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              }
-            #elif (EXTRUDERS == 2) && (E0E1_CHOICE_PIN >1) && (DRIVER_EXTRUDERS == 1)
-              st_synchronize(); // Finish all movement
-              disable_e();
-              switch(target_extruder)
-              {
-              case 0:
-                WRITE(E0E1_CHOICE_PIN,LOW);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              case 1:
-                WRITE(E0E1_CHOICE_PIN,HIGH);
-                active_driver = 0;
-                delay(500); // 500 microseconds delay for relay
-                enable_e0();
-                break;
-              }
-            #endif // E0E1_CHOICE_PIN E0E2_CHOICE_PIN E1E3_CHOICE_PIN
-            active_extruder = target_extruder;
-            SERIAL_ECHO_START;
-            SERIAL_ECHO("Active Driver: ");
-            SERIAL_PROTOCOLLN((int)active_driver);
-            SERIAL_ECHO_START;
-            SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
-            SERIAL_PROTOCOLLN((int)active_extruder);
-          #elif defined(NPR2)
-            st_synchronize(); // Finish all movement
-            if (old_color == 99)
-            {
-              csteps = (color_position[target_extruder]) * color_step_moltiplicator;
-            }
-            else
-            {
-              csteps = (color_position[target_extruder] - color_position[old_color]) * color_step_moltiplicator;
-            }
-            if (csteps < 0) colorstep(-csteps,false);
-            if (csteps > 0) colorstep(csteps,true);
-            old_color = active_extruder = target_extruder;
-            active_driver = 0;
-            SERIAL_ECHO_START;
-            SERIAL_ECHO("Active Color: ");
-            SERIAL_PROTOCOLLN((int)active_extruder);
-          #else 
-            active_driver = active_extruder = target_extruder;
-            //SERIAL_ECHO_START;
-            //SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
-            //SERIAL_PROTOCOLLN((int)active_extruder);
-
-          #endif // end MKR4 || NPR2
-        #endif // end no DUAL_X_CARRIAGE
-
-        #ifdef DELTA 
-          sync_plan_position_delta();
-        #else // NO DELTA
-          sync_plan_position();
-        #endif // DELTA
+        active_driver = active_extruder = target_extruder;
+        sync_plan_position_delta();
         // Move to the old position if 'F' was in the parameters
         if (make_move && !Stopped) prepare_move();
       }
@@ -7528,12 +7399,6 @@ inline void gcode_T() {
 	  SERIAL_ECHO_START;
 	  SERIAL_ECHO(MSG_ACTIVE_EXTRUDER);
 	  SERIAL_PROTOCOLLN((int)active_extruder);
-
-      #ifdef EXT_SOLENOID
-        st_synchronize();
-        disable_all_solenoids();
-        enable_solenoid_on_active_extruder();
-      #endif // EXT_SOLENOID
 
     #endif // EXTRUDERS > 1
   }
@@ -11125,7 +10990,15 @@ bool process_commands()
         gcode_M190();
         break;
 #endif //TEMP_BED_PIN
-
+      case 137:
+        gcode_M137();
+        break;
+      case 138:
+        gcode_M138();
+        break;
+      case 139:
+        gcode_M139();
+        break;
       case 200: // M200 D<millimetres> set filament diameter and set E axis units to cubic millimetres (use S0 to set back to millimeters).
         gcode_M200();
         break;
