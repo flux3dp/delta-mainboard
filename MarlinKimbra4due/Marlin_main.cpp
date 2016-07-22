@@ -10652,9 +10652,7 @@ inline void gcode_X78()
 	  ComPort.println(rpi_io2_flag);
 	  
   }
-
 }
-
 inline void gcode_X87() {
   if(code_seen('F')) {
     int flags = code_value();
