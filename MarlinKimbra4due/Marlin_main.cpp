@@ -20,8 +20,9 @@
  */
 
 #include "Marlin.h"
-#include "manage_led.h"
 #include "vector_3.h"
+#include "manage_led.h"
+#include "flux_protocol.h"
 
 
 #ifdef ENABLE_AUTO_BED_LEVELING
@@ -1246,14 +1247,6 @@ void setup()
   PWM_Capture_Config();
 }
 
-void inline report_ln() {
-  SERIAL_PROTOCOL("LN ");
-  SERIAL_PROTOCOL(play_st.last_no);
-  SERIAL_PROTOCOL(" ");
-  SERIAL_PROTOCOL(buflen);
-  SERIAL_PROTOCOL("\n");
-}
-
 
 void loop() {
   if (buflen < BUFSIZE - 1) get_command();
@@ -1274,7 +1267,7 @@ void loop() {
     bufindr = (bufindr + 1) % BUFSIZE;
 
     if(play_st.enable_linecheck) {
-      report_ln();
+      report_ln(buflen);
     } else if(ret) {
       if(!play_st.enable_linecheck) {
         SERIAL_PROTOCOLLN(MSG_OK);
@@ -1316,7 +1309,7 @@ void inline proc_heigh_level_control(const char* cmd) {
     global.home_btn_press++;
 
   } else if(strcmp(cmd, "OOPS") == 0) {
-    report_ln();
+    report_ln(buflen);
 
   } else {
     SERIAL_PROTOCOLLN("ER UNKNOW_CMD");
@@ -1446,7 +1439,7 @@ void get_command()
       buflen += 1;
 
       if(play_st.enable_linecheck) {
-        report_ln();
+        report_ln(buflen);
       }
       serial_count = 0; //clear buffer
     }
@@ -2353,48 +2346,30 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       SERIAL_EOL;
     }
   }
-bool Test_FSR(void) {
-	float result=1;
-	String ERmsg = "ER FSR ";
-	for (int i = 0; i < 3; i++) {
-		uint32_t fsr_adc_val = analogRead(i);
-		switch (i) {
-			case 0:
-				if (fsr_adc_val <= 5) {
-					result = 0;
-					ERmsg += " X-";
-				}
-				else if (fsr_adc_val >= 4090) {
-					result = 0;
-					ERmsg += " XO";
-				}
-				break;
-			case 1:
-				if (fsr_adc_val <= 5) {
-					result = 0;
-					ERmsg += " Y-";
-				}
-				else if (fsr_adc_val >= 4090) {
-					result = 0;
-					ERmsg += " YO";
-				}
-				break;
-			case 2:
-				if (fsr_adc_val <= 5) {
-					result = 0;
-					ERmsg += " Z-";
-				}
-				else if (fsr_adc_val >= 4090) {
-					result = 0;
-					ERmsg += " ZO";
-				}
-				break;
-		}
-	}
-	if(!result)
-		SerialUSB.println(ERmsg);
-	return result;
+
+uint Test_FSR(void) {
+    // flag:
+    //    1: X-,  2: XO
+    //    4: Y-,  8: YO
+    //   16: Z-, 32: ZO
+    // return 0 if not error
+
+    int i;
+    uint flag = 0;
+    for(i=0;i<3;i++) {
+        uint32_t fsr_adc_val = analogRead(i);
+        if (fsr_adc_val <= 700) {
+            flag += 1 << (i * 2);
+        } else if (fsr_adc_val >= 4090) {
+            flag += 1 << (i * 2 + 1);
+        }
+    }
+    if (flag > 0) {
+        log_error_fsr(flag);
+    }
+    return flag;
 }
+
   float probe_bed(float x, float y)
   {
     //Probe bed at specified location and return z height of bed
@@ -2408,9 +2383,10 @@ bool Test_FSR(void) {
     if (destination[Y_AXIS]<Y_MIN_POS) destination[Y_AXIS]=Y_MIN_POS;
     if (destination[Y_AXIS]>Y_MAX_POS) destination[Y_AXIS]=Y_MAX_POS;
 
-	bool FSR_Test_Result=Test_FSR();
-	if (!FSR_Test_Result)
-		return -400;
+    if (Test_FSR() > 0) {
+        return -400;
+    }
+
     destination[Z_AXIS] = 6+(max_pos[Z_AXIS]>MANUAL_Z_HOME_POS?(max_pos[Z_AXIS]-MANUAL_Z_HOME_POS):0);//absolute z UPON 6
     prepare_move();
     st_synchronize();
@@ -4627,11 +4603,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
         probe_value = probe_bed(x, y);
         count++;
       } while (probe_value < -99.0 && probe_value > -101.0 && count < 3);
-      SERIAL_ECHO("Bed Z-Height at X:");
-      SERIAL_ECHO(x);
-      SERIAL_ECHO(" Y:");
-      SERIAL_ECHO(y);
-      SERIAL_ECHO(" = ");
+
 
       /*
       // NOTE: Change probe_value because FSR is obtuse in center
@@ -4640,41 +4612,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
           probe_value += 0.3 * ((85 - d) / 85);  // Linear adjust
       }
       */
-
-      SERIAL_PROTOCOL_F(probe_value, 4);
-	  SERIAL_EOL;
-	  SERIAL_ECHO("FSR_Average: [");
-	  SERIAL_ECHO(latest_avg[X_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_avg[Y_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_avg[Z_AXIS]);
-	  SERIAL_ECHOLN("]");
-	  SERIAL_ECHO("FSR_Std: [");
-	  SERIAL_ECHO(latest_sd[X_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_sd[Y_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_sd[Z_AXIS]);
-	  SERIAL_ECHOLN("]");
-	  SERIAL_ECHO("FSR_Max: [");
-	  SERIAL_ECHO(latest_max_val[X_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_max_val[Y_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_max_val[Z_AXIS]);
-	  SERIAL_ECHOLN("]");
-	  SERIAL_ECHO("FSR_Min: [");
-	  SERIAL_ECHO(latest_min_val[X_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_min_val[Y_AXIS]);
-	  SERIAL_ECHO(", ");
-	  SERIAL_ECHO(latest_min_val[Z_AXIS]);
-	  SERIAL_ECHOLN("]");
-
-	  SERIAL_ECHO("DEBUG: Retry= ");
-	  SERIAL_ECHO(count);
-      SERIAL_EOL;
+      log_debug_fsr(latest_avg, latest_sd);
+      log_zprobe(x, y, probe_value);
+      log_debug_zprobe_retry(count);
 
       SERIAL_ECHO("Carriage Positions: [");
       SERIAL_ECHO(saved_position[X_AXIS]);
@@ -4684,10 +4624,6 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(saved_position[Z_AXIS]);
       SERIAL_ECHOLN("]");
       //retract_z_probe();
-
-      SerialUSB.print("DATA ZPROBE ");
-      SERIAL_PROTOCOL_F(probe_value, 4);
-      SerialUSB.print("\n");
 
       return;
     }
