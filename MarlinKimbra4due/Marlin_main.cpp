@@ -287,6 +287,18 @@ Z probe debug variants
 float latest_avg[3], latest_sd[3];
 int latest_max_val[3], latest_min_val[3];
 
+/*
+Extension port command variants
+M137
+M138
+M139
+*/
+char extensionPortName[4] = { 'A','B','C','D' };
+uint16_t extensionPortNum[4] = { F1_STOP,EN6,STP6,DIR6 };
+bool pwmState = 0;
+int pwmCount[2] = { 0,0 };
+int extension_port_mode=0;
+
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -798,6 +810,32 @@ void servo_init()
   #endif
 }
 
+/*
+Extension port pwm timer(TC1=Tc0 channel1)
+*/
+void TC1_Handler() {
+    HAL_timer_isr_prologue(1);
+
+    if (pwmCount[0] == 0 || pwmCount[0] == 255)
+        return;
+    if (pwmCount[0] == pwmCount[1]) {
+        digitalWrite(STP6, LOW);
+    }
+    else if (pwmCount[1] == 255) {
+        pwmCount[1] = 0;
+        digitalWrite(STP6, HIGH);
+    }
+    pwmCount[1]++;
+    //pwmState = !pwmState;
+}
+
+inline void extension_port_config(void) {
+    pinMode(STP6, OUTPUT);
+    digitalWrite(STP6, LOW);
+    HAL_temp_timer_start(1);
+    HAL_timer_set_count(1, 1000);
+}
+
 inline void update_led_flags(char operation_flag, char wifi_flag) {
   if(operation_flag != 'W') {
     switch(wifi_flag) {
@@ -1232,6 +1270,7 @@ void setup()
   pinMode(EN4,OUTPUT);
   pinMode(EN5,OUTPUT);
   pinMode(EN6,OUTPUT);
+  pinMode(DIR6, OUTPUT);
 
   digitalWrite(EN1, HIGH);
   digitalWrite(EN2, HIGH);
@@ -1239,14 +1278,17 @@ void setup()
   digitalWrite(EN4, HIGH);
   digitalWrite(EN5, HIGH);
   digitalWrite(EN6, HIGH);
+  digitalWrite(DIR6, LOW);
 
   pinMode(F0_STOP, INPUT);
+  pinMode(F1_STOP, INPUT);
 
   pinMode(HOME_BTN_PIN, INPUT);
   attachInterrupt(digitalPinToInterrupt(HOME_BTN_PIN),
     on_home_btn_press, FALLING);
 
   analogReadResolution(12);
+  extension_port_config();
   PWM_Capture_Config();
 }
 
@@ -6175,58 +6217,54 @@ inline void gcode_M140() {
   }
 #endif // HAS_TEMP_BED
 
-inline void gcode_M137() {
+/*
+Change flux delta extension port mode , append <E> change to extruder mode , nothing is GPIO mode
+*/
+inline void gcode_M136() {
     if (code_seen('E')) {
         active_driver = active_extruder = 1;
-        pinMode(F1_STOP,INPUT);
+        NVIC_DisableIRQ(TC1_IRQn);
+        digitalWrite(STP6, LOW);
+        digitalWrite(EN6, HIGH);
     }
-    else if (code_seen('O')) {
+    else{
         active_driver = active_extruder = 0;
-        pinMode(F1_STOP, OUTPUT);
+        digitalWrite(EN6, LOW);
     }
 }
 
 /*
-GPIO ouput
+Set extension port STP(PWM0) pwm , can be 0~255 , must change to GPIO mode by use M136 before set pwm
+*/
+inline void gcode_M137() {
+    if (code_seen('P')) {
+        NVIC_EnableIRQ(TC1_IRQn);
+        int val = code_value();
+        pwmCount[0] = val;
+        pwmCount[1] = 0;
+        if (val == 0)
+            digitalWrite(STP6, LOW);
+        else if (val == 255)
+            digitalWrite(STP6, HIGH);
+    }
+
+}
+
+/*
+Get extension port INPUT0 value
 */
 inline void gcode_M138() {
-    int16_t extensionPort;
-    for (int i = 0; i<4; i++) {
-        if (code_seen('G')) {
-            extensionPort = code_value_short();
-            switch (extensionPort) {
-            case 1:
-                
-                SerialUSB.print("GPIO1:");
-                SerialUSB.println(READ(F1_STOP));
-                break;
-            case 2:
-                SerialUSB.print("GPIO2:");
-                SerialUSB.println(READ(EN6));
-                break;
-            case 3:
-                SerialUSB.print("GPIO3:");
-                SerialUSB.println(READ(STP6));
-                break;
-            case 4:
-                SerialUSB.print("GPIO4:");
-                SerialUSB.println(READ(DIR6));
-                break;
-            }
-        }
-    }
+    SerialUSB.print("INPUT0:");
+    SerialUSB.println(READ(F1_STOP));
 
 }
 
 /*
-GPIO output
+Control extension port output , HIGH:<B1> , LOW:<B0> , there are B、D GPIOs can be used
 */
 inline void gcode_M139() {
     uint16_t gpioValue;
-    char extensionPortName[4]={'A','B','C','D'};
-    uint16_t extensionPortNum[4]={ F1_STOP,EN6,STP6,DIR6};
-    pinMode(F1_STOP, OUTPUT);
-    for(int i=0;i<4;i++){
+    for(int i=1;i<4;i+=2){
         if (code_seen(extensionPortName[i])) {
             gpioValue = code_value_short();
             digitalWrite(extensionPortNum[i], gpioValue);
@@ -10585,6 +10623,8 @@ inline void gcode_X9()
 		}
 	}
 }
+
+
 inline void gcode_X78()
 {
   SerialUSB.print("FSR0 ");
@@ -10652,6 +10692,7 @@ inline void gcode_X78()
 	  ComPort.println(rpi_io2_flag);
 	  
   }
+
 }
 inline void gcode_X87() {
   if(code_seen('F')) {
@@ -10988,6 +11029,9 @@ bool process_commands()
         gcode_M190();
         break;
 #endif //TEMP_BED_PIN
+      case 136:
+        gcode_M136();
+        break;
       case 137:
         gcode_M137();
         break;

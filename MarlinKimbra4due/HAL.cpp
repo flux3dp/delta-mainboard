@@ -342,7 +342,6 @@ void HAL_step_timer_start() {
 }
 
 void HAL_temp_timer_start (uint8_t timer_num) {
-		
 	Tc *tc = TimerConfig [timer_num].pTimerRegs;
 	IRQn_Type irq = TimerConfig [timer_num].IRQ_Id;
 	uint32_t channel = TimerConfig [timer_num].channel;
@@ -354,7 +353,7 @@ void HAL_temp_timer_start (uint8_t timer_num) {
 	
 	NVIC_SetPriority(irq, NVIC_EncodePriority(4, 6, 0));
 	
-	TC_Configure (tc, channel, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
+    TC_Configure(tc, channel, TC_CMR_TCCLKS_TIMER_CLOCK1 | TC_CMR_CPCTRG);//TC_Configure (tc, channel, TC_CMR_WAVE | TC_CMR_WAVSEL_UP_RC | TC_CMR_TCCLKS_TIMER_CLOCK4);
 
 	uint32_t rc = VARIANT_MCK / 128 / (512*12);
 	TC_SetRC(tc, channel, rc);
@@ -364,7 +363,7 @@ void HAL_temp_timer_start (uint8_t timer_num) {
 	tc->TC_CHANNEL[channel].TC_IER = TC_IER_CPCS;
 	tc->TC_CHANNEL[channel].TC_IDR = ~TC_IER_CPCS;
 
-	NVIC_EnableIRQ(irq);
+	//NVIC_EnableIRQ(irq);
 }
 
 void HAL_timer_enable_interrupt (uint8_t timer_num) {

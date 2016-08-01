@@ -401,7 +401,7 @@
 #define R_IO2 65 //PB20
 
 #define DIR6 61 //PA2
-#define STP6 62 //PB17
+#define STP6 62 //PB17 A8
 #define EN6  63 //PB18
 
 #define POT_SDA 20 //PB12
