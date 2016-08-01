@@ -7936,6 +7936,8 @@ inline void gcode_X4()
 inline void gcode_X5() {
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
+    led_st.last_update -= 1000;
+    manage_led();
   } else {
     SerialUSB.print("INFO: ST=");
     SerialUSB.println(led_st.situational);
