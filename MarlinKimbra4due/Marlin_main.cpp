@@ -2400,7 +2400,7 @@ uint Test_FSR(void) {
     uint flag = 0;
     for(i=0;i<3;i++) {
         uint32_t fsr_adc_val = analogRead(i);
-        if (fsr_adc_val <= 700) {
+        if (fsr_adc_val <= 5) {
             flag += 1 << (i * 2);
         } else if (fsr_adc_val >= 4090) {
             flag += 1 << (i * 2 + 1);
