@@ -50,7 +50,7 @@ typedef struct LedStatus {
 
 // manage_led
 // millis:49.71 days
-inline float _led_wave_atom(float a, float b) {
+inline float _led_wave_atom(float a, uint32_t b) {
     float n = a * (millis() - b);
     uint32_t x = (uint32_t)abs(n);
     float f = n - (float)x;
@@ -61,7 +61,7 @@ inline float _led_wave_atom(float a, float b) {
     else return v * 4.05267 - 3.05267;
 }
 
-inline int _led_special(int param_a, int param_b) {
+inline int _led_special(int param_a, uint32_t param_b) {
     int delay_ratio = 1000 + param_a * 25;
     int led_cycle = param_a * 600 + delay_ratio;
     int offset = (millis() - param_b) % led_cycle;
@@ -72,7 +72,7 @@ inline int _led_special(int param_a, int param_b) {
     }
 }
 
-inline float _led_blink_atom(float a, float b) {
+inline float _led_blink_atom(float a, uint32_t b) {
     float n = a * (millis() - b);
     uint32_t x = (uint32_t)abs(n);
     float f = n - (float)x;

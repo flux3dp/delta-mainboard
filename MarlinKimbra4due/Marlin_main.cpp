@@ -1118,6 +1118,8 @@ void manage_led()
       pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
       break;
     }
+    if(pwm>255)
+        pwm=255;
     analogWrite(led_pins[i], pwm);
   }
 }
