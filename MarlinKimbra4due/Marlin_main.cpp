@@ -2400,7 +2400,7 @@ uint Test_FSR(void) {
     uint flag = 0;
     for(i=0;i<3;i++) {
         uint32_t fsr_adc_val = analogRead(i);
-        if (fsr_adc_val <= 700) {
+        if (fsr_adc_val <= 5) {
             flag += 1 << (i * 2);
         } else if (fsr_adc_val >= 4090) {
             flag += 1 << (i * 2 + 1);
@@ -7936,6 +7936,8 @@ inline void gcode_X4()
 inline void gcode_X5() {
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
+    led_st.last_update -= 1000;
+    manage_led();
   } else {
     SerialUSB.print("INFO: ST=");
     SerialUSB.println(led_st.situational);
