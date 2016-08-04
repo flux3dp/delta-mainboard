@@ -50,11 +50,11 @@ typedef struct LedStatus {
 
 // manage_led
 // millis:49.71 days
-inline double _led_wave_atom(double a, double b) {
-    double n = a * (millis() - b);
+inline float _led_wave_atom(float a, float b) {
+    float n = a * (millis() - b);
     uint32_t x = (uint32_t)abs(n);
-    double f = n - (double)x;
-    double v = abs(1 - ((x%2)+f));
+    float f = n - (float)x;
+    float v = abs(1 - ((x%2)+f));
     //float v = abs(1 - fmod(a * (millis() - b), 2));
     if(v < 0.15) return v * 1.04533;
     else if(v < 0.85) return v * 0.336143 + 0.106379;
@@ -72,11 +72,11 @@ inline int _led_special(int param_a, int param_b) {
     }
 }
 
-inline double _led_blink_atom(double a, double b) {
-    double n = a * (millis() - b);
+inline float _led_blink_atom(float a, float b) {
+    float n = a * (millis() - b);
     uint32_t x = (uint32_t)abs(n);
-    double f = n - (double)x;
-    double v = abs(1 - ((x % 2) + f));
+    float f = n - (float)x;
+    float v = abs(1 - ((x % 2) + f));
     //float v = abs(1 - fmod(a * (millis() - b), 2));
     return v;
 }
