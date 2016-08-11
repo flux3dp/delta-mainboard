@@ -8964,23 +8964,10 @@ inline void gcode_X6()
 	  odelta[0] = st_get_position(X_AXIS) / axis_steps_per_unit[X_AXIS];
 	  odelta[1] = st_get_position(Y_AXIS) / axis_steps_per_unit[Y_AXIS];
 	  odelta[2] = st_get_position(Z_AXIS) / axis_steps_per_unit[Z_AXIS];
-	  SerialUSB.print("odelta0: ");
-	  SerialUSB.println(odelta[0]);
-	  SerialUSB.print("odelta1: ");
-	  SerialUSB.println(odelta[1]);
-	  SerialUSB.print("odelta2: ");
-	  SerialUSB.println(odelta[2]);
 
 	  cdelta[0] = cdelta[0] + odelta[0];
 	  cdelta[1] = cdelta[1] + odelta[1];
 	  cdelta[2] = cdelta[2] + odelta[2];
-
-	  SerialUSB.print("cdelta: ");
-	  SerialUSB.println(cdelta[0]);
-	  SerialUSB.print("cdelta: ");
-	  SerialUSB.println(cdelta[1]);
-	  SerialUSB.print("cdelta: ");
-	  SerialUSB.println(cdelta[2]);
   }
 
 
@@ -9003,8 +8990,7 @@ inline void gcode_X6()
   SerialUSB.print(cartesian[Y_AXIS]);
   SerialUSB.print(" ");
   SerialUSB.println(cartesian[Z_AXIS]);
-
-  //delay(100);
+  delay(100);
   gcode_G28();
 }
 
