@@ -387,18 +387,7 @@
 #define REFC4 44 //PC19
 //#define SLEEP 44 //PC19
 
-#define LED_P1 9 //PC21
-#define LED_P2 8 //PC22
-#define LED_P3 7 //PC23
-
 #define HOME_K 6 //PC24
-
-#define S_LAS1 5 //PC25
-#define S_LAS2 4 //PC26
-
-
-#define R_IO1 64 //PB19
-#define R_IO2 65 //PB20
 
 #define DIR6 61 //PA2
 #define STP6 62 //PB17 A8
@@ -418,9 +407,6 @@
 #define AD1 55 //PA24
 #define AD2 56 //PA23
 #define AD3 57 //PA22
-
-
-
 
 #define X_STEP_PIN         STP1//STP4//63
 #define X_DIR_PIN          DIR1//DIR4//62
@@ -491,9 +477,10 @@
 
 #define U5EN 3 //PC28
 #define U5FAULT 72//PC30
-#define S_LAS1 5 //PC25
-#define S_LAS2 4 //PC26
 
+#define VERSION_0_PIN 74 //PA25
+#define VERSION_1_PIN 75 //PA26
+#define VERSION_2_PIN 76 //PA27
 
 
 

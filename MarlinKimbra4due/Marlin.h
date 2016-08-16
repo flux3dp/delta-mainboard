@@ -429,3 +429,14 @@ static volatile bool endstop_has_hit[3];
 #define CAPTURE_CLOCK_SELECTION TC_CMR_TCCLKS_TIMER_CLOCK3
 #define ComPort SerialUSB
 // clock divisors corresponding to CAPTURE_CLOCK_SELECTION
+
+/*
+Hardware version
+default version:Flux Delta
+VERSION_0_PIN   VERSION_1_PIN   VERSION_2_PIN   HARDWARE
+    HIGH            HIGH            HIGH        Flux Delta
+    LOW             HIGH            HIGH        Flux Delta plus
+*/
+#define FLUX_DELTA      0
+#define FLUX_DELTA_PLUS 1 
+

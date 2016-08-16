@@ -255,7 +255,20 @@ bool Stopped = false;
 bool CooldownNoWait = true;
 bool target_direction;
 static bool home_all_axis = true;
-
+/*
+Hardware type 
+*/
+int HARDWARE_TYPE = FLUX_DELTA;
+int const HARDWARE_PIN_DEFINE[8][3] = { { HIGH,HIGH,HIGH },{ LOW,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH } };
+int R_IO1 = 64; //PB19
+int R_IO2 = 65; //PB20
+int S_LAS1 = 5; //PC25
+int S_LAS2 = 4; //PC26
+uint32_t PIO_S_LAS2=PIO_PC26;
+int LED_P1 = 9; //PC21
+int LED_P2 = 8; //PC22
+int LED_P3 = 7; //PC23
+int LED_P4 = -1;//PC25
 
 // Lifetime manage
 unsigned long rpi_last_active = 0;
@@ -366,7 +379,7 @@ struct GlobalVariable global = {
 
 struct FilamentDetect filament_detect = {false, 0};
 
-const int led_pins[3] = {LED_P1, LED_P2, LED_P3};
+int led_pins[3] = {LED_P1, LED_P2, LED_P3};
 
 struct LedStatus led_st = {
   'W',              // situational Prepare
@@ -812,6 +825,46 @@ void servo_init()
   #endif
 }
 
+int get_hardware_version(void) {
+    int pin[3];
+    pin[0] = READ(VERSION_0_PIN);
+    pin[1] = READ(VERSION_1_PIN);
+    pin[2] = READ(VERSION_2_PIN);
+    for (int hw_type = 0; hw_type < 8; hw_type++) {
+        if (pin[0] == HARDWARE_PIN_DEFINE[hw_type][0] && pin[1] == HARDWARE_PIN_DEFINE[hw_type][1] && pin[2] == HARDWARE_PIN_DEFINE[hw_type][2]) {
+            return hw_type;
+        }
+    }
+    return FLUX_DELTA;
+}
+
+void pin_setup(int hardware_version) {
+    if(hardware_version== FLUX_DELTA){
+        pinMode(S_LAS2, OUTPUT);//PC26
+        digitalWrite(S_LAS2, LOW);
+        return;
+    }else if(hardware_version== FLUX_DELTA_PLUS){
+        R_IO1 = 2; //PB25
+        R_IO2 = 3; //PC28
+        S_LAS1 = 4 ; //PC26
+        //S_LAS2 = ; //PC27
+        //any digitalwrite has to change to register control
+        PIO_S_LAS2= PIO_PC27;
+        PIO_Configure(PIOC, PIO_OUTPUT_0, PIO_PC27, PIO_DEFAULT); //Default output is LOW
+        PIOC->PIO_CODR = PIO_PC27;//low
+        LED_P1 = 9; //PC21
+        LED_P2 = 8; //PC22
+        LED_P3 = 7; //PC23
+        LED_P4 = 5;//PC25
+        return;
+
+    }else{
+        pinMode(S_LAS2, OUTPUT);//PC26
+        digitalWrite(S_LAS2, LOW);
+        return;
+    }
+    
+}
 /*
 Extension port pwm timer(TC1=Tc0 channel1)
 */
@@ -1183,47 +1236,21 @@ void setup()
   // loads data from EEPROM if available else uses defaults (and resets step acceleration rate)
   Config_RetrieveSettings();
 
-  //tp_init();    // Initialize temperature loop
   plan_init();  // Initialize planner;
-  watchdog_init();
+  //watchdog_init();
   st_init();    // Initialize stepper, this enables interrupts!
-  setup_photpin();
-  setup_laserbeampin();   // Initialize Laserbeam pin
-  servo_init();
   
-  lcd_init();
-  _delay_ms(1000);  // wait 1sec to display the splash screen
-
-  #if HAS_CONTROLLERFAN
-    SET_OUTPUT(CONTROLLERFAN_PIN); //Set pin used for driver cooling fan
-  #endif
-
-  #ifdef DIGIPOT_I2C
-    digipot_i2c_init();
-  #endif
-
-  #ifdef Z_PROBE_SLED
-    OUT_WRITE(SERVO0_PIN, LOW); // turn it off
-  #endif // Z_PROBE_SLED
+  /*Try to get hardware version */
+  pinMode(VERSION_0_PIN, INPUT_PULLUP);
+  pinMode(VERSION_1_PIN, INPUT_PULLUP);
+  pinMode(VERSION_2_PIN, INPUT_PULLUP);
+  HARDWARE_TYPE=get_hardware_version();
+  pin_setup(HARDWARE_TYPE);
 
   setup_homepin();
 
-  #ifdef STAT_LED_RED
-    pinMode(STAT_LED_RED, OUTPUT);
-    digitalWrite(STAT_LED_RED, LOW); // turn it off
-  #endif
-  #ifdef STAT_LED_BLUE
-    pinMode(STAT_LED_BLUE, OUTPUT);
-    digitalWrite(STAT_LED_BLUE, LOW); // turn it off
-  #endif
-
-  #ifdef FIRMWARE_TEST
-    FirmwareTest();
-  #endif // FIRMWARE_TEST
-
   pinMode(S_LAS1, OUTPUT);//PC25
-  pinMode(S_LAS2, OUTPUT);//PC26
-
+  
 //TI TPS2552 USB current limiting
   pinMode(U5EN, OUTPUT);
   pinMode(U5FAULT, INPUT_PULLUP);
@@ -1244,8 +1271,9 @@ void setup()
   analogWrite(LED_P2, 255);
   analogWrite(LED_P3, 255);
   digitalWrite(S_LAS1, LOW);
-  digitalWrite(S_LAS2, LOW);
+  
   pinMode(HOME_K,INPUT);
+
   // LED Control
   pinMode(R_IO1,INPUT);
   pinMode(R_IO2,INPUT);
@@ -7785,7 +7813,11 @@ inline void gcode_X1()
   if (code_seen('E')) {
     pleds = code_value_short();
     digitalWrite(S_LAS1, (pleds & 1) ? HIGH : LOW);
-    digitalWrite(S_LAS2, (pleds & 2) ? HIGH : LOW);
+    //digitalWrite(S_LAS2, (pleds & 2) ? HIGH : LOW);
+    if((pleds & 2))
+        PIOC->PIO_SODR = PIO_S_LAS2;//HIGH
+    else
+        PIOC->PIO_CODR = PIO_S_LAS2;//LOW
     return;
   }
 
@@ -7799,13 +7831,13 @@ inline void gcode_X1()
     }
     if(pleds == 2)
     {
-      digitalWrite(S_LAS2, LOW);
+      PIOC->PIO_CODR = PIO_S_LAS2;//LOW
     }
 
     if(pleds == 0)
     {
       digitalWrite(S_LAS1, LOW);
-      digitalWrite(S_LAS2, LOW);
+      PIOC->PIO_CODR = PIO_S_LAS2;//LOW
     }
   }
   
@@ -7818,12 +7850,12 @@ inline void gcode_X1()
     }
     if(pleds == 2)
     {
-      digitalWrite(S_LAS2, HIGH);
+      PIOC->PIO_SODR = PIO_S_LAS2;//HIGH
     }
     if(pleds == 0)
     {
       digitalWrite(S_LAS1, HIGH);
-      digitalWrite(S_LAS2, HIGH);
+      PIOC->PIO_SODR = PIO_S_LAS2;//HIGH
     }
   }
 }
@@ -10612,7 +10644,29 @@ inline void gcode_X78()
 	  ComPort.println(rpi_io1_flag);
 	  ComPort.print("rpi_io2_flag = ");
 	  ComPort.println(rpi_io2_flag);
-	  
+  }
+  if (code_seen('R')) {
+      
+      const unsigned int imThePin = 10; //e.g. digital Pin 10
+                                        //First lets get the pin and bit mask - this can be done once at the start and then used later in the code (as long as the variables are in scope
+      Pio* imThePort = g_APinDescription[imThePin].pPort;
+      unsigned int imTheMask = g_APinDescription[imThePin].ulPin;
+
+      //Lets set the pin high
+      imThePort->PIO_SODR = imTheMask;
+      delay(1500);
+      //And then low
+      imThePort->PIO_CODR = imTheMask;
+  }
+  if(code_seen('S')){
+      PIO_Configure(PIOC, PIO_OUTPUT_0, PIO_PC27, PIO_DEFAULT); //Default output is LOW
+      delay(1000);
+      PIOC->PIO_SODR = PIO_PC27;
+      delay(1500);
+      PIOC->PIO_CODR = PIO_PC27;
+  }
+  if(code_seen('U')){
+      SerialUSB.print(HARDWARE_TYPE);
   }
 
 }
