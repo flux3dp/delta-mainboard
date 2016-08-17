@@ -265,9 +265,9 @@ int R_IO2 = 65; //PB20
 int S_LAS1 = 5; //PC25
 int S_LAS2 = 4; //PC26
 uint32_t PIO_S_LAS2=PIO_PC26;
-int LED_P1 = 9; //PC21
-int LED_P2 = 8; //PC22
-int LED_P3 = 7; //PC23
+//int LED_P1 = 9; //PC21
+//int LED_P2 = 8; //PC22
+//int LED_P3 = 7; //PC23
 int LED_P4 = -1;//PC25
 
 // Lifetime manage
@@ -852,9 +852,9 @@ void pin_setup(int hardware_version) {
         PIO_S_LAS2= PIO_PC27;
         PIO_Configure(PIOC, PIO_OUTPUT_0, PIO_PC27, PIO_DEFAULT); //Default output is LOW
         PIOC->PIO_CODR = PIO_PC27;//low
-        LED_P1 = 9; //PC21
-        LED_P2 = 8; //PC22
-        LED_P3 = 7; //PC23
+        //LED_P1 = 9; //PC21
+        //LED_P2 = 8; //PC22
+        //LED_P3 = 7; //PC23
         LED_P4 = 5;//PC25
         return;
 
