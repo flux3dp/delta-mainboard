@@ -1345,6 +1345,7 @@ void inline proc_heigh_level_control(const char* cmd) {
 
     SERIAL_PROTOCOLLN("CTRL LINECHECK_DISABLED");
     play_st.enable_linecheck = 0;
+    filament_detect.enable = false;
     play_st.stashed = 0;
     led_st.god_mode = 0;
     play_st.stashed_laser_pwm = 0;
