@@ -357,9 +357,9 @@
 //#define LED_4 32 //PD10
 #define REF_IO 32 //PD10
 
-#define LED_P1 9 //PC21
-#define LED_P2 8 //PC22
-#define LED_P3 7 //PC23
+//#define LED_P1 9 //PC21
+//#define LED_P2 8 //PC22
+//#define LED_P3 7 //PC23
 //#define LED_P4 5//PC25
 
 //#define ERASE //PC0

@@ -1,3 +1,4 @@
+#include "led_mappings.h"
 
 #define LED_OFF 0
 #define LED_WAVE 1
@@ -83,5 +84,7 @@ inline float _led_blink_atom(float a, uint32_t b) {
 
 //#define _led_blink_atom(a, b) abs(1 - fmod(a * (millis() - b), 2))
 // #define _led_wave_atom(a, b) pow(sin(a * ((float)millis() - b)), 2)
+
 #define _led_blink(i) _led_blink_atom(led_st.param_a[i], led_st.param_b[i])
-#define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i])
+#define _led_wave(i) _led_wave_atom(led_st.param_a[i], led_st.param_b[i]) //_led_wave_atom(led_st.param_a[i], led_st.param_b[i])
+//float(*_led_wave)(int);

@@ -208,6 +208,8 @@ void FlushSerialRequestResend();
 void ClearToSend();
 
 void get_coordinates();
+void manage_led(void);
+void manage_led_plus(void);
 #ifdef DELTA
 float probe_bed(float x, float y);
 void set_delta_constants();

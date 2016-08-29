@@ -237,6 +237,9 @@
     <ClInclude Include="flux_protocol.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="led_mappings.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BlinkM.cpp">

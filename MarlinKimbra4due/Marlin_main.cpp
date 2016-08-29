@@ -66,145 +66,11 @@
 #endif
 
 #include <assert.h>
-// look here for descriptions of G-codes: http://linuxcnc.org/handbook/gcode/g-code.html
-// http://objects.reprap.org/wiki/Mendel_User_Manual:_RepRapGCodes
 
 /* Implemented Codes
 -------------------
-G0  -> G1
-G1  - Coordinated Movement X Y Z E
-G2  - CW ARC
-G3  - CCW ARC
-G4  - Dwell S<seconds> or P<milliseconds>
-G10 - retract filament according to settings of M207
-G11 - retract recover filament according to settings of M208
-G28 - Home all Axis
-G29 - Detailed Z-Probe, probes the bed at 3 or more points.  Will fail if you haven't homed yet.
-G30 - Single Z Probe, probes bed at current XY location. - Bed Probe and Delta geometry Autocalibration
-G31 - Dock sled (Z_PROBE_SLED only)
-G32 - Undock sled (Z_PROBE_SLED only)
-G60 - Store in memory actual position
-G61 - Move X Y Z to position in memory
-G90 - Use Absolute Coordinates
-G91 - Use Relative Coordinates
-G92 - Set current position to coordinates given
-
-M Codes
-M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)
-M1   - Same as M0
-M03  - Put S<value> in laser beam control
-M04  - Turn on laser beam
-M05  - Turn off laser beam
-M11  - Start printer for pause mode
-M17  - Enable/Power all stepper motors
-M18  - Disable all stepper motors; same as M84
-M20  - List SD card
-M21  - Init SD card
-M22  - Release SD card
-M23  - Select SD file (M23 filename.g)
-M24  - Start/resume SD print
-M25  - Pause SD print
-M26  - Set SD position in bytes (M26 S12345)
-M27  - Report SD print status
-M28  - Start SD write (M28 filename.g)
-M29  - Stop SD write
-M30  - Delete file from SD (M30 filename.g)
-M31  - Output time since last M109 or SD card start to serial
-M32  - Select file and start SD print (Can be used _while_ printing from SD card files):
-       syntax "M32 /path/filename#", or "M32 S<startpos bytes> !filename#"
-       Call gcode file : "M32 P !filename#" and return to caller file after finishing (similar to #include).
-       The '#' is necessary when calling from within sd files, as it stops buffer prereading
-M42  - Change pin status via gcode Use M42 Px Sy to set pin x to value y, when omitting Px the onboard led will be used.
-M49  - Z probe repetability test
-M80  - Turn on Power Supply
-M81  - Turn off Power, including Power Supply, if possible
-M82  - Set E codes absolute (default)
-M83  - Set E codes relative while in Absolute Coordinates (G90) mode
-M84  - Disable steppers until next move,
-       or use S<seconds> to specify an inactivity timeout, after which the steppers will be disabled.  S0 to disable the timeout.
-M85  - Set inactivity shutdown timer with parameter S<seconds>. To disable set zero (default)
-M92  - Set axis_steps_per_unit - same syntax as G92
-M104 - Set extruder target temp
-M105 - Read current temp
-M106 - Fan on
-M107 - Fan off
-M109 - Sxxx Wait for extruder current temp to reach target temp. Waits only when heating
-       Rxxx Wait for extruder current temp to reach target temp. Waits when heating and cooling
-       IF AUTOTEMP is enabled, S<mintemp> B<maxtemp> F<factor>. Exit autotemp by any M109 without F
-M111 - Debug mode
-M112 - Emergency stop
-M114 - Output current position to serial port
-M115 - Capabilities string
-M117 - display message
-M119 - Output Endstop status to serial port
-M126 - Solenoid Air Valve Open (BariCUDA support by jmil)
-M127 - Solenoid Air Valve Closed (BariCUDA vent to atmospheric pressure by jmil)
-M128 - EtoP Open (BariCUDA EtoP = electricity to air pressure transducer by jmil)
-M129 - EtoP Closed (BariCUDA EtoP = electricity to air pressure transducer by jmil)
-M140 - Set bed target temp
-M150 - Set BlinkM Color Output R: Red<0-255> U(!): Green<0-255> B: Blue<0-255> over i2c, G for green does not work.
-M190 - Sxxx Wait for bed current temp to reach target temp. Waits only when heating
-       Rxxx Wait for bed current temp to reach target temp. Waits when heating and cooling
-M200 D<millimeters>- set filament diameter and set E axis units to cubic millimeters (use S0 to set back to millimeters).
-M201 - Set max acceleration in units/s^2 for print moves (M201 X1000 Y1000 Z1000 E0 S1000 E1 S1000 E2 S1000 E3 S1000).
-M203 - Set maximum feedrate that your machine can sustain (M203 X200 Y200 Z300 E0 S1000 E1 S1000 E2 S1000 E3 S1000) in mm/sec
-M204 - Set Accelerations in mm/sec^2: S printing moves, R Retract moves(only E), T travel moves (M204 P1200 R3000 T2500) im mm/sec^2  also sets minimum segment time in ms (B20000) to prevent buffer underruns and M20 minimum feedrate
-M205 -  advanced settings:  minimum travel speed S=while printing T=travel only,  B=minimum segment time X= maximum xy jerk, Z=maximum Z jerk, E=maximum E jerk
-M206 - set additional homing offset
-M207 - set retract length S[positive mm] F[feedrate mm/min] Z[additional zlift/hop], stays in mm regardless of M200 setting
-M208 - set recover=unretract length S[positive mm surplus to the M207 S*] F[feedrate mm/sec]
-M209 - S<1=true/0=false> enable automatic retract detect if the slicer did not support G10/11: every normal extrude-only move will be classified as retract depending on the direction.
-M218 - set hotend offset (in mm): T<extruder_number> X<offset_on_X> Y<offset_on_Y>
-M220 S<factor in percent>- set speed factor override percentage
-M221 S<factor in percent>- set extrude factor override percentage
-M226 P<pin number> S<pin state>- Wait until the specified pin reaches the state required
-M240 - Trigger a camera to take a photograph
-M250 - Set LCD contrast C<contrast value> (value 0..63)
-M280 - set servo position absolute. P: servo index, S: angle or microseconds
-M300 - Play beep sound S<frequency Hz> P<duration ms>
-M301 - Set PID parameters P I and D
-M302 - Allow cold extrudes, or set the minimum extrude S<temperature>.
-M303 - PID relay autotune S<temperature> sets the target temperature. (default target temperature = 150C)
-M304 - Set bed PID parameters P I and D
-M350 - Set microstepping mode.
-M351 - Toggle MS1 MS2 pins directly.
-M380 - Activate solenoid on active extruder
-M381 - Disable all solenoids
-M400 - Finish all moves
-M401 - Lower z-probe if present
-M402 - Raise z-probe if present
-M404 - D<dia in mm> Enter the nominal filament width (3mm, 1.75mm ) or will display nominal filament width without parameters
-M405 - Turn on Filament Sensor extrusion control.  Optional D<delay in cm> to set delay in centimeters between sensor and extruder 
-M406 - Turn off Filament Sensor extrusion control 
-M407 - Displays measured filament diameter 
-M500 - Store parameters in EEPROM
-M501 - Read parameters from EEPROM (if you need reset them after you changed them temporarily).
-M502 - Revert to the default "factory settings". You still need to store them in EEPROM afterwards if you want to.
-M503 - Print the current settings (from memory not from EEPROM). Use S0 to leave off headings.
-M540 - Use S[0|1] to enable or disable the stop SD card print on endstop hit (requires ABORT_ON_ENDSTOP_HIT_FEATURE_ENABLED)
-M600 - Pause for filament change X[pos] Y[pos] Z[relative lift] E[initial retract] L[later retract distance for removal]
-M605 - Set dual x-carriage movement mode: S<mode> [ X<duplication x-offset> R<duplication temp offset> ]
-M666 - Set z probe offset or Endstop and delta geometry adjustment
-M907 - Set digital trimpot motor current using axis codes.
-M908 - Control digital trimpot directly.
-
-************ SCARA Specific - This can change to suit future G-code regulations
-M360 - SCARA calibration: Move to calc-position ThetaA (0 deg calibration)
-M361 - SCARA calibration: Move to calc-position ThetaB (90 deg calibration - steps per degree)
-M362 - SCARA calibration: Move to calc-position PsiA (0 deg calibration)
-M363 - SCARA calibration: Move to calc-position PsiB (90 deg calibration - steps per degree)
-M364 - SCARA calibration: Move to calc-position PSIC (90 deg to Theta calibration position)
-M365 - SCARA calibration: Scaling factor, X, Y, Z axis
-************* SCARA End ***************
-
-M928 - Start SD logging (M928 filename.g) - ended by M29
-M997 - NPR2 Color rotate
-M999 - Restart after being stopped by error
+https://github.com/flux3dp/MainBoard-FW-v2/wiki
 */
-
-#ifdef SDSUPPORT
-  CardReader card;
-#endif
 
 float homing_feedrate[] = HOMING_FEEDRATE;
 int homing_bump_divisor[] = HOMING_BUMP_DIVISOR;
@@ -255,6 +121,8 @@ bool Stopped = false;
 bool CooldownNoWait = true;
 bool target_direction;
 static bool home_all_axis = true;
+void (*manage_led_function)(void);
+
 /*
 Hardware type 
 */
@@ -265,9 +133,9 @@ int R_IO2 = 65; //PB20
 int S_LAS1 = 5; //PC25
 int S_LAS2 = 4; //PC26
 uint32_t PIO_S_LAS2=PIO_PC26;
-//int LED_P1 = 9; //PC21
-//int LED_P2 = 8; //PC22
-//int LED_P3 = 7; //PC23
+int LED_P1 = 9; //PC21
+int LED_P2 = 8; //PC22
+int LED_P3 = 7; //PC23
 int LED_P4 = -1;//PC25
 
 // Lifetime manage
@@ -842,6 +710,9 @@ void pin_setup(int hardware_version) {
     if(hardware_version== FLUX_DELTA){
         pinMode(S_LAS2, OUTPUT);//PC26
         digitalWrite(S_LAS2, LOW);
+        pinMode(LED_P3, OUTPUT);
+        analogWrite(LED_P3, 255);
+        manage_led_function = manage_led;
         return;
     }else if(hardware_version== FLUX_DELTA_PLUS){
         R_IO1 = 2; //PB25
@@ -852,15 +723,26 @@ void pin_setup(int hardware_version) {
         PIO_S_LAS2= PIO_PC27;
         PIO_Configure(PIOC, PIO_OUTPUT_0, PIO_PC27, PIO_DEFAULT); //Default output is LOW
         PIOC->PIO_CODR = PIO_PC27;//low
-        //LED_P1 = 9; //PC21
-        //LED_P2 = 8; //PC22
-        //LED_P3 = 7; //PC23
-        LED_P4 = 5;//PC25
+        LED_P1 = 7; //white
+        LED_P2 = 8; //
+        LED_P3 = 5; //
+        LED_P4 = 9;//
+        pinMode(LED_P3, OUTPUT);
+        pinMode(LED_P4,OUTPUT);
+        analogWrite(LED_P3, 255);
+        analogWrite(LED_P4,0);
+        led_pins[0] = LED_P1;
+        led_pins[1] = LED_P2;
+        led_pins[2]= LED_P3;
+        manage_led_function = manage_led_plus;
         return;
 
     }else{
         pinMode(S_LAS2, OUTPUT);//PC26
         digitalWrite(S_LAS2, LOW);
+        pinMode(LED_P3, OUTPUT);
+        analogWrite(LED_P3, 255);
+        manage_led_function = manage_led;
         return;
     }
     
@@ -890,7 +772,7 @@ inline void extension_port_config(void) {
     HAL_temp_timer_start(1);
     HAL_timer_set_count(1, 1000);
 }
-
+extern inline void gcode_M18_M84();
 inline void update_led_flags(char operation_flag, char wifi_flag) {
   if(operation_flag != 'W') {
     switch(wifi_flag) {
@@ -909,7 +791,7 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 	  case PI_WIFI_HOSTED:
 		  if (led_st.mode[2] != LED_WAVE2) {
 			  led_st.mode[2] = LED_WAVE2;
-			  led_st.param_a[2] = 0.00045;
+			  led_st.param_a[2] = 0.00030;//0.00045
 			  led_st.param_b[2] = millis();
 		  }
 		  break;
@@ -917,6 +799,7 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 		  led_st.mode[0] = LED_OFF;
 		  led_st.mode[1] = LED_OFF;
 		  led_st.mode[2] = LED_OFF;
+          gcode_M18_M84();
 		break;
       case PI_WIFI_DISCONNECTED:
         led_st.mode[2] = LED_OFF;
@@ -927,10 +810,11 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 	switch (operation_flag) {
 	case PI_SLEEP: //Sleep
 		led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
+        gcode_M18_M84();
 		break;
 	case PI_IDLE: //白燈呼吸燈 系統待機
 		led_st.param_a[0] = 0.0004;
-    led_st.param_b[0] = millis();
+        led_st.param_b[0] = millis();
 		led_st.mode[0] = LED_WAVE;
 		led_st.mode[1] = LED_OFF;
 		break;
@@ -994,14 +878,33 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
     led_st.mode[1] = LED_FLASH;
     break;
 	default:
-  	led_st.mode[0] = LED_OFF;
-  	led_st.mode[1] = LED_OFF;
-  	led_st.mode[2] = LED_BLINK;
-		led_st.param_a[2] = 0.01;
-		led_st.param_b[2] = millis();
+  	    led_st.mode[0] = LED_OFF;
+  	    led_st.mode[1] = LED_OFF;
+  	    led_st.mode[2] = LED_OFF;
+
 	}
 }
+/*
+Delta status telling:
 
+if(IO1 == IO2 == 6秒都沒有變化) {
+
+return (IO1 == IO2 == 從未變化) ? ST_WAKEUP : ST_FATAL;
+
+} else if(IO1 最近4秒有變化, IO2 最近四秒無變化) {
+
+return IO2 == HIGH : ST_WIFI_CONNECTED : ST_SLEEP;
+
+} else if(IO1 最近四秒無變化, IO2 最近4秒有變化) {
+
+return IO1 == HIGH : ST_WIFI_HOSTED : ST_SLEEP;
+
+} else {
+
+return ST_WIFI_ASSOCIATING;
+} 
+
+*/
 inline char get_status_from_io() {
 	bool io1 = (digitalRead(R_IO1) == HIGH);
 	bool io2 = (digitalRead(R_IO2) == HIGH);
@@ -1104,77 +1007,151 @@ inline char get_led_status() {
 	}
 }
 
-void manage_led()
+
+
+void manage_led(void)
 {
-  if (millis() - led_st.last_update < 30) return;
-  led_st.last_update = millis();
+    if (millis() - led_st.last_update < 30) return;
+    led_st.last_update = millis();
 
-  char new_situational;
-  char new_wifi_flag;
+    char new_situational;
+    char new_wifi_flag;
 
-  new_situational = get_status_from_io();
-  //Normal status:Idle,Running,Pause
-  if (new_situational != PI_SLEEP && new_situational != PI_FATEL && new_situational != PI_WAKINGUP) {
-		new_wifi_flag = new_situational;
-		new_situational = get_led_status();
+    new_situational = get_status_from_io();
+    //Normal status:Idle,Running,Pause
+    if (new_situational != PI_SLEEP && new_situational != PI_FATEL && new_situational != PI_WAKINGUP ) {
+	    new_wifi_flag = new_situational;
+	    new_situational = get_led_status();      
+    }
+    if (new_situational != 'F' && led_st.god_mode) {
+        new_situational = led_st.god_mode;
+    }
 
-  }
-  if (new_situational != 'F' && led_st.god_mode) {
-    new_situational = led_st.god_mode;
-  }
-
-  if(new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
-	  if (new_wifi_flag != PI_NOT_DEFINED)
-		update_led_flags(new_situational, new_wifi_flag);
-    led_st.situational = new_situational;
-    led_st.wifi = new_wifi_flag;
-  }
-
-  uint32_t pwm = 0;
-  volatile float val;
-  for (int i = 0; i<3; i++) {
+    if(new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
+	    if (new_wifi_flag != PI_NOT_DEFINED)
+	        update_led_flags(new_situational, new_wifi_flag);
+        led_st.situational = new_situational;
+        led_st.wifi = new_wifi_flag;
+    }
+    
+    uint32_t pwm = 0;
+    volatile float val;
+    for (int i = 0; i<3; i++) {
     switch (led_st.mode[i]) {
     case LED_OFF:
-      pwm = 0;
-      break;
-    case LED_WAVE:
-      val = _led_wave(i);
-      pwm = (uint32_t)(val * 255);
-      break;
-    case LED_WAVE2:
-      pwm = (uint32_t)(_led_wave(i) * 255);
-      break;
-    case LED_BLINK:
-      pwm = (_led_blink(i) > 0.5) ? 255 : 0;
-      break;
-    case LED_ON:
-      pwm = 255;
-      break;
-    case LED_WAVE_2_ON:
-      pwm = (uint32_t)(_led_wave(i) * 255);
-      if(pwm > 242) {
-        pwm = 255;
-        led_st.mode[i] = LED_ON;
-      }
-      break;
-    case LED_WAVE_2_OFF:
-      pwm = (uint32_t)(_led_wave(i) * 255);
-      if(pwm < 12) {
         pwm = 0;
-        led_st.mode[i] = LED_OFF;
-      }
-      break;
+        break;
+    case LED_WAVE:
+    case LED_WAVE2:
+        pwm = (uint32_t)(_led_wave(i) * 255);
+        break;
+    case LED_BLINK:
+        pwm = (_led_blink(i) > 0.5) ? 255 : 0;
+        break;
+    case LED_ON:
+        pwm = 255;
+        break;
+    case LED_WAVE_2_ON:
+        pwm = (uint32_t)(_led_wave(i) * 255);
+        if(pwm > 242) {
+            pwm = 255;
+            led_st.mode[i] = LED_ON;
+        }
+        break;
+    case LED_WAVE_2_OFF:
+        pwm = (uint32_t)(_led_wave(i) * 255);
+        if(pwm < 12) {
+            pwm = 0;
+            led_st.mode[i] = LED_OFF;
+        }
+        break;
     case LED_STATIC:
-      pwm = (uint32_t)(led_st.param_a[i]);
-      break;
+        pwm = (uint32_t)(led_st.param_a[i]);
+        break;
     case LED_FLASH:
-      pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
-      break;
+        pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
+        break;
     }
     if(pwm>255)
         pwm=255;
-    analogWrite(led_pins[i], pwm);
-  }
+        analogWrite(led_pins[i], pwm);
+    }
+  
+}
+
+/*
+Led management driver for delta plus.
+*/
+void manage_led_plus()
+{
+    if (millis() - led_st.last_update < 30) return;
+    led_st.last_update = millis();
+
+    char new_situational;
+    char new_wifi_flag;
+
+    new_situational = get_status_from_io();
+    //Normal status:Idle,Running,Pause
+    if (new_situational != PI_SLEEP && new_situational != PI_FATEL && new_situational != PI_WAKINGUP) {
+        new_wifi_flag = new_situational;
+        new_situational = get_led_status();
+    }
+    if (new_situational != 'F' && led_st.god_mode) {
+        new_situational = led_st.god_mode;
+    }
+
+    if (new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
+        if (new_wifi_flag != PI_NOT_DEFINED)
+            update_led_flags(new_situational, new_wifi_flag);
+        led_st.situational = new_situational;
+        led_st.wifi = new_wifi_flag;
+    }
+
+    uint32_t pwm = 0;
+    volatile float val;
+    for (int i = 0; i<3; i++) {
+        switch (led_st.mode[i]) {
+        case LED_OFF:
+            pwm = 0;
+            break;
+        case LED_WAVE:
+            pwm = _led_wave_atom_plus_4s(i);
+            break;
+        case LED_WAVE2:
+            pwm = _led_wave_atom_plus_5s(i);
+            break;
+        case LED_BLINK:
+            pwm = (_led_blink(i) > 0.5) ? 255 : 0;
+            break;
+        case LED_ON:
+            pwm = 255;
+            break;
+        case LED_WAVE_2_ON:
+            pwm = (uint32_t)(_led_wave(i) * 255);
+            if (pwm > 242) {
+                pwm = 255;
+                led_st.mode[i] = LED_ON;
+            }
+            break;
+        case LED_WAVE_2_OFF:
+            pwm = (uint32_t)(_led_wave(i) * 255);
+            if (pwm < 12) {
+                pwm = 0;
+                led_st.mode[i] = LED_OFF;
+            }
+            break;
+        case LED_STATIC:
+            pwm = (uint32_t)(led_st.param_a[i]);
+            break;
+        case LED_FLASH:
+            pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
+            break;
+        }
+        if (pwm>255)
+            pwm = 255;
+        analogWrite(led_pins[i], pwm);
+    }
+
 }
 
 void on_home_btn_press() {
@@ -1265,11 +1242,11 @@ void setup()
   //// Initial LED
   pinMode(LED_P1,OUTPUT);
   pinMode(LED_P2,OUTPUT);
-  pinMode(LED_P3,OUTPUT);
+  //pinMode(LED_P3,OUTPUT);
 
   analogWrite(LED_P1, 255);
   analogWrite(LED_P2, 255);
-  analogWrite(LED_P3, 255);
+  //analogWrite(LED_P3, 255);
   digitalWrite(S_LAS1, LOW);
   
   pinMode(HOME_K,INPUT);
@@ -1348,10 +1325,9 @@ void loop() {
     }
   }
   // Check heater every n milliseconds
-  manage_heater();
   manage_inactivity();
   checkHitEndstops();
-  manage_led();
+  manage_led_function();
 
   if(led_st.situational == 'W' && enter_boot_mode()) {
     led_st.god_mode = 'U';
@@ -7971,7 +7947,7 @@ inline void gcode_X5() {
   if(code_seen('S')) {
     led_st.god_mode = code_value_short();
     led_st.last_update -= 1000;
-    manage_led();
+    manage_led_function();
   } else {
     SerialUSB.print("INFO: ST=");
     SerialUSB.println(led_st.situational);
@@ -9046,7 +9022,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP1, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN1,HIGH);
+    //digitalWrite(EN1,HIGH);
   }
 
   if(num == 2)
@@ -9162,15 +9138,19 @@ inline void gcode_X7()
   {
     motors = code_value_short();
 
-    if (code_seen('C'))
+    if (code_seen('U'))
     {
       motorc = code_value_short();
+      step(motors, true, motorc);
+      delay(500);
     }
-  
-    step(motors,true,motorc);
-    delay(500);
-    step(motors,false,motorc*5);
-    delay(500);
+    if (code_seen('D'))
+    {
+        motorc = code_value_short();
+        step(motors, false, motorc);
+        delay(500);
+    }
+    
   }
 }
 
@@ -10638,12 +10618,17 @@ inline void gcode_X78()
   if (code_seen('Q')) {
 	  ComPort.print("situational = ");
 	  ComPort.println(led_st.situational);
+      ComPort.print("mode = ");
+      for (int i = 0; i<3; i++)
+          ComPort.print((int)led_st.mode[i]);
+      ComPort.print("\n");
 	  ComPort.print("wifi_flag = ");
 	  ComPort.println(led_st.wifi);
 	  ComPort.print("rpi_io1_flag = ");
 	  ComPort.println(rpi_io1_flag);
 	  ComPort.print("rpi_io2_flag = ");
 	  ComPort.println(rpi_io2_flag);
+      
   }
   if (code_seen('R')) {
       
@@ -10667,6 +10652,40 @@ inline void gcode_X78()
   }
   if(code_seen('U')){
       SerialUSB.print(HARDWARE_TYPE);
+  }
+  if(code_seen('A')){
+      int val = code_value();
+      int mode;
+      if(code_seen('B'))
+          mode= code_value();
+      switch (mode) {
+      case LED_OFF: //Sleep
+          break;
+      case LED_WAVE: //白燈呼吸燈 系統待機
+          led_st.param_a[val] = 0.0004;
+          led_st.param_b[val] = millis();
+          break;
+      case LED_BLINK: //白燈閃爍 工作暫停
+          led_st.param_a[val] = 0.0015;
+          led_st.param_b[val] = millis();
+          break;
+      case LED_ON: //白燈恆亮 工作中
+          break;
+      case LED_WAVE2:
+          led_st.param_a[val] = 0.00045;
+          led_st.param_b[val] = millis();
+          break;
+     
+      }
+      SerialUSB.print("i= ");
+      SerialUSB.print(val);
+      SerialUSB.print("mode=");
+      SerialUSB.println(mode);
+      led_st.mode[val]= mode;
+  }
+  if (code_seen('B')) {
+      int val = code_value();
+      analogWrite(LED_P3,val);
   }
 
 }
@@ -11385,58 +11404,6 @@ void clamp_to_software_endstops(float target[3]) {
 }
 
 void prepare_move() {
-
-#if 0
-  #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
-    axis_is_moving = true;
-  #endif
-#endif
-
-
-  clamp_to_software_endstops(destination);
-  refresh_cmd_timeout();
-
-#if 0
-  #ifdef SCARA //for now same as delta-code
-
-    float difference[NUM_AXIS];
-    for (int8_t i = 0; i < NUM_AXIS; i++) difference[i] = destination[i] - current_position[i];
-
-    float cartesian_mm = sqrt(  sq(difference[X_AXIS]) +
-                                sq(difference[Y_AXIS]) +
-                                sq(difference[Z_AXIS]));
-    if (cartesian_mm < 0.000001) { cartesian_mm = abs(difference[E_AXIS]); }
-    if (cartesian_mm < 0.000001) { return; }
-    float seconds = 6000 * cartesian_mm / feedrate / feedmultiply;
-    int steps = max(1, int(scara_segments_per_second * seconds));
-
-    //SERIAL_ECHOPGM("mm="); SERIAL_ECHO(cartesian_mm);
-    //SERIAL_ECHOPGM(" seconds="); SERIAL_ECHO(seconds);
-    //SERIAL_ECHOPGM(" steps="); SERIAL_ECHOLN(steps);
-
-    for (int s = 1; s <= steps; s++) {
-      float fraction = float(s) / float(steps);
-      for(int8_t i = 0; i < NUM_AXIS; i++) {
-        destination[i] = current_position[i] + difference[i] * fraction;
-      }
-
-      calculate_delta(destination);
-      //SERIAL_ECHOPGM("destination[X_AXIS]="); SERIAL_ECHOLN(destination[X_AXIS]);
-      //SERIAL_ECHOPGM("destination[Y_AXIS]="); SERIAL_ECHOLN(destination[Y_AXIS]);
-      //SERIAL_ECHOPGM("destination[Z_AXIS]="); SERIAL_ECHOLN(destination[Z_AXIS]);
-      //SERIAL_ECHOPGM("delta[X_AXIS]="); SERIAL_ECHOLN(delta[X_AXIS]);
-      //SERIAL_ECHOPGM("delta[Y_AXIS]="); SERIAL_ECHOLN(delta[Y_AXIS]);
-      //SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
-
-      plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS],
-        destination[E_AXIS], feedrate*feedmultiply/60/100.0,
-        active_extruder);
-    }
-
-  #endif // SCARA
-#endif  
-
-  #ifdef DELTA
     float difference[NUM_AXIS];
     for (int8_t i=0; i < NUM_AXIS; i++) difference[i] = destination[i] - current_position[i];
 
@@ -11469,62 +11436,6 @@ void prepare_move() {
     
       plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder, active_driver);
     }
-
-  #endif // DELTA
-
-#if 0
-  #ifdef DUAL_X_CARRIAGE
-    if (active_extruder_parked) {
-      if (dual_x_carriage_mode == DXC_DUPLICATION_MODE && active_extruder == 0) {
-        // move duplicate extruder into correct duplication position.
-        plan_set_position(inactive_extruder_x_pos, current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
-        plan_buffer_line(current_position[X_AXIS] + duplicate_extruder_x_offset, current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], max_feedrate[X_AXIS], 1, active_driver);
-        sync_plan_position();
-        st_synchronize();
-        extruder_duplication_enabled = true;
-        active_extruder_parked = false;
-      }
-      else if (dual_x_carriage_mode == DXC_AUTO_PARK_MODE) { // handle unparking of head
-        if (current_position[E_AXIS] == destination[E_AXIS]) {
-          // this is a travel move - skit it but keep track of current position (so that it can later
-          // be used as start of first non-travel move)
-          if (delayed_move_time != 0xFFFFFFFFUL) {
-            set_current_to_destination();
-            if (destination[Z_AXIS] > raised_parked_position[Z_AXIS])
-              raised_parked_position[Z_AXIS] = destination[Z_AXIS];
-            delayed_move_time = millis();
-            return;
-          }
-        }
-        delayed_move_time = 0;
-        // unpark extruder: 1) raise, 2) move into starting XY position, 3) lower
-        plan_buffer_line(raised_parked_position[X_AXIS], raised_parked_position[Y_AXIS], raised_parked_position[Z_AXIS], current_position[E_AXIS], max_feedrate[Z_AXIS], active_extruder, active_driver);
-        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], raised_parked_position[Z_AXIS], current_position[E_AXIS], min(max_feedrate[X_AXIS],max_feedrate[Y_AXIS]), active_extruder, active_driver);
-        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], max_feedrate[Z_AXIS], active_extruder, active_driver);
-        active_extruder_parked = false;
-      }
-    }
-  #endif //DUAL_X_CARRIAGE
-#endif
-  
-
-  #if !defined(DELTA) && !defined(SCARA)
-    // Do not use feedmultiply for E or Z only moves
-    if ((current_position[X_AXIS] == destination [X_AXIS]) && (current_position[Y_AXIS] == destination [Y_AXIS])) {
-      line_to_destination();
-    }
-    else {
-      plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], (feedrate/60)*(feedmultiply/100.0), active_extruder, active_driver);
-    }
-  #endif // !defined(DELTA) && !defined(SCARA)
-
-#if 0
-  #ifdef IDLE_OOZING_PREVENT || EXTRUDER_RUNOUT_PREVENT
-    axis_last_activity = millis();
-    axis_is_moving = false;
-  #endif
-#endif
-
   set_current_to_destination();
 }
 
@@ -11850,7 +11761,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   #endif
 
   check_axes_activity();
-  manage_led();
+  manage_led_function();
 }
 
 void kill()

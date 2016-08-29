@@ -487,9 +487,7 @@ float junction_deviation = 0.1;
   // If the buffer is full: good! That means we are well ahead of the robot. 
   // Rest here until there is room in the buffer.
   while(block_buffer_tail == next_buffer_head) {
-    manage_heater(); 
     manage_inactivity(); 
-    lcd_update();
   }
 
   #ifdef ENABLE_AUTO_BED_LEVELING

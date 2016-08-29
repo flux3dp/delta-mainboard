@@ -33,6 +33,7 @@
   #include <SPI.h>
 #endif
 
+float backlash_offset[3] = { 0,0,0 };
 extern int G28_f; 
 extern float feedrate, next_feedrate;
 //===========================================================================
@@ -1131,9 +1132,7 @@ void st_init() {
 // Block until all buffered steps are executed
 void st_synchronize() {
   while (blocks_queued()) {
-    manage_heater();
     manage_inactivity();
-    lcd_update();
   }
 }
 
