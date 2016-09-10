@@ -407,6 +407,9 @@ extern volatile bool endstop_z_hit;
 static volatile bool endstop_has_hit[3];
 #endif //MARLIN_H
 
+//Eliminating backlash
+extern float backlash_offset[4];
+
 /*
 * PWM Capture using Arduino Due Timer Counters
 *

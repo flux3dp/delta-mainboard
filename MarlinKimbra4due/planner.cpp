@@ -57,7 +57,7 @@
 #include "temperature.h"
 #include "ultralcd.h"
 #include "language.h"
-
+#include "Hysteresis.h"
 //===========================================================================
 //============================= public variables ============================
 //===========================================================================
@@ -107,6 +107,8 @@ block_t block_buffer[BLOCK_BUFFER_SIZE];  // A ring buffer for motion instructio
 volatile unsigned char block_buffer_head; // Index of the next block to be pushed
 volatile unsigned char block_buffer_tail; // Index of the block to process now
 
+float backlash_offset[NUM_AXIS] = { 0,0,0,0 };
+extern volatile signed char count_direction[NUM_AXIS] ;
 //===========================================================================
 //=============================private variables ============================
 //===========================================================================
@@ -413,61 +415,63 @@ void check_axes_activity() {
       tail_laser_ttl_modulation = block_buffer[block_index].laser_ttlmodulation;
     #endif
 
-    while (block_index != block_buffer_head) {
-      block = &block_buffer[block_index];
-      for (int i=0; i<NUM_AXIS; i++) if (block->steps[i]) axis_active[i]++;
-      block_index = next_block_index(block_index);
-    }
+while (block_index != block_buffer_head) {
+    block = &block_buffer[block_index];
+    for (int i = 0; i < NUM_AXIS; i++) if (block->steps[i]) axis_active[i]++;
+    block_index = next_block_index(block_index);
+}
   }
   if (DISABLE_X && !axis_active[X_AXIS]) disable_x();
   if (DISABLE_Y && !axis_active[Y_AXIS]) disable_y();
   if (DISABLE_Z && !axis_active[Z_AXIS]) disable_z();
   if (DISABLE_E && !axis_active[E_AXIS]) {
-    disable_e0();
-    disable_e1();
-    disable_e2();
-    disable_e3();
+      disable_e0();
+      disable_e1();
+      disable_e2();
+      disable_e3();
   }
 
-  #if HAS_FAN
-    #ifdef FAN_KICKSTART_TIME
-      static unsigned long fan_kick_end;
-      if (tail_fan_speed) {
-        if (fan_kick_end == 0) {
+#if HAS_FAN
+#ifdef FAN_KICKSTART_TIME
+  static unsigned long fan_kick_end;
+  if (tail_fan_speed) {
+      if (fan_kick_end == 0) {
           // Just starting up fan - run at full power.
           fan_kick_end = millis() + FAN_KICKSTART_TIME;
           tail_fan_speed = 255;
-        } else if (fan_kick_end > millis())
+      }
+      else if (fan_kick_end > millis())
           // Fan still spinning up.
           tail_fan_speed = 255;
-        } else {
-          fan_kick_end = 0;
-        }
-    #endif//FAN_KICKSTART_TIME
-    #ifdef FAN_SOFT_PWM
-      fanSpeedSoftPwm = tail_fan_speed;
-    #else
-      analogWrite(FAN_PIN, tail_fan_speed);
-    #endif //!FAN_SOFT_PWM
-  #endif // HAS_FAN
+  }
+  else {
+      fan_kick_end = 0;
+  }
+#endif//FAN_KICKSTART_TIME
+#ifdef FAN_SOFT_PWM
+  fanSpeedSoftPwm = tail_fan_speed;
+#else
+  analogWrite(FAN_PIN, tail_fan_speed);
+#endif //!FAN_SOFT_PWM
+#endif // HAS_FAN
 
-  #ifdef AUTOTEMP
-    getHighESpeed();
-  #endif
+#ifdef AUTOTEMP
+  getHighESpeed();
+#endif
 
-  #ifdef BARICUDA
-    #if HAS_HEATER_1
-      analogWrite(HEATER_1_PIN,tail_valve_pressure);
-    #endif
-    #if HAS_HEATER_2
-      analogWrite(HEATER_2_PIN,tail_e_to_p_pressure);
-    #endif
-  #endif
+#ifdef BARICUDA
+#if HAS_HEATER_1
+  analogWrite(HEATER_1_PIN, tail_valve_pressure);
+#endif
+#if HAS_HEATER_2
+  analogWrite(HEATER_2_PIN, tail_e_to_p_pressure);
+#endif
+#endif
 
   // add Laser TTL Modulation(PWM) Control
-  #ifdef LASERBEAM
-    analogWrite(LASER_TTL_PIN, tail_laser_ttl_modulation);
-  #endif
+#ifdef LASERBEAM
+  analogWrite(LASER_TTL_PIN, tail_laser_ttl_modulation);
+#endif
 }
 
 
@@ -476,37 +480,120 @@ float junction_deviation = 0.1;
 // mm. Microseconds specify how many microseconds the move should take to perform. To aid acceleration
 // calculation the caller must also provide the physical length of the line in millimeters.
 #ifdef ENABLE_AUTO_BED_LEVELING
-  void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, const uint8_t &extruder, const uint8_t &driver)
+void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate, const uint8_t &extruder, const uint8_t &driver)
 #else
-  void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder, const uint8_t &driver)
+void plan_buffer_line(const float &x, const float &y, const float &z, const float &e, float feed_rate, const uint8_t &extruder, const uint8_t &driver)
 #endif  //ENABLE_AUTO_BED_LEVELING
 {
-  // Calculate the buffer head after we push this byte
-  int next_buffer_head = next_block_index(block_buffer_head);
+    //hysteresis.InsertCorrection(x, y, z, e);
+    // Calculate the buffer head after we push this byte
+    int next_buffer_head = next_block_index(block_buffer_head);
 
-  // If the buffer is full: good! That means we are well ahead of the robot. 
-  // Rest here until there is room in the buffer.
-  while(block_buffer_tail == next_buffer_head) {
-    manage_inactivity(); 
-  }
 
-  #ifdef ENABLE_AUTO_BED_LEVELING
+    // If the buffer is full: good! That means we are well ahead of the robot. 
+    // Rest here until there is room in the buffer.
+    while (block_buffer_tail == next_buffer_head) {
+        manage_inactivity();
+    }
+
+#ifdef ENABLE_AUTO_BED_LEVELING
     apply_rotation_xyz(plan_bed_level_matrix, x, y, z);
-  #endif
+#endif
 
-  // The target position of the tool in absolute steps
-  // Calculate target position in absolute steps
-  //this should be done after the wait, because otherwise a M92 code within the gcode disrupts this calculation somehow
-  long target[NUM_AXIS];
-  target[X_AXIS] = lround(x * axis_steps_per_unit[X_AXIS]);
-  target[Y_AXIS] = lround(y * axis_steps_per_unit[Y_AXIS]);
-  target[Z_AXIS] = lround(z * axis_steps_per_unit[Z_AXIS]);     
-  target[E_AXIS] = lround(e * axis_steps_per_unit[E_AXIS + active_extruder]);
+    // The target position of the tool in absolute steps
+    // Calculate target position in absolute steps
+    //this should be done after the wait, because otherwise a M92 code within the gcode disrupts this calculation somehow
+    long target[NUM_AXIS];
+    target[X_AXIS] = lround(x * axis_steps_per_unit[X_AXIS]);
+    target[Y_AXIS] = lround(y * axis_steps_per_unit[Y_AXIS]);
+    target[Z_AXIS] = lround(z * axis_steps_per_unit[Z_AXIS]);
+    target[E_AXIS] = lround(e * axis_steps_per_unit[E_AXIS + active_extruder]);
 
-  float dx = target[X_AXIS] - position[X_AXIS],
+
+    float dx = target[X_AXIS] - position[X_AXIS],
         dy = target[Y_AXIS] - position[Y_AXIS],
         dz = target[Z_AXIS] - position[Z_AXIS],
         de = target[E_AXIS] - position[E_AXIS];
+    //SerialUSB.print("dx=");
+    //SerialUSB.print(dx);
+    //SerialUSB.print(" dy=");
+    //SerialUSB.print(dy);
+    //SerialUSB.print(" dz=");
+    //SerialUSB.println(dz);
+    /*Eliminating Backlash*/
+
+#if 0
+#define BACKLASH_LIMIT 6.0
+    if (block_buffer_tail == block_buffer_head) {
+        if (abs(dx) > BACKLASH_LIMIT) {
+            if (dx > 0.0 && count_direction[X_AXIS] == -1) {
+                dx += lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+                SerialUSB.println("x+1");
+            }
+            else if (dx < 0.0 && count_direction[X_AXIS] == 1) {
+                dx -= lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+                SerialUSB.println("x-1");
+            }
+
+        }
+        if (abs(dy) > BACKLASH_LIMIT) {
+            if (dy > 0.0 && count_direction[Y_AXIS] == -1) {
+                dy += lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+                SerialUSB.println("y+1");
+            }
+            else if (dy < 0.0 && count_direction[Y_AXIS] == 1) {
+                dy -= lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+                SerialUSB.println("y-1");
+            }
+        }
+        if (abs(dz) > BACKLASH_LIMIT) {
+            if (dz > 0.0 && count_direction[Z_AXIS] == -1) {
+                dz += lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+                SerialUSB.println("z+1");
+            }
+            else if (dz < 0.0 && count_direction[Z_AXIS] == 1) {
+                dz -= lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+                SerialUSB.println("z-1");
+            }
+
+        }
+
+    }
+    else {
+        int prev_buffer_head = prev_block_index(block_buffer_head);
+        block_t *prev_block = &block_buffer[prev_buffer_head];
+        if (abs(dx) > BACKLASH_LIMIT) {
+            if (dx > 0.0 && (prev_block->direction_bits&BIT(X_AXIS)) == 1) {
+                dx += lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+                SerialUSB.println("X+1");
+            }
+            else if (dx < 0.0 && (prev_block->direction_bits&BIT(X_AXIS)) == 0) {
+                dx -= lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+                SerialUSB.println("X-1");
+            }
+        }
+        if (abs(dy) > BACKLASH_LIMIT) {
+            if (dy > 0.0 && (prev_block->direction_bits&BIT(Y_AXIS)) == 1) {
+                dy += lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+                SerialUSB.println("Y+1");
+            }
+            else if (dy < 0.0 && (prev_block->direction_bits&BIT(Y_AXIS)) == 0) {
+                dy -= lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+                SerialUSB.println("Y-1");
+            }
+        }
+        if (abs(dz) > BACKLASH_LIMIT) {
+            if (dz > 0.0 && (prev_block->direction_bits&BIT(Z_AXIS)) == 1) {
+                dz += lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+                SerialUSB.println("Z+1");
+            }
+            else if (dz < 0.0 && (prev_block->direction_bits&BIT(Z_AXIS)) == 0) {
+                dz -= lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+                SerialUSB.println("Z-1");
+            }
+        }
+    }
+#endif
 
   #ifdef PREVENT_DANGEROUS_EXTRUDE
     if (de) {

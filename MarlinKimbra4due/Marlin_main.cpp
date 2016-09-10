@@ -23,7 +23,7 @@
 #include "vector_3.h"
 #include "manage_led.h"
 #include "flux_protocol.h"
-
+#include "Hysteresis.h"
 
 #ifdef ENABLE_AUTO_BED_LEVELING
   #include "vector_3.h"
@@ -3859,6 +3859,7 @@ inline void gcode_G4() {
  */
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
+    //G28+ for shaking detection
 	if (code_seen('+')) {
 		G28_f = 1;
 	}
@@ -7133,6 +7134,32 @@ inline void gcode_M503() {
   }
 #endif
 
+inline void gcode_M665() {
+    if (!(code_seen('L'))) {
+        delta_diagonal_rod= code_value();
+    }
+    if (!(code_seen('R'))) {
+        delta_radius= code_value();
+    }
+    if (!(code_seen('S'))) {
+
+    }
+    if (!(code_seen('B'))) {
+
+    }
+    if (!(code_seen('H'))) {
+
+    }
+    if (!(code_seen('X'))) {
+
+    }
+    if (!(code_seen('Y'))) {
+
+    }
+    if (!(code_seen('Z'))) {
+
+    }
+}
 #ifdef DELTA
   //M666: Set delta endstop and geometry adjustment
   inline void gcode_M666() {
@@ -7842,7 +7869,7 @@ inline void gcode_X2()
   if (code_seen('F'))
   {
 	  play_st.stashed_laser_pwm = 0;
-    analogWrite(M_IO2, 0);
+      analogWrite(M_IO2, 0);
   }
 
   if (code_seen('O'))
@@ -7865,7 +7892,7 @@ inline void gcode_X2()
 		//}
 		
 		play_st.stashed_laser_pwm = pleds;
-      analogWrite(M_IO2, pleds);
+        analogWrite(M_IO2, pleds);
     }
   }
 
@@ -10683,9 +10710,49 @@ inline void gcode_X78()
       SerialUSB.println(mode);
       led_st.mode[val]= mode;
   }
-  if (code_seen('B')) {
-      int val = code_value();
-      analogWrite(LED_P3,val);
+  if (code_seen('E')) {
+      code_value();
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          backlash_offset[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          backlash_offset[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          backlash_offset[Z_AXIS] = offset;
+      }
+      SerialUSB.print("X=");
+      SerialUSB.print(backlash_offset[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(backlash_offset[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(backlash_offset[Z_AXIS]);
+  }
+  if (code_seen('E')) {
+      code_value();
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          backlash_offset[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          backlash_offset[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          backlash_offset[Z_AXIS] = offset;
+      }
+      SerialUSB.print("X=");
+      SerialUSB.print(backlash_offset[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(backlash_offset[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(backlash_offset[Z_AXIS]);
   }
 
 }
@@ -10953,6 +11020,15 @@ bool process_commands()
       case 92: // M92
         gcode_M92();
         break;  
+      case 98: // M98
+          hysteresis.ReportToSerial();
+      break;
+      case 99: // M99
+          if (code_seen('X')) hysteresis.SetAxis(X_AXIS, code_value());
+          if (code_seen('Y')) hysteresis.SetAxis(Y_AXIS, code_value());
+          if (code_seen('Z')) hysteresis.SetAxis(Z_AXIS, code_value());
+          if (code_seen('E')) hysteresis.SetAxis(E_AXIS, code_value());
+      break;
 #if HAS_FAN
       case 106: //M106 Fan On
         gcode_M106();
@@ -11209,6 +11285,9 @@ bool process_commands()
         break;
 #endif // DUAL_X_CARRIAGE
 
+      case 665:
+          gcode_M665();
+          break;
 #if defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
       case 666: //M666 Set Z probe offset or set delta endstop and geometry adjustment
         gcode_M666();
@@ -11418,25 +11497,42 @@ void prepare_move() {
     // SERIAL_ECHOPGM("mm="); SERIAL_ECHO(cartesian_mm);
     // SERIAL_ECHOPGM(" seconds="); SERIAL_ECHO(seconds);
     // SERIAL_ECHOPGM(" steps="); SERIAL_ECHOLN(steps);
+    ////===================NOT TO SPLIT======================
+    //calculate_delta(destination);
 
+    ////SERIAL_ECHOPGM("destination[0]="); SERIAL_ECHOLN(destination[0]);
+    ////SERIAL_ECHOPGM("destination[1]="); SERIAL_ECHOLN(destination[1]);
+    ////SERIAL_ECHOPGM("destination[2]="); SERIAL_ECHOLN(destination[2]);
+    ////SERIAL_ECHOPGM("delta[X_AXIS]="); SERIAL_ECHOLN(delta[X_AXIS]);
+    ////SERIAL_ECHOPGM("delta[Y_AXIS]="); SERIAL_ECHOLN(delta[Y_AXIS]);
+    ////SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
+
+    ////adjust_delta(destination);
+
+    //plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply / 60 / 100.0, active_extruder, active_driver);
+    ////======================================================
+    /*====================SPLIT====================
+    ========================================================
+    */
     for (int s = 1; s <= steps; s++) {
-      float fraction = float(s) / float(steps);
-      for (int8_t i = 0; i < NUM_AXIS; i++) destination[i] = current_position[i] + difference[i] * fraction;
+        float fraction = float(s) / float(steps);
+        for (int8_t i = 0; i < NUM_AXIS; i++) destination[i] = current_position[i] + difference[i] * fraction;
 
-      calculate_delta(destination);
+        calculate_delta(destination);
     
-      //SERIAL_ECHOPGM("destination[0]="); SERIAL_ECHOLN(destination[0]);
-      //SERIAL_ECHOPGM("destination[1]="); SERIAL_ECHOLN(destination[1]);
-      //SERIAL_ECHOPGM("destination[2]="); SERIAL_ECHOLN(destination[2]);
-      //SERIAL_ECHOPGM("delta[X_AXIS]="); SERIAL_ECHOLN(delta[X_AXIS]);
-      //SERIAL_ECHOPGM("delta[Y_AXIS]="); SERIAL_ECHOLN(delta[Y_AXIS]);
-      //SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
+        //SERIAL_ECHOPGM("destination[0]="); SERIAL_ECHOLN(destination[0]);
+        //SERIAL_ECHOPGM("destination[1]="); SERIAL_ECHOLN(destination[1]);
+        //SERIAL_ECHOPGM("destination[2]="); SERIAL_ECHOLN(destination[2]);
+        //SERIAL_ECHOPGM("delta[X_AXIS]="); SERIAL_ECHOLN(delta[X_AXIS]);
+        //SERIAL_ECHOPGM("delta[Y_AXIS]="); SERIAL_ECHOLN(delta[Y_AXIS]);
+        //SERIAL_ECHOPGM("delta[Z_AXIS]="); SERIAL_ECHOLN(delta[Z_AXIS]);
 
-      adjust_delta(destination);
-    
-      plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder, active_driver);
+        adjust_delta(destination);
+
+        plan_buffer_line(delta[X_AXIS], delta[Y_AXIS], delta[Z_AXIS], destination[E_AXIS], feedrate*feedmultiply/60/100.0, active_extruder, active_driver);
     }
-  set_current_to_destination();
+    
+    set_current_to_destination();
 }
 
 void prepare_arc_move(char isclockwise) {

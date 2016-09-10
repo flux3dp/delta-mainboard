@@ -613,6 +613,8 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // define laser beam support
 //#define LASERBEAM
 
+//Backlash elimination
+#define DEFAULT_HYSTERESIS_MM         0, 0, 0, 0  // X, Y, Z, E hysteresis in mm. These are the extra distances that are performed when an axis changes direction to compensate for any mechanical hysteresis your printer has.
 
 #include "Configuration_adv.h"
 #include "thermistortables.h"

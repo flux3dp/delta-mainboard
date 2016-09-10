@@ -33,7 +33,7 @@
   #include <SPI.h>
 #endif
 
-float backlash_offset[3] = { 0,0,0 };
+
 extern int G28_f; 
 extern float feedrate, next_feedrate;
 //===========================================================================
@@ -731,6 +731,15 @@ HAL_STEP_TIMER_ISR {
         #endif
 
       #else // !CONFIG_STEPPERS_TOSHIBA
+
+        //counter_x += current_block->steps[X_AXIS]; \
+        //    if (counter_x > 0) {
+        //        \
+        //            X_APPLY_STEP(!INVERT_X_STEP_PIN, 0); \
+        //            counter_x -= current_block->step_event_count; \
+        //            count_position[X_AXIS] += count_direction[X_AXIS]; \
+        //            X_APPLY_STEP(INVERT_X_STEP_PIN, 0); \
+        //    }
 
         #define APPLY_MOVEMENT(axis, AXIS) \
           counter_## axis += current_block->steps[AXIS ##_AXIS]; \
