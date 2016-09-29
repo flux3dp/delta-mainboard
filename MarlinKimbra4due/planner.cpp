@@ -486,6 +486,7 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
 #endif  //ENABLE_AUTO_BED_LEVELING
 {
     //hysteresis.InsertCorrection(x, y, z, e);
+
     // Calculate the buffer head after we push this byte
     int next_buffer_head = next_block_index(block_buffer_head);
 
@@ -514,13 +515,6 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
         dy = target[Y_AXIS] - position[Y_AXIS],
         dz = target[Z_AXIS] - position[Z_AXIS],
         de = target[E_AXIS] - position[E_AXIS];
-    //SerialUSB.print("dx=");
-    //SerialUSB.print(dx);
-    //SerialUSB.print(" dy=");
-    //SerialUSB.print(dy);
-    //SerialUSB.print(" dz=");
-    //SerialUSB.println(dz);
-    /*Eliminating Backlash*/
 
 #if 0
 #define BACKLASH_LIMIT 6.0

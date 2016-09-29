@@ -121,6 +121,9 @@ bool Stopped = false;
 bool CooldownNoWait = true;
 bool target_direction;
 static bool home_all_axis = true;
+bool led_debug = false;
+int led_mode_debug[3] = { 0,0,0 };
+
 void (*manage_led_function)(void);
 
 /*
@@ -1033,51 +1036,54 @@ void manage_led(void)
         led_st.situational = new_situational;
         led_st.wifi = new_wifi_flag;
     }
-    
+
     uint32_t pwm = 0;
     volatile float val;
     for (int i = 0; i<3; i++) {
-    switch (led_st.mode[i]) {
-    case LED_OFF:
-        pwm = 0;
-        break;
-    case LED_WAVE:
-    case LED_WAVE2:
-        pwm = (uint32_t)(_led_wave(i) * 255);
-        break;
-    case LED_BLINK:
-        pwm = (_led_blink(i) > 0.5) ? 255 : 0;
-        break;
-    case LED_ON:
-        pwm = 255;
-        break;
-    case LED_WAVE_2_ON:
-        pwm = (uint32_t)(_led_wave(i) * 255);
-        if(pwm > 242) {
-            pwm = 255;
-            led_st.mode[i] = LED_ON;
-        }
-        break;
-    case LED_WAVE_2_OFF:
-        pwm = (uint32_t)(_led_wave(i) * 255);
-        if(pwm < 12) {
+        switch (led_st.mode[i]) {
+        case LED_OFF:
             pwm = 0;
-            led_st.mode[i] = LED_OFF;
+            break;
+        case LED_WAVE:
+            pwm = _led_wave_atom_4s(i);// (_led_wave(i) * 255);
+            break;
+        case LED_WAVE2:
+            pwm = _led_wave_atom_4s(i);// (_led_wave(i) * 255);
+            break;
+        case LED_BLINK:
+            pwm = (_led_blink(i) > 0.5) ? 255 : 0;
+            break;
+        case LED_ON:
+            pwm = 255;
+            break;
+        case LED_WAVE_2_ON:
+            pwm = (uint32_t)(_led_wave(i) * 255);
+            if(pwm > 242) {
+                pwm = 255;
+                led_st.mode[i] = LED_ON;
+            }
+            break;
+        case LED_WAVE_2_OFF:
+            pwm = (uint32_t)(_led_wave(i) * 255);
+            if(pwm < 12) {
+                pwm = 0;
+                led_st.mode[i] = LED_OFF;
+            }
+            break;
+        case LED_STATIC:
+            pwm = (uint32_t)(led_st.param_a[i]);
+            break;
+        case LED_FLASH:
+            pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
+            break;
         }
-        break;
-    case LED_STATIC:
-        pwm = (uint32_t)(led_st.param_a[i]);
-        break;
-    case LED_FLASH:
-        pwm = _led_special(led_st.param_a[i], led_st.param_b[i]);
-        break;
-    }
-    if(pwm>255)
-        pwm=255;
+        if(pwm>255)
+            pwm=255;
         analogWrite(led_pins[i], pwm);
     }
   
 }
+
 
 /*
 Led management driver for delta plus.
@@ -1107,8 +1113,14 @@ void manage_led_plus()
         led_st.wifi = new_wifi_flag;
     }
 
+    if (led_debug) {
+        led_st.mode[0] = led_mode_debug[0];
+        led_st.mode[1] = led_mode_debug[1];
+        led_st.mode[2] = led_mode_debug[2];
+
+    }
+    
     uint32_t pwm = 0;
-    volatile float val;
     for (int i = 0; i<3; i++) {
         switch (led_st.mode[i]) {
         case LED_OFF:
@@ -6020,6 +6032,9 @@ inline void gcode_M114() {
  */
 inline void gcode_M115() {
   SERIAL_PROTOCOLPGM(MSG_M115_REPORT);
+  SerialUSB.print(" HARDWARE_VERSION:");
+  SerialUSB.println(get_hardware_version());
+
 }
 
 /**
@@ -10609,7 +10624,7 @@ inline void gcode_X78()
   SerialUSB.print("U5FAULT ");
   SerialUSB.println(digitalRead(U5FAULT));
 
-  if(code_seen('C')) {
+  if(code_seen('U')) {
     int val = code_value();
     if(val & 1) {
       analogWrite(U5EN, 255);
@@ -10677,38 +10692,47 @@ inline void gcode_X78()
       delay(1500);
       PIOC->PIO_CODR = PIO_PC27;
   }
-  if(code_seen('U')){
+  if(code_seen('T')){
       SerialUSB.print(HARDWARE_TYPE);
   }
   if(code_seen('A')){
+          
       int val = code_value();
-      int mode;
+      int mode=0;
+
+      led_debug = true;
+      if (code_seen('D')) {
+          SerialUSB.print("Normal\n");
+          led_debug = false;
+          return;
+      }
+
       if(code_seen('B'))
           mode= code_value();
-      switch (mode) {
-      case LED_OFF: //Sleep
-          break;
-      case LED_WAVE: //白燈呼吸燈 系統待機
-          led_st.param_a[val] = 0.0004;
-          led_st.param_b[val] = millis();
-          break;
-      case LED_BLINK: //白燈閃爍 工作暫停
-          led_st.param_a[val] = 0.0015;
-          led_st.param_b[val] = millis();
-          break;
-      case LED_ON: //白燈恆亮 工作中
-          break;
-      case LED_WAVE2:
-          led_st.param_a[val] = 0.00045;
-          led_st.param_b[val] = millis();
-          break;
+      led_mode_debug[val] = mode;
+      //switch (mode) {
+      //case LED_OFF: //Sleep
+      //    break;
+      //case LED_WAVE: //白燈呼吸燈 系統待機
+      //    led_st.param_a[val] = 0.0004;
+      //    led_st.param_b[val] = millis();
+      //    break;
+      //case LED_BLINK: //白燈閃爍 工作暫停
+      //    led_st.param_a[val] = 0.0015;
+      //    led_st.param_b[val] = millis();
+      //    break;
+      //case LED_ON: //白燈恆亮 工作中
+      //    break;
+      //case LED_WAVE2:
+      //    led_st.param_a[val] = 0.00045;
+      //    led_st.param_b[val] = millis();
+      //    break;
      
-      }
+      //}
       SerialUSB.print("i= ");
       SerialUSB.print(val);
       SerialUSB.print("mode=");
       SerialUSB.println(mode);
-      led_st.mode[val]= mode;
   }
   if (code_seen('E')) {
       code_value();
@@ -10732,27 +10756,23 @@ inline void gcode_X78()
       SerialUSB.print(" Z=");
       SerialUSB.println(backlash_offset[Z_AXIS]);
   }
-  if (code_seen('E')) {
+  if (code_seen('W')) {
       code_value();
-      float offset;
+      float pwm;
       if (code_seen('A')) {
-          offset = code_value();
-          backlash_offset[X_AXIS] = offset;
+          pwm = code_value();
+          analogWrite(led_pins[0], pwm);
       }
       if (code_seen('B')) {
-          offset = code_value();
-          backlash_offset[Y_AXIS] = offset;
+          pwm = code_value();
+          analogWrite(led_pins[1], pwm);
       }
       if (code_seen('C')) {
-          offset = code_value();
-          backlash_offset[Z_AXIS] = offset;
+          pwm = code_value();
+          analogWrite(led_pins[2], pwm);
       }
-      SerialUSB.print("X=");
-      SerialUSB.print(backlash_offset[X_AXIS]);
-      SerialUSB.print(" Y=");
-      SerialUSB.print(backlash_offset[Y_AXIS]);
-      SerialUSB.print(" Z=");
-      SerialUSB.println(backlash_offset[Z_AXIS]);
+      SerialUSB.print("pwm= ");
+      SerialUSB.print(pwm);
   }
 
 }
