@@ -1045,10 +1045,10 @@ void manage_led(void)
             pwm = 0;
             break;
         case LED_WAVE:
-            pwm = _led_wave_atom_4s(i);// (_led_wave(i) * 255);
+            pwm = (_led_wave(i) * 255); //_led_wave_atom_4s(i);// 
             break;
         case LED_WAVE2:
-            pwm = _led_wave_atom_4s(i);// (_led_wave(i) * 255);
+            pwm = (_led_wave(i) * 255); //_led_wave_atom_4s(i);// 
             break;
         case LED_BLINK:
             pwm = (_led_blink(i) > 0.5) ? 255 : 0;
