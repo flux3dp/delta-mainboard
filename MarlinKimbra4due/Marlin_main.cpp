@@ -11702,6 +11702,14 @@ void disable_all_steppers() {
   disable_e3();
 }
 
+float sampling_read(int pin, uint32_t sampling_times) {
+    float sum = 0.0;
+    for (int i = 0; i < sampling_times; i++) {
+        sum += READ(pin);
+    }
+    return sum / sampling_times;
+}
+
 /**
  * Manage several activities:
  *  - Check for Filament Runout
@@ -11717,7 +11725,7 @@ void disable_all_steppers() {
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
   if(filament_detect.enable) {
-    if((READ(F0_STOP)^FIL_RUNOUT_INVERTING) &&
+    if(((sampling_read(F0_STOP,20)>0.8)^FIL_RUNOUT_INVERTING) &&
        (millis() - filament_detect.last_trigger > 1000)) {
 
        SerialUSB.println("CTRL FILAMENTRUNOUT 0");
