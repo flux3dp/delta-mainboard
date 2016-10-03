@@ -6032,10 +6032,9 @@ inline void gcode_M114() {
  * M115: Capabilities string
  */
 inline void gcode_M115() {
-  SERIAL_PROTOCOLPGM(MSG_M115_REPORT);
-  SerialUSB.print(" HARDWARE_VERSION:");
-  SerialUSB.println(get_hardware_version());
-
+  SerialUSB.print("DATA HARDWARE_VERSION:");
+  SerialUSB.print(get_hardware_version());
+  SerialUSB.println();
 }
 
 /**
