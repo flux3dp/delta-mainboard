@@ -2253,7 +2253,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     float threshold = data;
     int fsr_flag = -1;
 	//downward
-    while (destination[Z_AXIS] > (max_pos[Z_AXIS] -243.5)  && fsr_flag < 0)
+    while (destination[Z_AXIS] > (max_pos[Z_AXIS] -245.0)  && fsr_flag < 0) //243.5
     {
       destination[Z_AXIS] -= 0.00625;
       fsr_flag--;
@@ -2266,7 +2266,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
           fsr_flag = 1;
       }
       else {
-          if (destination[Z_AXIS] < (max_pos[Z_AXIS] - 243.5))
+          if (destination[Z_AXIS] < (max_pos[Z_AXIS] - 245.0)) //243.5
               return -300;
           delayMicroseconds(200);
       }
@@ -2319,7 +2319,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		delay(100);
 		read_FSR(data, 200, ratio);
 		threshold = data;
-		while ((destination[Z_AXIS] -= 0.00625) >(max_pos[Z_AXIS] - 243.5) && fsr_flag < 0)
+		while ((destination[Z_AXIS] -= 0.00625) >(max_pos[Z_AXIS] - 245.0) && fsr_flag < 0) //243.5
 		{
 			fsr_flag--;
 			prepare_move_raw();
@@ -8565,38 +8565,50 @@ inline void gcode_C3(int t=0) {
 }
 
 inline void gcode_C4(int t=0) {
-  if(t > 2) t = 0;
-  target_extruder = t;
+    float extru_distance = 3;
+    float extru_speed = 200;
+    if (code_seen('E')) 
+        extru_distance = code_value();
+    if (code_seen('F')) 
+        extru_speed = code_value();
+    if(t > 2) t = 0;
+    target_extruder = t;
 
-  destination[X_AXIS] = current_position[X_AXIS];
-  destination[Y_AXIS] = current_position[Y_AXIS];
-  destination[Z_AXIS] = current_position[Z_AXIS];
-  float e_pos = current_position[E_AXIS];
+    destination[X_AXIS] = current_position[X_AXIS];
+    destination[Y_AXIS] = current_position[Y_AXIS];
+    destination[Z_AXIS] = current_position[Z_AXIS];
+    float e_pos = current_position[E_AXIS];
 
-  if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-    SERIAL_PROTOCOLLN("ok");
-    return;
-  }
-
-  feedrate = 8000;
-  destination[E_AXIS] = current_position[E_AXIS] - 50;
-  prepare_move();
-
-  feedrate = 6000;
-  for(int i=0;i<9;i++) {
     if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-      SERIAL_PROTOCOLLN("ok");
-      break;
+        SERIAL_PROTOCOLLN("ok");
+        return;
     }
 
-    destination[E_AXIS] -= 50;
+    //extrusion
+    feedrate = extru_speed;
+    destination[E_AXIS] = current_position[E_AXIS] + extru_distance;
     prepare_move();
-  }
 
-  current_position[E_AXIS] = e_pos;
-  plan_set_e_position(e_pos);
-  SERIAL_PROTOCOLLN("ok");
-  return;
+    //retraction
+    feedrate = 8000;
+    destination[E_AXIS] = current_position[E_AXIS] - 50;
+    prepare_move();
+
+    feedrate = 6000;
+    for(int i=0;i<9;i++) {
+        if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+            SERIAL_PROTOCOLLN("ok");
+            break;
+        }
+
+        destination[E_AXIS] -= 50;
+        prepare_move();
+    }
+
+    current_position[E_AXIS] = e_pos;
+    plan_set_e_position(e_pos);
+    SERIAL_PROTOCOLLN("ok");
+    return;
 }
 
 #if 0
