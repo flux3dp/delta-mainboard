@@ -128,7 +128,7 @@ static volatile bool endstop_z_probe_hit = false; // Leaving this in even if Z_P
 static bool check_endstops = true;
 
 volatile long count_position[NUM_AXIS] = { 0 };
-volatile signed char count_direction[NUM_AXIS] = { 1, 1, 1, 1 };
+volatile signed char count_direction[NUM_AXIS] = { 1,1,1,1 };
 
 
 //===========================================================================

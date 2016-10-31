@@ -122,6 +122,7 @@ bool CooldownNoWait = true;
 bool target_direction;
 static bool home_all_axis = true;
 bool led_debug = false;
+bool led_show_pwm_val = false;
 int led_mode_debug[3] = { 0,0,0 };
 
 void (*manage_led_function)(void);
@@ -792,9 +793,9 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
         }
         break;
 	  case PI_WIFI_HOSTED:
-		  if (led_st.mode[2] != LED_WAVE2) {
-			  led_st.mode[2] = LED_WAVE2;
-			  led_st.param_a[2] = 0.00030;//0.00045
+		  if (led_st.mode[2] != LED_BLINK) {
+			  led_st.mode[2] = LED_BLINK;
+			  led_st.param_a[2] = 0.0015;//0.00045
 			  led_st.param_b[2] = millis();
 		  }
 		  break;
@@ -1045,7 +1046,10 @@ void manage_led(void)
             pwm = 0;
             break;
         case LED_WAVE:
-            pwm = (_led_wave(i) * 255); //_led_wave_atom_4s(i);// 
+            val = _led_wave(i);
+            pwm = (val * 255); //_led_wave_atom_4s(i);// 
+            if (i == 0 && led_show_pwm_val)
+                SerialUSB.println(val);
             break;
         case LED_WAVE2:
             pwm = (_led_wave(i) * 255); //_led_wave_atom_4s(i);// 
@@ -5810,6 +5814,8 @@ inline void gcode_M92() {
           axis_steps_per_sqr_second[i] *= factor;
         }
         axis_steps_per_unit[i] = value;
+        axis_steps_per_unit[E_AXIS+1] = value;
+
       }
       else {
         axis_steps_per_unit[i] = code_value();
@@ -10612,7 +10618,9 @@ inline void gcode_X9()
 	}
 }
 
-
+extern float linear_constant;
+extern float max_backlash[NUM_AXIS];
+extern float BACKLASH_LIMIT;
 inline void gcode_X78()
 {
   SerialUSB.print("FSR0 ");
@@ -10635,7 +10643,8 @@ inline void gcode_X78()
   SerialUSB.println(digitalRead(HOME_BTN_PIN));
   SerialUSB.print("U5FAULT ");
   SerialUSB.println(digitalRead(U5FAULT));
-
+  SerialUSB.print("v ");
+  SerialUSB.println("0.0.1");
   if(code_seen('U')) {
     int val = code_value();
     if(val & 1) {
@@ -10707,16 +10716,21 @@ inline void gcode_X78()
   if(code_seen('T')){
       SerialUSB.print(HARDWARE_TYPE);
   }
-  if(code_seen('A')){
+  if(code_seen('H')){
           
       int val = code_value();
       int mode=0;
 
       led_debug = true;
+      led_show_pwm_val = true;
       if (code_seen('D')) {
           SerialUSB.print("Normal\n");
           led_debug = false;
           return;
+      }
+      if (code_seen('F')) {
+          SerialUSB.print("no show val\n");
+          led_show_pwm_val = false;
       }
 
       if(code_seen('B'))
@@ -10747,26 +10761,7 @@ inline void gcode_X78()
       SerialUSB.println(mode);
   }
   if (code_seen('E')) {
-      code_value();
-      float offset;
-      if (code_seen('A')) {
-          offset = code_value();
-          backlash_offset[X_AXIS] = offset;
-      }
-      if (code_seen('B')) {
-          offset = code_value();
-          backlash_offset[Y_AXIS] = offset;
-      }
-      if (code_seen('C')) {
-          offset = code_value();
-          backlash_offset[Z_AXIS] = offset;
-      }
-      SerialUSB.print("X=");
-      SerialUSB.print(backlash_offset[X_AXIS]);
-      SerialUSB.print(" Y=");
-      SerialUSB.print(backlash_offset[Y_AXIS]);
-      SerialUSB.print(" Z=");
-      SerialUSB.println(backlash_offset[Z_AXIS]);
+      
   }
   if (code_seen('W')) {
       code_value();
@@ -10785,6 +10780,59 @@ inline void gcode_X78()
       }
       SerialUSB.print("pwm= ");
       SerialUSB.print(pwm);
+  }
+  if (code_seen('O')) {
+      if (code_seen('K')) {
+          float k = code_value();
+          linear_constant = k;
+          
+          
+      }
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          max_backlash[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          max_backlash[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          max_backlash[Z_AXIS] = offset;
+      }
+      if (code_seen('L')) {
+          offset = code_value();
+          BACKLASH_LIMIT = offset;
+      }
+      
+      SerialUSB.print("linear_constant= ");
+      SerialUSB.println(linear_constant);
+      SerialUSB.print("BACKLASH_LIMIT= ");
+      SerialUSB.println(BACKLASH_LIMIT);
+
+      SerialUSB.print("X=");
+      SerialUSB.print(max_backlash[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(max_backlash[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(max_backlash[Z_AXIS]);
+
+      //uint32_t time_recode = 0;
+      //gcode_G28();
+      //get_coordinates(); // For X Y Z E F
+      //feedrate = 40000;
+      //destination[X_AXIS] = 0;
+      //destination[Y_AXIS] = 0;
+      //destination[Z_AXIS] = 220;
+      //prepare_move();
+      //destination[Z_AXIS] = 20;
+      //time_recode = millis();
+      //prepare_move();
+      //SerialUSB.print(millis() - time_recode);
+      //destination[Z_AXIS] = 0;
+      //prepare_move();
+
   }
 
 }

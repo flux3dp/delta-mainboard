@@ -107,8 +107,17 @@ block_t block_buffer[BLOCK_BUFFER_SIZE];  // A ring buffer for motion instructio
 volatile unsigned char block_buffer_head; // Index of the next block to be pushed
 volatile unsigned char block_buffer_tail; // Index of the block to process now
 
-float backlash_offset[NUM_AXIS] = { 0,0,0,0 };
-extern volatile signed char count_direction[NUM_AXIS] ;
+float backlash_offset[NUM_AXIS] = { 0.2,0.2,0.2,0.2 };
+float current_backlash[NUM_AXIS] = {0.0,0.0,0.0,0.0};
+float max_backlash[NUM_AXIS] = { 0.26,0.26,0.26,0.26 };
+//extern volatile signed char count_direction[NUM_AXIS] ;
+struct backlash {
+    bool unknow_flag[NUM_AXIS] = { true, true, true, true };
+    volatile signed char direction[NUM_AXIS] = { 0, 0, 0, 0 };
+};
+backlash backlash_count;
+float linear_constant = 0.15;
+float BACKLASH_LIMIT = 0.000001;
 //===========================================================================
 //=============================private variables ============================
 //===========================================================================
@@ -511,82 +520,262 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
     target[E_AXIS] = lround(e * axis_steps_per_unit[E_AXIS + active_extruder]);
 
 
+    for (int i = 0; i < 3; i++)
+    {
+#define linear_constant 1
+        float max_backlash[3] = { 0.1 * 80, 0.1 * 80, 0.1 * 80 };
+        int new_backlash = (target[i] - position[i] + backlash_offset[i]) * linear_constant;
+        backlash_offset[i] += new_backlash;
+        if (backlash_offset[i] > max_backlash[i])
+            backlash_offset[i] = max_backlash[i];
+
+        if (backlash_offset[i] < -1.0 * max_backlash[i])
+            backlash_offset[i] = -1.0 * max_backlash[i];
+
+        target[i] += backlash_offset[i];
+
+        SerialUSB.print(backlash_offset[i]);
+        SerialUSB.print("\t");
+    }
+
+    SerialUSB.println();
+
     float dx = target[X_AXIS] - position[X_AXIS],
         dy = target[Y_AXIS] - position[Y_AXIS],
         dz = target[Z_AXIS] - position[Z_AXIS],
         de = target[E_AXIS] - position[E_AXIS];
 
-#if 0
-#define BACKLASH_LIMIT 6.0
-    if (block_buffer_tail == block_buffer_head) {
-        if (abs(dx) > BACKLASH_LIMIT) {
-            if (dx > 0.0 && count_direction[X_AXIS] == -1) {
-                dx += lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
-                SerialUSB.println("x+1");
-            }
-            else if (dx < 0.0 && count_direction[X_AXIS] == 1) {
-                dx -= lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
-                SerialUSB.println("x-1");
-            }
 
-        }
-        if (abs(dy) > BACKLASH_LIMIT) {
-            if (dy > 0.0 && count_direction[Y_AXIS] == -1) {
-                dy += lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
-                SerialUSB.println("y+1");
-            }
-            else if (dy < 0.0 && count_direction[Y_AXIS] == 1) {
-                dy -= lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
-                SerialUSB.println("y-1");
-            }
-        }
-        if (abs(dz) > BACKLASH_LIMIT) {
-            if (dz > 0.0 && count_direction[Z_AXIS] == -1) {
-                dz += lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
-                SerialUSB.println("z+1");
-            }
-            else if (dz < 0.0 && count_direction[Z_AXIS] == 1) {
-                dz -= lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
-                SerialUSB.println("z-1");
-            }
 
-        }
+    
 
+#if 1
+
+
+    //if(abs(dx) > BACKLASH_LIMIT){
+    //    
+    //}
+    //if (dx > 0.0) {
+    //    if (backlash_count.direction[0] == -1) {
+    //        dx += lround(max_backlash[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+    //        SerialUSB.println("X+");
+    //    }
+    //    backlash_count.direction[0] = 1;
+    //}
+    //else {
+    //    if (backlash_count.direction[0] == 1) {
+    //        dx -= lround(max_backlash[X_AXIS] * axis_steps_per_unit[X_AXIS]);
+    //        SerialUSB.println("X-");
+    //    }
+    //    backlash_count.direction[0] = -1;
+    //}
+    //if (abs(dy) > BACKLASH_LIMIT) {
+
+    //}
+    //if (dy > 0.0) {
+    //    if (backlash_count.direction[1] == -1) {
+    //        dy += lround(max_backlash[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+    //        SerialUSB.println("Y+");
+    //    }
+    //    backlash_count.direction[1] = 1;
+    //}
+    //else {
+    //    if (backlash_count.direction[1] == 1) {
+    //        dy -= lround(max_backlash[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
+    //        SerialUSB.println("Y-");
+    //    }
+    //    backlash_count.direction[1] = -1;
+    //}
+    //
+    //if (abs(dz) > BACKLASH_LIMIT) {
+    //    
+    //}
+    //if (dz > 0.0) {
+    //    if (backlash_count.direction[2] == -1) {
+    //        dz += lround(max_backlash[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+    //        SerialUSB.println("Z+");
+    //    }
+    //    backlash_count.direction[2] = 1;
+    //}
+    //else {
+    //    if (backlash_count.direction[2] == 1) {
+    //        dz -= lround(max_backlash[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
+    //        SerialUSB.println("Z-");
+    //    }
+    //    backlash_count.direction[2] = -1;
+    //}
+    //==================
+    //float k = 0;
+    //float new_backlash;
+    //if (abs(dx) > BACKLASH_LIMIT) {
+    //    if (dx > 0.0) {
+    //        if (backlash_count.direction[0] == -1) {
+    //            //current_backlash[X_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[0] = 1;
+    //    }
+    //    else {
+    //        if (backlash_count.direction[0] == 1) {
+    //            //current_backlash[X_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[0] = -1;
+    //    }
+    //    new_backlash = dx>0.0 ? linear_constant : -1.0* linear_constant;// dx * linear_constant + k;
+    //    if (new_backlash + current_backlash[X_AXIS] > max_backlash[X_AXIS])
+    //        new_backlash = max_backlash[X_AXIS] - current_backlash[X_AXIS];
+
+    //    if (new_backlash + current_backlash[X_AXIS] < 0.0)
+    //        new_backlash = - current_backlash[X_AXIS];
+
+    //    dx += lround(new_backlash * axis_steps_per_unit[X_AXIS]);
+    //    current_backlash[X_AXIS] += new_backlash;
+    //    if (abs(new_backlash) > 0.01) {
+    //        SerialUSB.print("X");
+    //        SerialUSB.println(new_backlash);
+    //    }
+    //}
+    //if (abs(dy) > BACKLASH_LIMIT) {
+    //    if (dy > 0.0) {
+    //        if (backlash_count.direction[1] == -1) {
+    //            //current_backlash[Y_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[1] = 1;
+    //    }
+    //    else {
+    //        if (backlash_count.direction[1] == 1) {
+    //            //current_backlash[Y_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[1] = -1;
+    //    }
+    //    new_backlash = dy>0.0 ? linear_constant : -1.0* linear_constant;// dy * linear_constant + k;
+    //    if (new_backlash + current_backlash[Y_AXIS] > max_backlash[Y_AXIS])
+    //        new_backlash = max_backlash[Y_AXIS] - current_backlash[Y_AXIS];
+
+    //    if (new_backlash + current_backlash[Y_AXIS] < 0.0)
+    //        new_backlash = -current_backlash[Y_AXIS];
+
+    //    dy += lround(new_backlash * axis_steps_per_unit[Y_AXIS]);
+    //    current_backlash[Y_AXIS] += new_backlash;
+    //    if (abs(new_backlash) > 0.01) {
+    //        SerialUSB.print("Y");
+    //        SerialUSB.println(new_backlash);
+    //    }
+    //}
+    //if (abs(dz) > BACKLASH_LIMIT) {
+    //    if (dz > 0.0) {
+    //        if (backlash_count.direction[2] == -1) {
+    //            //current_backlash[Z_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[2] = 1;
+    //    }
+    //    else {
+    //        if (backlash_count.direction[2] == 1) {
+    //            //current_backlash[Z_AXIS] = 0;
+    //        }
+    //        backlash_count.direction[2] = -1;
+    //    }
+    //    new_backlash = dz>0.0?linear_constant:-1.0* linear_constant;// dz * linear_constant + k;
+    //    if (new_backlash + current_backlash[Z_AXIS] > max_backlash[Z_AXIS])
+    //        new_backlash = max_backlash[Z_AXIS] - current_backlash[Z_AXIS];
+
+    //    if (new_backlash + current_backlash[Z_AXIS]  < 0.0)
+    //        new_backlash = -current_backlash[Z_AXIS];
+
+    //    dz += lround(new_backlash * axis_steps_per_unit[Z_AXIS]);
+    //    current_backlash[Z_AXIS] += new_backlash;
+    //    if (abs(new_backlash) > 0.01) {
+    //        SerialUSB.print("Z");
+    //        SerialUSB.println(new_backlash);
+    //    }
+    //}
+    //========2=========
+    //========3=========
+/*
+    float k = 0;
+    float new_backlash;
+    if (abs(dx) > BACKLASH_LIMIT) {
+        if (dx > 0.0) {
+            if (backlash_count.direction[0] == -1) {
+                //current_backlash[X_AXIS] = 0;
+            }
+            backlash_count.direction[0] = 1;
+        }
+        else {
+            if (backlash_count.direction[0] == 1) {
+                //current_backlash[X_AXIS] = 0;
+            }
+            backlash_count.direction[0] = -1;
+        }
+        new_backlash = dx>0.0 ? linear_constant : -1.0* linear_constant;// dx * linear_constant + k;
+        if (new_backlash + current_backlash[X_AXIS] > max_backlash[X_AXIS])
+            new_backlash = max_backlash[X_AXIS] - current_backlash[X_AXIS];
+
+        if (new_backlash + current_backlash[X_AXIS] < 0.0)
+            new_backlash = -current_backlash[X_AXIS];
+
+        dx += lround(new_backlash * axis_steps_per_unit[X_AXIS]);
+        current_backlash[X_AXIS] += new_backlash;
+        if (abs(new_backlash) > 0.01) {
+            SerialUSB.print("X");
+            SerialUSB.println(new_backlash);
+        }
     }
-    else {
-        int prev_buffer_head = prev_block_index(block_buffer_head);
-        block_t *prev_block = &block_buffer[prev_buffer_head];
-        if (abs(dx) > BACKLASH_LIMIT) {
-            if (dx > 0.0 && (prev_block->direction_bits&BIT(X_AXIS)) == 1) {
-                dx += lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
-                SerialUSB.println("X+1");
+    if (abs(dy) > BACKLASH_LIMIT) {
+        if (dy > 0.0) {
+            if (backlash_count.direction[1] == -1) {
+                //current_backlash[Y_AXIS] = 0;
             }
-            else if (dx < 0.0 && (prev_block->direction_bits&BIT(X_AXIS)) == 0) {
-                dx -= lround(backlash_offset[X_AXIS] * axis_steps_per_unit[X_AXIS]);
-                SerialUSB.println("X-1");
-            }
+            backlash_count.direction[1] = 1;
         }
-        if (abs(dy) > BACKLASH_LIMIT) {
-            if (dy > 0.0 && (prev_block->direction_bits&BIT(Y_AXIS)) == 1) {
-                dy += lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
-                SerialUSB.println("Y+1");
+        else {
+            if (backlash_count.direction[1] == 1) {
+                //current_backlash[Y_AXIS] = 0;
             }
-            else if (dy < 0.0 && (prev_block->direction_bits&BIT(Y_AXIS)) == 0) {
-                dy -= lround(backlash_offset[Y_AXIS] * axis_steps_per_unit[Y_AXIS]);
-                SerialUSB.println("Y-1");
-            }
+            backlash_count.direction[1] = -1;
         }
-        if (abs(dz) > BACKLASH_LIMIT) {
-            if (dz > 0.0 && (prev_block->direction_bits&BIT(Z_AXIS)) == 1) {
-                dz += lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
-                SerialUSB.println("Z+1");
-            }
-            else if (dz < 0.0 && (prev_block->direction_bits&BIT(Z_AXIS)) == 0) {
-                dz -= lround(backlash_offset[Z_AXIS] * axis_steps_per_unit[Z_AXIS]);
-                SerialUSB.println("Z-1");
-            }
+        new_backlash = dy>0.0 ? linear_constant : -1.0* linear_constant;// dy * linear_constant + k;
+        if (new_backlash + current_backlash[Y_AXIS] > max_backlash[Y_AXIS])
+            new_backlash = max_backlash[Y_AXIS] - current_backlash[Y_AXIS];
+
+        if (new_backlash + current_backlash[Y_AXIS] < 0.0)
+            new_backlash = -current_backlash[Y_AXIS];
+
+        dy += lround(new_backlash * axis_steps_per_unit[Y_AXIS]);
+        current_backlash[Y_AXIS] += new_backlash;
+        if (abs(new_backlash) > 0.01) {
+            SerialUSB.print("Y");
+            SerialUSB.println(new_backlash);
         }
-    }
+        }
+    if (abs(dz) > BACKLASH_LIMIT) {
+        if (dz > 0.0) {
+            if (backlash_count.direction[2] == -1) {
+                //current_backlash[Z_AXIS] = 0;
+            }
+            backlash_count.direction[2] = 1;
+        }
+        else {
+            if (backlash_count.direction[2] == 1) {
+                //current_backlash[Z_AXIS] = 0;
+            }
+            backlash_count.direction[2] = -1;
+        }
+        new_backlash = dz>0.0 ? linear_constant : -1.0* linear_constant;// dz * linear_constant + k;
+        if (new_backlash + current_backlash[Z_AXIS] > max_backlash[Z_AXIS])
+            new_backlash = max_backlash[Z_AXIS] - current_backlash[Z_AXIS];
+
+        if (new_backlash + current_backlash[Z_AXIS]  < 0.0)
+            new_backlash = -current_backlash[Z_AXIS];
+
+        dz += lround(new_backlash * axis_steps_per_unit[Z_AXIS]);
+        current_backlash[Z_AXIS] += new_backlash;
+        if (abs(new_backlash) > 0.01) {
+            SerialUSB.print("Z");
+            SerialUSB.println(new_backlash);
+        }
+    }*/
+    //========3END======
+    
 #endif
 
   #ifdef PREVENT_DANGEROUS_EXTRUDE

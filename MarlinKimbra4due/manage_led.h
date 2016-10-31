@@ -51,7 +51,7 @@ typedef struct LedStatus {
 
 // manage_led
 // millis:49.71 days
-inline float _led_wave_atom(float a, uint32_t b) {
+inline float _led_wave_atom(float a, float b) {
     float n = a * (millis() - b);
     uint32_t x = (uint32_t)abs(n);
     float f = n - (float)x;
