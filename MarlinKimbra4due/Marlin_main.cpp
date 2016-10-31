@@ -792,9 +792,9 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
         }
         break;
 	  case PI_WIFI_HOSTED:
-		  if (led_st.mode[2] != LED_WAVE2) {
-			  led_st.mode[2] = LED_WAVE2;
-			  led_st.param_a[2] = 0.00030;//0.00045
+		  if (led_st.mode[2] != LED_BLINK) {
+			  led_st.mode[2] = LED_BLINK;
+			  led_st.param_a[2] = 0.0015;//0.00045
 			  led_st.param_b[2] = millis();
 		  }
 		  break;
@@ -3875,6 +3875,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     //G28+ for shaking detection
 	if (code_seen('+')) {
 		G28_f = 1;
+
 	}
 	else {
 		G28_f = 0;
@@ -5810,6 +5811,8 @@ inline void gcode_M92() {
           axis_steps_per_sqr_second[i] *= factor;
         }
         axis_steps_per_unit[i] = value;
+        axis_steps_per_unit[E_AXIS+1] = value;
+
       }
       else {
         axis_steps_per_unit[i] = code_value();
@@ -7382,6 +7385,7 @@ inline void gcode_T() {
     SERIAL_ECHOLN(MSG_INVALID_EXTRUDER);
   }
   else {
+    tmp_extruder = 1;
     target_extruder = tmp_extruder;
 
     #if EXTRUDERS > 1
