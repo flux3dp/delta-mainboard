@@ -7389,7 +7389,6 @@ inline void gcode_T() {
     SERIAL_ECHOLN(MSG_INVALID_EXTRUDER);
   }
   else {
-    tmp_extruder = 1;
     target_extruder = tmp_extruder;
 
     #if EXTRUDERS > 1
