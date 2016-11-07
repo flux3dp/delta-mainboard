@@ -3874,8 +3874,10 @@ inline void gcode_G4() {
  *  Yn  Home Y, setting Y to n + home_offset[Y_AXIS]
  *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
  */
+  extern bool enable_backlash_flag;
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
+    enable_backlash_flag = false;
     //G28+ for shaking detection
 	if (code_seen('+')) {
 		G28_f = 1;
@@ -4271,8 +4273,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
   G28_f = 0; 
-
+  enable_backlash_flag = true;
 }
+
 
 #ifdef ENABLE_AUTO_BED_LEVELING
 
@@ -4630,6 +4633,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
   // G30: Delta AutoCalibration
   inline void gcode_G30() {
+      enable_backlash_flag = false;
     int iterations;
     //Zero the bed level array
     for (int y = 0; y < 7; y++) {
@@ -5098,6 +5102,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     //Restore saved variables
     feedrate = saved_feedrate;
     feedmultiply = saved_feedmultiply;
+    enable_backlash_flag = true;
   }
 #endif // DELTA
 
@@ -10619,7 +10624,7 @@ inline void gcode_X9()
 	}
 }
 
-extern float linear_constant;
+extern float linear_constant[3];
 extern float max_backlash[NUM_AXIS];
 extern float BACKLASH_LIMIT;
 inline void gcode_X78()
@@ -10785,9 +10790,15 @@ inline void gcode_X78()
   if (code_seen('O')) {
       if (code_seen('K')) {
           float k = code_value();
-          linear_constant = k;
-          
-          
+          linear_constant[0] = k;
+      }
+      if (code_seen('L')) {
+          float k = code_value();
+          linear_constant[1] = k;
+      }
+      if (code_seen('M')) {
+          float k = code_value();
+          linear_constant[2] = k;
       }
       float offset;
       if (code_seen('A')) {
@@ -10802,13 +10813,16 @@ inline void gcode_X78()
           offset = code_value();
           max_backlash[Z_AXIS] = offset;
       }
-      if (code_seen('L')) {
-          offset = code_value();
-          BACKLASH_LIMIT = offset;
-      }
+      //if (code_seen('L')) {
+      //    offset = code_value();
+      //    BACKLASH_LIMIT = offset;
+      //}
       
       SerialUSB.print("linear_constant= ");
-      SerialUSB.println(linear_constant);
+      for (int i = 0; i < 3; i++) {
+          SerialUSB.println(linear_constant[i]);
+      }
+      
       SerialUSB.print("BACKLASH_LIMIT= ");
       SerialUSB.println(BACKLASH_LIMIT);
 
