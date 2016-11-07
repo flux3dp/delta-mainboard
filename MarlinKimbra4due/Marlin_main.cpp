@@ -3879,6 +3879,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     //G28+ for shaking detection
 	if (code_seen('+')) {
 		G28_f = 1;
+
 	}
 	else {
 		G28_f = 0;
@@ -7388,6 +7389,7 @@ inline void gcode_T() {
     SERIAL_ECHOLN(MSG_INVALID_EXTRUDER);
   }
   else {
+    tmp_extruder = 1;
     target_extruder = tmp_extruder;
 
     #if EXTRUDERS > 1
