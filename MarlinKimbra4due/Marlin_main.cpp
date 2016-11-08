@@ -10788,15 +10788,15 @@ inline void gcode_X78()
       SerialUSB.print(pwm);
   }
   if (code_seen('O')) {
-      if (code_seen('K')) {
+      if (code_seen('J')) {
           float k = code_value();
           linear_constant[0] = k;
       }
-      if (code_seen('L')) {
+      if (code_seen('K')) {
           float k = code_value();
           linear_constant[1] = k;
       }
-      if (code_seen('M')) {
+      if (code_seen('L')) {
           float k = code_value();
           linear_constant[2] = k;
       }
@@ -10820,9 +10820,11 @@ inline void gcode_X78()
       
       SerialUSB.print("linear_constant= ");
       for (int i = 0; i < 3; i++) {
-          SerialUSB.println(linear_constant[i]);
+          SerialUSB.print(linear_constant[i]);
+          SerialUSB.print(" ");
+
       }
-      
+      SerialUSB.print("\n");
       SerialUSB.print("BACKLASH_LIMIT= ");
       SerialUSB.println(BACKLASH_LIMIT);
 
