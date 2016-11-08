@@ -10619,9 +10619,6 @@ inline void gcode_X9()
 	}
 }
 
-extern float linear_constant;
-extern float max_backlash[NUM_AXIS];
-extern float BACKLASH_LIMIT;
 inline void gcode_X78()
 {
   SerialUSB.print("FSR0 ");
@@ -10781,59 +10778,7 @@ inline void gcode_X78()
       }
       SerialUSB.print("pwm= ");
       SerialUSB.print(pwm);
-  }
-  if (code_seen('O')) {
-      if (code_seen('K')) {
-          float k = code_value();
-          linear_constant = k;
-          
-          
-      }
-      float offset;
-      if (code_seen('A')) {
-          offset = code_value();
-          max_backlash[X_AXIS] = offset;
-      }
-      if (code_seen('B')) {
-          offset = code_value();
-          max_backlash[Y_AXIS] = offset;
-      }
-      if (code_seen('C')) {
-          offset = code_value();
-          max_backlash[Z_AXIS] = offset;
-      }
-      if (code_seen('L')) {
-          offset = code_value();
-          BACKLASH_LIMIT = offset;
-      }
-      
-      SerialUSB.print("linear_constant= ");
-      SerialUSB.println(linear_constant);
-      SerialUSB.print("BACKLASH_LIMIT= ");
-      SerialUSB.println(BACKLASH_LIMIT);
-
-      SerialUSB.print("X=");
-      SerialUSB.print(max_backlash[X_AXIS]);
-      SerialUSB.print(" Y=");
-      SerialUSB.print(max_backlash[Y_AXIS]);
-      SerialUSB.print(" Z=");
-      SerialUSB.println(max_backlash[Z_AXIS]);
-
-      //uint32_t time_recode = 0;
-      //gcode_G28();
-      //get_coordinates(); // For X Y Z E F
-      //feedrate = 40000;
-      //destination[X_AXIS] = 0;
-      //destination[Y_AXIS] = 0;
-      //destination[Z_AXIS] = 220;
-      //prepare_move();
-      //destination[Z_AXIS] = 20;
-      //time_recode = millis();
-      //prepare_move();
-      //SerialUSB.print(millis() - time_recode);
-      //destination[Z_AXIS] = 0;
-      //prepare_move();
-
+  
   }
 
 }
