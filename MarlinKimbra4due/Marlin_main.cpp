@@ -186,6 +186,14 @@ bool pwmState = 0;
 int pwmCount[2] = { 0,0 };
 int extension_port_mode=0;
 
+/*
+backlash variants
+M711
+*/
+extern float linear_constant[3];
+extern float max_backlash[NUM_AXIS];
+extern float BACKLASH_LIMIT;
+
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -7287,6 +7295,54 @@ inline void gcode_M665() {
   }
 #endif
 
+  inline void gcode_M711() {
+      if (code_seen('J')) {
+          float k = code_value();
+          linear_constant[0] = k;
+      }
+      if (code_seen('K')) {
+          float k = code_value();
+          linear_constant[1] = k;
+      }
+      if (code_seen('L')) {
+          float k = code_value();
+          linear_constant[2] = k;
+      }
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          max_backlash[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          max_backlash[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          max_backlash[Z_AXIS] = offset;
+      }
+      //if (code_seen('L')) {
+      //    offset = code_value();
+      //    BACKLASH_LIMIT = offset;
+      //}
+
+      SerialUSB.print("linear_constant= ");
+      for (int i = 0; i < 3; i++) {
+          SerialUSB.print(linear_constant[i]);
+          SerialUSB.print(" ");
+
+      }
+      SerialUSB.print("\n");
+      SerialUSB.print("BACKLASH_LIMIT= ");
+      SerialUSB.println(BACKLASH_LIMIT);
+
+      SerialUSB.print("X=");
+      SerialUSB.print(max_backlash[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(max_backlash[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(max_backlash[Z_AXIS]);
+  }
 /**
  * M907: Set digital trimpot motor current using axis codes X, Y, Z, E, B, S
  */
@@ -10624,9 +10680,6 @@ inline void gcode_X9()
 	}
 }
 
-extern float linear_constant[3];
-extern float max_backlash[NUM_AXIS];
-extern float BACKLASH_LIMIT;
 inline void gcode_X78()
 {
   SerialUSB.print("FSR0 ");
@@ -11391,6 +11444,9 @@ bool process_commands()
         break;
 #endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
 
+      case 711:
+          gcode_M711();
+          break;
       case 907: // M907 Set digital trimpot motor current using axis codes.
         gcode_M907();
         break;
