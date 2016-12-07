@@ -109,14 +109,14 @@ volatile unsigned char block_buffer_tail; // Index of the block to process now
 
 float backlash_offset[NUM_AXIS] = { 0.0,0.0,0.0,0.0 };
 float current_backlash[NUM_AXIS] = {0.0,0.0,0.0,0.0};
-float max_backlash[NUM_AXIS] = { 0.2*80.0,0.2*80.0,0.2*80.0,0.2*80.0 };
+float max_backlash[NUM_AXIS] = { 0.0,0.0,0.0,0.0 };
 //extern volatile signed char count_direction[NUM_AXIS] ;
 struct backlash {
     bool unknow_flag[NUM_AXIS] = { true, true, true, true };
     volatile signed char direction[NUM_AXIS] = { 0, 0, 0, 0 };
 };
 backlash backlash_count;
-float linear_constant[3] = { 0.15,0.15,0.15 };
+float linear_constant[3] = { 1.0,1.0,1.0 };
 float BACKLASH_LIMIT = 0.0001;
 bool enable_backlash_flag = true;
 //===========================================================================
