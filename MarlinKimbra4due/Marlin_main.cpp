@@ -186,6 +186,14 @@ bool pwmState = 0;
 int pwmCount[2] = { 0,0 };
 int extension_port_mode=0;
 
+/*
+backlash variants
+M711
+*/
+extern float linear_constant[3];
+extern float max_backlash[NUM_AXIS];
+extern float BACKLASH_LIMIT;
+
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -3874,8 +3882,10 @@ inline void gcode_G4() {
  *  Yn  Home Y, setting Y to n + home_offset[Y_AXIS]
  *  Zn  Home Z, setting Z to n + home_offset[Z_AXIS]
  */
+  extern bool enable_backlash_flag;
 inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 {
+    enable_backlash_flag = false;
     //G28+ for shaking detection
 	if (code_seen('+')) {
 		G28_f = 1;
@@ -4271,8 +4281,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
   refresh_cmd_timeout();
   endstops_hit_on_purpose(); // clear endstop hit flags
   G28_f = 0; 
-
+  enable_backlash_flag = true;
 }
+
 
 #ifdef ENABLE_AUTO_BED_LEVELING
 
@@ -4630,6 +4641,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
 
   // G30: Delta AutoCalibration
   inline void gcode_G30() {
+      enable_backlash_flag = false;
     int iterations;
     //Zero the bed level array
     for (int y = 0; y < 7; y++) {
@@ -5098,6 +5110,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
     //Restore saved variables
     feedrate = saved_feedrate;
     feedmultiply = saved_feedmultiply;
+    enable_backlash_flag = true;
   }
 #endif // DELTA
 
@@ -7282,6 +7295,54 @@ inline void gcode_M665() {
   }
 #endif
 
+  inline void gcode_M711() {
+      if (code_seen('J')) {
+          float k = code_value();
+          linear_constant[0] = k;
+      }
+      if (code_seen('K')) {
+          float k = code_value();
+          linear_constant[1] = k;
+      }
+      if (code_seen('L')) {
+          float k = code_value();
+          linear_constant[2] = k;
+      }
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          max_backlash[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          max_backlash[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          max_backlash[Z_AXIS] = offset;
+      }
+      //if (code_seen('L')) {
+      //    offset = code_value();
+      //    BACKLASH_LIMIT = offset;
+      //}
+
+      SerialUSB.print("linear_constant= ");
+      for (int i = 0; i < 3; i++) {
+          SerialUSB.print(linear_constant[i]);
+          SerialUSB.print(" ");
+
+      }
+      SerialUSB.print("\n");
+      SerialUSB.print("BACKLASH_LIMIT= ");
+      SerialUSB.println(BACKLASH_LIMIT);
+
+      SerialUSB.print("X=");
+      SerialUSB.print(max_backlash[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(max_backlash[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(max_backlash[Z_AXIS]);
+  }
 /**
  * M907: Set digital trimpot motor current using axis codes X, Y, Z, E, B, S
  */
@@ -10778,7 +10839,70 @@ inline void gcode_X78()
       }
       SerialUSB.print("pwm= ");
       SerialUSB.print(pwm);
-  
+  }
+  if (code_seen('O')) {
+      if (code_seen('J')) {
+          float k = code_value();
+          linear_constant[0] = k;
+      }
+      if (code_seen('K')) {
+          float k = code_value();
+          linear_constant[1] = k;
+      }
+      if (code_seen('L')) {
+          float k = code_value();
+          linear_constant[2] = k;
+      }
+      float offset;
+      if (code_seen('A')) {
+          offset = code_value();
+          max_backlash[X_AXIS] = offset;
+      }
+      if (code_seen('B')) {
+          offset = code_value();
+          max_backlash[Y_AXIS] = offset;
+      }
+      if (code_seen('C')) {
+          offset = code_value();
+          max_backlash[Z_AXIS] = offset;
+      }
+      //if (code_seen('L')) {
+      //    offset = code_value();
+      //    BACKLASH_LIMIT = offset;
+      //}
+
+      SerialUSB.print("linear_constant= ");
+      for (int i = 0; i < 3; i++) {
+          SerialUSB.print(linear_constant[i]);
+          SerialUSB.print(" ");
+
+      }
+      SerialUSB.print("\n");
+      SerialUSB.print("BACKLASH_LIMIT= ");
+      SerialUSB.println(BACKLASH_LIMIT);
+
+      SerialUSB.print("X=");
+      SerialUSB.print(max_backlash[X_AXIS]);
+      SerialUSB.print(" Y=");
+      SerialUSB.print(max_backlash[Y_AXIS]);
+      SerialUSB.print(" Z=");
+      SerialUSB.println(max_backlash[Z_AXIS]);
+
+      //uint32_t time_recode = 0;
+      //gcode_G28();
+      //get_coordinates(); // For X Y Z E F
+      //feedrate = 40000;
+      //destination[X_AXIS] = 0;
+      //destination[Y_AXIS] = 0;
+      //destination[Z_AXIS] = 220;
+      //prepare_move();
+      //destination[Z_AXIS] = 20;
+      //time_recode = millis();
+      //prepare_move();
+      //SerialUSB.print(millis() - time_recode);
+      //destination[Z_AXIS] = 0;
+      //prepare_move();
+
   }
 
 }
@@ -11320,6 +11444,9 @@ bool process_commands()
         break;
 #endif //defined(ENABLE_AUTO_BED_LEVELING) || defined(DELTA)
 
+      case 711:
+          gcode_M711();
+          break;
       case 907: // M907 Set digital trimpot motor current using axis codes.
         gcode_M907();
         break;

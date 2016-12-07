@@ -107,17 +107,18 @@ block_t block_buffer[BLOCK_BUFFER_SIZE];  // A ring buffer for motion instructio
 volatile unsigned char block_buffer_head; // Index of the next block to be pushed
 volatile unsigned char block_buffer_tail; // Index of the block to process now
 
-float backlash_offset[NUM_AXIS] = { 0.2,0.2,0.2,0.2 };
+float backlash_offset[NUM_AXIS] = { 0.0,0.0,0.0,0.0 };
 float current_backlash[NUM_AXIS] = {0.0,0.0,0.0,0.0};
-float max_backlash[NUM_AXIS] = { 0.26,0.26,0.26,0.26 };
+float max_backlash[NUM_AXIS] = { 0.0,0.0,0.0,0.0 };
 //extern volatile signed char count_direction[NUM_AXIS] ;
 struct backlash {
     bool unknow_flag[NUM_AXIS] = { true, true, true, true };
     volatile signed char direction[NUM_AXIS] = { 0, 0, 0, 0 };
 };
 backlash backlash_count;
-float linear_constant = 0.15;
-float BACKLASH_LIMIT = 0.000001;
+float linear_constant[3] = { 1.0,1.0,1.0 };
+float BACKLASH_LIMIT = 0.0001;
+bool enable_backlash_flag = true;
 //===========================================================================
 //=============================private variables ============================
 //===========================================================================
@@ -518,6 +519,22 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
     target[Y_AXIS] = lround(y * axis_steps_per_unit[Y_AXIS]);
     target[Z_AXIS] = lround(z * axis_steps_per_unit[Z_AXIS]);
     target[E_AXIS] = lround(e * axis_steps_per_unit[E_AXIS + active_extruder]);
+
+    if (enable_backlash_flag) {
+        for (int i = 0; i < 3; i++)
+        {
+            int new_backlash = (target[i] - position[i] + backlash_offset[i]) * linear_constant[i];
+            backlash_offset[i] += new_backlash;
+            if (backlash_offset[i] > max_backlash[i])
+                backlash_offset[i] = max_backlash[i];
+
+            if (backlash_offset[i] < -1.0 * max_backlash[i])
+                backlash_offset[i] = -1.0 * max_backlash[i];
+
+            target[i] += backlash_offset[i];
+        }
+    }
+    
 
     float dx = target[X_AXIS] - position[X_AXIS],
         dy = target[Y_AXIS] - position[Y_AXIS],
