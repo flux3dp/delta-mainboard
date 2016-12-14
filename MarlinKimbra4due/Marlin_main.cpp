@@ -194,6 +194,9 @@ extern float linear_constant[3];
 extern float max_backlash[NUM_AXIS];
 extern float BACKLASH_LIMIT;
 
+/*G30 parameter */
+bool report_row_data_flag = false;
+
 void CAPTURE_Handler() {
 	if ((TC_GetStatus(CAPTURE_TC, CAPTURE_CHANNEL) & TC_SR_LDRBS) == TC_SR_LDRBS) {
 		captured_pulses++;
@@ -2209,7 +2212,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 
 
 
-  int read_FSR(float &data, int count, float ratio[])
+  int read_FSR(float &data, int count, float ratio[], bool report_row_data)
   {
     float avg[3], sd[3];
     int max_val[3], min_val[3];
@@ -2220,6 +2223,12 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		latest_sd[j] = sd[j];
 		latest_max_val[j] = max_val[j];
 		latest_min_val[j] = min_val[j];
+        if (report_row_data) {
+            SerialUSB.print(avg[j]);
+            SerialUSB.print(" ");
+            SerialUSB.print(sd[j]);
+            SerialUSB.print(" ");
+        }
 	}
 	
 
@@ -2261,7 +2270,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     
     float data;
     
-    read_FSR(data, 200, ratio);
+    read_FSR(data, 200, ratio, false);
     float threshold = data;
     int fsr_flag = -1;
 	//downward
@@ -2272,7 +2281,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
       prepare_move_raw();
       st_synchronize();
       
-	  read_FSR(data, 20, ratio);
+      read_FSR(data, 20, ratio, false);
       if (data < threshold *0.98)
       {
           fsr_flag = 1;
@@ -2308,6 +2317,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
     
     feedrate = 600;
 	
+    //Clear filaments on the metal plate.
 	for (int i = 0; i < 5; i++)
 	{
 		destination[Z_AXIS] = z_val + 0.25;
@@ -2321,7 +2331,8 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		delay(100);
 	}
 	float value[3] = { 0,0,0 };
-	
+    float last_z = 0;
+    //Measure leveling height
 	for (int i = 0; i < 3; i++)
 	{
 		fsr_flag = -1;
@@ -2329,7 +2340,7 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 		prepare_move_raw();
 		st_synchronize();
 		delay(100);
-		read_FSR(data, 200, ratio);
+		read_FSR(data, 200, ratio,false);
 		threshold = data;
 		while ((destination[Z_AXIS] -= 0.00625) >(max_pos[Z_AXIS] - 245.0) && fsr_flag < 0) //243.5
 		{
@@ -2337,12 +2348,22 @@ inline void read_fsr_helper(int times, float avg[3], float sd[3],
 			prepare_move_raw();
 			st_synchronize();
 
-			read_FSR(data, 20, ratio);
-
+            if (report_row_data_flag) {
+                SerialUSB.print("CTRL ZPROBE ");
+                SerialUSB.print(destination[Z_AXIS]);
+                SerialUSB.print(" ");
+                read_FSR(data, 20, ratio, report_row_data_flag);
+                SerialUSB.println(last_z);
+            }
+            else {
+                read_FSR(data, 20, ratio, false);
+            }
+			
 			if (data < threshold *0.98)
 			{
 				fsr_flag = 1;
 				value[i] = destination[Z_AXIS];
+                last_z = destination[Z_AXIS];
 			}
 			else
 				delayMicroseconds(200);
@@ -4649,7 +4670,9 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
         bed_level[x][y] = 0.0;
       }
     }
-
+    if (code_seen('R')) {
+        report_row_data_flag = true;
+    }
     if (code_seen('C')) {
       //Show carriage positions 
       SERIAL_ECHOLN("Carriage Positions for last scan:");
@@ -4703,7 +4726,7 @@ inline void gcode_G28(boolean home_x = false, boolean home_y = false)
       SERIAL_ECHO(saved_position[Z_AXIS]);
       SERIAL_ECHOLN("]");
       //retract_z_probe();
-
+      report_row_data_flag = false;
       return;
     }
 
@@ -8464,84 +8487,82 @@ inline void gcode_C1()
   }
 }
 
+/* stash=pause */
 inline void gcode_C2()
 {
-  if (play_st.enable_linecheck == 0) {
-    SERIAL_PROTOCOLLN("ER LINECHECK_DISABLED");
-    return;
-  }
-
-  if (code_seen('O') || code_seen('E'))
-  {
-    if (play_st.stashed == 0) {
-      play_st.stashed = code_seen('E') ? code_value_short() : 1;
-      st_synchronize();
-      analogWrite(M_IO2, 0);
-
-      // Remember current status
-      play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
-      play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
-      play_st.stashed_position[Z_AXIS] = current_position[Z_AXIS];
-      for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
-        play_st.stashed_extruder_position[i] = current_position[i];
-      }
-      play_st.stashed_feedrate = feedrate;
-      play_st.stashed_extruder = target_extruder;
-
-      // Retraction
-      feedrate = 500;
-      destination[E_AXIS] = current_position[E_AXIS] - 5;
-      prepare_move();
-      st_synchronize();
-
-      if (current_position[Z_AXIS] < 210) {
-        destination[Z_AXIS] = min(current_position[Z_AXIS] + 5, 210);
-        feedrate = 300;
-        prepare_move_raw();
-        st_synchronize();
-      }
-      if (current_position[Z_AXIS] < 210) {
-		  int16_t z_raise = 25;
-		  if (code_seen('Z')) {
-			  z_raise = code_value_short();
-			  if (z_raise < 0)
-				  z_raise = 25;
-		  }
-        destination[Z_AXIS] = min(current_position[Z_AXIS] + z_raise, 210);
-        feedrate = 2500;
-        prepare_move_raw();
-        st_synchronize();
-      }
-
-      SERIAL_PROTOCOLLN("CTRL STASH");
-
-
-    } else {
-      SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
+    if (play_st.enable_linecheck == 0) {
+        SERIAL_PROTOCOLLN("ER LINECHECK_DISABLED");
+        return;
     }
-  } else if (code_seen('F')) {
-    if (play_st.stashed == 0) {
-      SERIAL_PROTOCOLLN("ER NOT_STASHED");
-    } else {
+
+    if (code_seen('O') || code_seen('E'))
+    {
+        if (play_st.stashed == 0) {
+            play_st.stashed = code_seen('E') ? code_value_short() : 1;
+            st_synchronize();
+            analogWrite(M_IO2, 0);
+
+            // Remember current status
+            play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
+            play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
+            play_st.stashed_position[Z_AXIS] = current_position[Z_AXIS];
+            for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
+                play_st.stashed_extruder_position[i] = current_position[i];
+            }
+            play_st.stashed_feedrate = feedrate;
+            play_st.stashed_extruder = target_extruder;
+
+            // Retraction
+            feedrate = 500;
+            destination[E_AXIS] = current_position[E_AXIS] - 5;
+            prepare_move();
+            st_synchronize();
+
+            if (current_position[Z_AXIS] < 210) {
+                destination[Z_AXIS] = min(current_position[Z_AXIS] + 5, 210);
+                feedrate = 300;
+                prepare_move_raw();
+                st_synchronize();
+            }
+            if (current_position[Z_AXIS] < 210) {
+		        int16_t z_raise = 25;
+		        if (code_seen('Z')) {
+			        z_raise = code_value_short();
+			        if (z_raise < 0)
+				        z_raise = 25;
+		        }
+                destination[Z_AXIS] = min(current_position[Z_AXIS] + z_raise, 210);
+                feedrate = 2500;
+                prepare_move_raw();
+                st_synchronize();
+            }
+
+            SERIAL_PROTOCOLLN("CTRL STASH");
+        } else {
+            SERIAL_PROTOCOLLN("ER ALREADY_STASHED");
+        }
+    } else if (code_seen('F')) {
+        if (play_st.stashed == 0) {
+            SERIAL_PROTOCOLLN("ER NOT_STASHED");
+        } else {
 		
-		feedrate = 6000;
-	  destination[X_AXIS] = current_position[X_AXIS];
-	  destination[Y_AXIS] = current_position[Y_AXIS];
-      destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
-	  destination[E_AXIS] = current_position[E_AXIS];
-      prepare_move_raw();
-      st_synchronize();
+		    feedrate = 6000;
+            destination[X_AXIS] = play_st.stashed_position[X_AXIS];
+	        destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
+            destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
+	        destination[E_AXIS] = play_st.stashed_position[E_AXIS];
+            prepare_move_raw();
+            st_synchronize();
 
-	  analogWrite(M_IO2, play_st.stashed_laser_pwm);
-      feedrate = play_st.stashed_feedrate;
-      target_extruder = play_st.stashed_extruder;
-
-      play_st.stashed = 0;
-      SERIAL_PROTOCOLLN("CTRL STASH_POP");
+	        analogWrite(M_IO2, play_st.stashed_laser_pwm);
+            feedrate = play_st.stashed_feedrate;
+            active_driver = active_extruder = target_extruder = play_st.stashed_extruder;
+            play_st.stashed = 0;
+            SERIAL_PROTOCOLLN("CTRL STASH_POP");
+        }
+    } else {
+        SERIAL_PROTOCOLLN("ER BAD_CMD");
     }
-  } else {
-    SERIAL_PROTOCOLLN("ER BAD_CMD");
-  }
 }
 inline void gcode_C3(int t=0) {
   if(t > 2) t = 0;
@@ -9166,7 +9187,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP2, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN2,HIGH);
+    //digitalWrite(EN2,HIGH);
   } 
 
   if(num == 3)
@@ -9187,7 +9208,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP3, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN3,HIGH);
+    //digitalWrite(EN3,HIGH);
   } 
 
   if(num == 4)
@@ -9208,7 +9229,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP4, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN4,HIGH);
+    //digitalWrite(EN4,HIGH);
   }
 
   if(num == 5)
@@ -9229,7 +9250,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP5, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN5,HIGH);
+    //digitalWrite(EN5,HIGH);
   }
 
   if(num == 6)
@@ -9250,7 +9271,7 @@ void step(int num,boolean dir,int steps)
       digitalWrite(STP6, LOW);
       delayMicroseconds(800);
     }
-    digitalWrite(EN6,HIGH);
+    //digitalWrite(EN6,HIGH);
   }
 }
 

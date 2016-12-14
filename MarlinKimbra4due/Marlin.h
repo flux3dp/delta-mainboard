@@ -396,8 +396,7 @@ typedef struct PlayStatus {
   float stashed_position[3];
   float stashed_extruder_position[NUM_AXIS - 3];
   float stashed_feedrate;
-  float stashed_extruder;
-  
+  uint8_t stashed_extruder;
 } PlayStatus;
 
 //To detect G28 that doesn't touch micro switch
