@@ -7284,36 +7284,61 @@ inline void gcode_M665() {
         }
       }
     }
+
     if (code_seen('L')) {
-      SERIAL_ECHOLN("Current Delta geometry values:");
-      SERIAL_ECHOPAIR("X (Endstop Adj): ",endstop_adj[0]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("Y (Endstop Adj): ",endstop_adj[1]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("Z (Endstop Adj): ",endstop_adj[2]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("P (Z-Probe Offset): X", z_probe_offset[0]);
-      SERIAL_ECHOPAIR(" Y", z_probe_offset[1]);
-      SERIAL_ECHOPAIR(" Z", z_probe_offset[2]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("A (Tower A Position Correction): ",tower_adj[0]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("B (Tower B Position Correction): ",tower_adj[1]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("C (Tower C Position Correction): ",tower_adj[2]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("I (Tower A Radius Correction): ",tower_adj[3]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("J (Tower B Radius Correction): ",tower_adj[4]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("K (Tower C Radius Correction): ",tower_adj[5]);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("R (Delta Radius): ",delta_radius);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("D (Diagonal Rod Length): ",delta_diagonal_rod);
-      SERIAL_EOL;
-      SERIAL_ECHOPAIR("H (Z-Height): ",max_pos[Z_AXIS]);
-      SERIAL_EOL;
+      if(code_value()) {
+        SERIAL_PROTOCOL("CTRL DATA FSR0 ");
+        SERIAL_PROTOCOL(analogRead(0));
+        SERIAL_PROTOCOL("\nCTRL DATA FSR1 ");
+        SERIAL_PROTOCOL(analogRead(1));
+        SERIAL_PROTOCOL("\nCTRL DATA FSR2 ");
+        SERIAL_PROTOCOL(analogRead(2));
+        SERIAL_PROTOCOL("\nCTRL DATA RIO1 ");
+        SERIAL_PROTOCOL(digitalRead(R_IO1));
+        SERIAL_PROTOCOL("\nCTRL DATA RIO2 ");
+        SERIAL_PROTOCOL(digitalRead(R_IO2));
+        SERIAL_PROTOCOL("\nCTRL DATA MIO1 ");
+        SERIAL_PROTOCOL(digitalRead(M_IO1));
+        SERIAL_PROTOCOL("\nCTRL DATA F0_STOP ");
+        SERIAL_PROTOCOL(digitalRead(F0_STOP));
+        SERIAL_PROTOCOL("\nCTRL DATA F1_STOP ");
+        SERIAL_PROTOCOL(digitalRead(F1_STOP));
+        SERIAL_PROTOCOL("\nCTRL DATA HOME_BTN_PIN ");
+        SERIAL_PROTOCOL(digitalRead(HOME_BTN_PIN));
+        SERIAL_PROTOCOL("\nCTRL DATA U5FAULT ");
+        SERIAL_PROTOCOL(digitalRead(U5FAULT));
+        SERIAL_PROTOCOL("\n");
+      } else {
+        SERIAL_ECHOLN("Current Delta geometry values:");
+        SERIAL_ECHOPAIR("X (Endstop Adj): ",endstop_adj[0]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("Y (Endstop Adj): ",endstop_adj[1]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("Z (Endstop Adj): ",endstop_adj[2]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("P (Z-Probe Offset): X", z_probe_offset[0]);
+        SERIAL_ECHOPAIR(" Y", z_probe_offset[1]);
+        SERIAL_ECHOPAIR(" Z", z_probe_offset[2]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("A (Tower A Position Correction): ",tower_adj[0]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("B (Tower B Position Correction): ",tower_adj[1]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("C (Tower C Position Correction): ",tower_adj[2]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("I (Tower A Radius Correction): ",tower_adj[3]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("J (Tower B Radius Correction): ",tower_adj[4]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("K (Tower C Radius Correction): ",tower_adj[5]);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("R (Delta Radius): ",delta_radius);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("D (Diagonal Rod Length): ",delta_diagonal_rod);
+        SERIAL_EOL;
+        SERIAL_ECHOPAIR("H (Z-Height): ",max_pos[Z_AXIS]);
+        SERIAL_EOL;
+      }
     }
   }
 #endif

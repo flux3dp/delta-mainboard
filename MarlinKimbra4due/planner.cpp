@@ -541,6 +541,7 @@ void plan_buffer_line(const float &x, const float &y, const float &z, const floa
         dz = target[Z_AXIS] - position[Z_AXIS],
         de = target[E_AXIS] - position[E_AXIS];
 
+
   #ifdef PREVENT_DANGEROUS_EXTRUDE
     if (de) {
       #ifdef NPR2
