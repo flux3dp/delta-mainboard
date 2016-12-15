@@ -11906,7 +11906,7 @@ void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
     if(((sampling_read(F0_STOP,20)>0.8)^FIL_RUNOUT_INVERTING) &&
        (millis() - filament_detect.last_trigger > 1000)) {
 
-       SerialUSB.println("CTRL FILAMENTRUNOUT 0");
+       SERIAL_PROTOCOLLN("CTRL FILAMENTRUNOUT 0");
        filament_detect.last_trigger = millis();
     }
   }
