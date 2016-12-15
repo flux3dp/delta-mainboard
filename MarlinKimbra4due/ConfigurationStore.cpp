@@ -17,7 +17,7 @@
 #define EEPROM_VERSION "V20"
 
 /**
- * V19 EEPROM Layout:
+ * V20 EEPROM Layout:
  *
  *  ver
  *  axis_steps_per_unit (x7)
@@ -50,50 +50,6 @@
  * Z_DUAL_ENDSTOPS
  *  z_endstop_adj
  *
- * ULTIPANEL:
- *  plaPreheatHotendTemp
- *  plaPreheatHPBTemp
- *  plaPreheatFanSpeed
- *  absPreheatHotendTemp
- *  absPreheatHPBTemp
- *  absPreheatFanSpeed
- *  gumPreheatHotendTemp
- *  gumPreheatHPBTemp
- *  gumPreheatFanSpeed
- *
- * PIDTEMP:
- *  Kp[0], Ki[0], Kd[0]
- *  Kp[1], Ki[1], Kd[1]
- *  Kp[2], Ki[2], Kd[2]
- *  Kp[3], Ki[3], Kd[3]
- *
- * PIDTEMPBED:
- *  bedKp, bedKi, bedKd
- *
- * DOGLCD:
- *  lcd_contrast
- *
- * SCARA:
- *  axis_scaling (x3)
- *
- * FWRETRACT:
- *  autoretract_enabled
- *  retract_length
- *  retract_length_swap
- *  retract_feedrate
- *  retract_zlift
- *  retract_recover_length
- *  retract_recover_length_swap
- *  retract_recover_feedrate
- *
- *  volumetric_enabled
- *
- *  filament_size (x4)
- *
- *  idleoozing_enabled
- *
- *  power_consumption_hour
- *
  *
  */
 #include "Marlin.h"
@@ -102,6 +58,9 @@
 #include "temperature.h"
 #include "ultralcd.h"
 #include "ConfigurationStore.h"
+#include "DueFlashStorage.h"
+
+DueFlashStorage dueFlashStorage;
 
 void _EEPROM_writeData(int &pos, uint8_t* value, uint8_t size) {
   uint8_t c;
@@ -111,6 +70,7 @@ void _EEPROM_writeData(int &pos, uint8_t* value, uint8_t size) {
     if (c != *value) {
       SERIAL_ECHO_START;
       SERIAL_ECHOLNPGM(MSG_ERR_EEPROM_WRITE);
+      SerialUSB.println(pos);
     }
     pos++;
     value++;
@@ -123,18 +83,52 @@ void _EEPROM_readData(int &pos, uint8_t* value, uint8_t size) {
     value++;
   } while (--size);
 }
-#define EEPROM_WRITE_VAR(pos, value) _EEPROM_writeData(pos, (uint8_t*)&value, sizeof(value))
-#define EEPROM_READ_VAR(pos, value) _EEPROM_readData(pos, (uint8_t*)&value, sizeof(value))
+void _internal_flash_writeData(int &pos, uint8_t* value, uint8_t size) {
+    uint8_t c;
+    while (size--) {
+        dueFlashStorage.write(pos, *value);
+        c = dueFlashStorage.read(pos);
+        if (c != *value) {
+            SERIAL_ECHO_START;
+            SERIAL_ECHOLNPGM(MSG_ERR_INTERNAL_FLASH_WRITE);
+            SerialUSB.println(pos);
+        }
+        pos++;
+        value++;
+    };
+}
+void _internal_flash_readData(int &pos, uint8_t* value, uint8_t size) {
+    do {
+        *value = dueFlashStorage.read(pos);
+        pos++;
+        value++;
+    } while (--size);
+}
+#if MEMORY_SETTINGS==EEPROM_SETTINGS
+    #define EEPROM_WRITE_VAR(pos, value) _EEPROM_writeData(pos, (uint8_t*)&value, sizeof(value))
+    #define EEPROM_READ_VAR(pos, value) _EEPROM_readData(pos, (uint8_t*)&value, sizeof(value))
+#elif MEMORY_SETTINGS== INTERNAL_FLASH_SETTINGS
+    #define EEPROM_WRITE_VAR(pos, value) _internal_flash_writeData(pos, (uint8_t*)&value, sizeof(value))
+    #define EEPROM_READ_VAR(pos, value) _internal_flash_readData(pos, (uint8_t*)&value, sizeof(value))
+#else 
 
+
+#endif
 //======================================================================================
 
 #define DUMMY_PID_VALUE 3000.0f
 
-#define EEPROM_OFFSET 100
+#if MEMORY_SETTINGS==EEPROM_SETTINGS
+    #define EEPROM_OFFSET 100
+#elif MEMORY_SETTINGS== INTERNAL_FLASH_SETTINGS
+    #define EEPROM_OFFSET 0x3f600u //Page 1014/1024
+#endif
 
-#ifdef EEPROM_SETTINGS
+
+#if MEMORY_SETTINGS!=NON_MEMORY_SETTINGS
 
 void Config_StoreSettings() {
+  // byte *writeAddr = (byte *)(IFLASH1_ADDR + IFLASH1_SIZE - sizeof(whatever_structure_you_want_store));
   float dummy = 0.0f;
   char ver[4] = "000";
   int i = EEPROM_OFFSET;
@@ -173,104 +167,13 @@ void Config_StoreSettings() {
     EEPROM_WRITE_VAR(i, z_endstop_adj);            // 1 floats
   #endif
 
-  #ifndef ULTIPANEL
-    int plaPreheatHotendTemp = PLA_PREHEAT_HOTEND_TEMP, plaPreheatHPBTemp = PLA_PREHEAT_HPB_TEMP, plaPreheatFanSpeed = PLA_PREHEAT_FAN_SPEED;
-    int absPreheatHotendTemp = ABS_PREHEAT_HOTEND_TEMP, absPreheatHPBTemp = ABS_PREHEAT_HPB_TEMP, absPreheatFanSpeed = ABS_PREHEAT_FAN_SPEED;
-    int gumPreheatHotendTemp = GUM_PREHEAT_HOTEND_TEMP, gumPreheatHPBTemp = GUM_PREHEAT_HPB_TEMP, gumPreheatFanSpeed = GUM_PREHEAT_FAN_SPEED;
-  #endif
-
-  EEPROM_WRITE_VAR(i, plaPreheatHotendTemp);
-  EEPROM_WRITE_VAR(i, plaPreheatHPBTemp);
-  EEPROM_WRITE_VAR(i, plaPreheatFanSpeed);
-  EEPROM_WRITE_VAR(i, absPreheatHotendTemp);
-  EEPROM_WRITE_VAR(i, absPreheatHPBTemp);
-  EEPROM_WRITE_VAR(i, absPreheatFanSpeed);
-  EEPROM_WRITE_VAR(i, gumPreheatHotendTemp);
-  EEPROM_WRITE_VAR(i, gumPreheatHPBTemp);
-  EEPROM_WRITE_VAR(i, gumPreheatFanSpeed);
-
-  for (int e = 0; e < 4; e++) {
-    #ifdef PIDTEMP
-      if (e < HOTENDS) {
-        EEPROM_WRITE_VAR(i, PID_PARAM(Kp, e));
-        EEPROM_WRITE_VAR(i, PID_PARAM(Ki, e));
-        EEPROM_WRITE_VAR(i, PID_PARAM(Kd, e));
-      }
-      else
-    #endif // !PIDTEMP
-      {
-        dummy = DUMMY_PID_VALUE; // When read, will not change the existing value
-        EEPROM_WRITE_VAR(i, dummy);
-        dummy = 0.0f;
-        for (int q = 3; q--;) EEPROM_WRITE_VAR(i, dummy);
-      }
-
-  } // Extruders Loop
-
-  #ifndef PIDTEMPBED
-    float bedKp = DUMMY_PID_VALUE, bedKi = DUMMY_PID_VALUE, bedKd = DUMMY_PID_VALUE;
-  #endif
-
-  EEPROM_WRITE_VAR(i, bedKp);
-  EEPROM_WRITE_VAR(i, bedKi);
-  EEPROM_WRITE_VAR(i, bedKd);
-
-  #if !defined(DOGLCD) || LCD_CONTRAST < 0
-    int lcd_contrast = 32;
-  #endif
-  EEPROM_WRITE_VAR(i, lcd_contrast);
-
-  #ifdef SCARA
-    EEPROM_WRITE_VAR(i, axis_scaling); // 3 floats
-  #else
-    dummy = 1.0f;
-    EEPROM_WRITE_VAR(i, dummy);
-  #endif
-
-  #ifdef FWRETRACT
-    EEPROM_WRITE_VAR(i, autoretract_enabled);
-    EEPROM_WRITE_VAR(i, retract_length);
-    #if EXTRUDERS > 1
-      EEPROM_WRITE_VAR(i, retract_length_swap);
-    #else
-      dummy = 0.0f;
-      EEPROM_WRITE_VAR(i, dummy);
-    #endif
-    EEPROM_WRITE_VAR(i, retract_feedrate);
-    EEPROM_WRITE_VAR(i, retract_zlift);
-    EEPROM_WRITE_VAR(i, retract_recover_length);
-    #if EXTRUDERS > 1
-      EEPROM_WRITE_VAR(i, retract_recover_length_swap);
-    #else
-      dummy = 0.0f;
-      EEPROM_WRITE_VAR(i, dummy);
-    #endif
-    EEPROM_WRITE_VAR(i, retract_recover_feedrate);
-  #endif // FWRETRACT
-
-  EEPROM_WRITE_VAR(i, volumetric_enabled);
-
-  // Save filament sizes
-  for (int q = 0; q < 4; q++) {
-    if (q < EXTRUDERS) dummy = filament_size[q];
-    EEPROM_WRITE_VAR(i, dummy);
-  }
-  
-  #ifdef IDLE_OOZING_PREVENT
-    EEPROM_WRITE_VAR(i, idleoozing_enabled);
-  #endif
-
-  #if defined(POWER_CONSUMPTION) && defined(STORE_CONSUMPTION)
-    EEPROM_WRITE_VAR(i, power_consumption_hour);
-  #endif
-
   char ver2[4] = EEPROM_VERSION;
   int j = EEPROM_OFFSET;
   EEPROM_WRITE_VAR(j, ver2); // validate data
 
   // Report storage size
   SERIAL_ECHO_START;
-  SERIAL_ECHOPAIR("Settings Stored (", (unsigned long)i);
+  SERIAL_ECHOPAIR("Settings Stored (", (unsigned long)(i- EEPROM_OFFSET));
   SERIAL_ECHOLNPGM(" bytes)");
 }
 
@@ -280,7 +183,11 @@ void Config_RetrieveSettings() {
   char stored_ver[4];
   char ver[4] = EEPROM_VERSION;
   EEPROM_READ_VAR(i, stored_ver); //read stored version
-  //  SERIAL_ECHOLN("Version: [" << ver << "] Stored version: [" << stored_ver << "]");
+  SERIAL_ECHO("Version: [");
+  SERIAL_ECHO(ver);
+  SERIAL_ECHO("] Stored version: [");
+  SERIAL_ECHO(stored_ver);
+  SERIAL_ECHOLN("]");
 
   if (strncmp(ver, stored_ver, 3) != 0) {
     Config_ResetDefault();
@@ -327,113 +234,14 @@ void Config_RetrieveSettings() {
       set_delta_constants();
     #endif //DELTA
 
-    #ifndef ULTIPANEL
-      int plaPreheatHotendTemp, plaPreheatHPBTemp, plaPreheatFanSpeed,
-          absPreheatHotendTemp, absPreheatHPBTemp, absPreheatFanSpeed,
-          gumPreheatHotendTemp, gumPreheatHPBTemp, gumPreheatFanSpeed;
-    #endif
-
-    EEPROM_READ_VAR(i, plaPreheatHotendTemp);
-    EEPROM_READ_VAR(i, plaPreheatHPBTemp);
-    EEPROM_READ_VAR(i, plaPreheatFanSpeed);
-    EEPROM_READ_VAR(i, absPreheatHotendTemp);
-    EEPROM_READ_VAR(i, absPreheatHPBTemp);
-    EEPROM_READ_VAR(i, absPreheatFanSpeed);
-    EEPROM_READ_VAR(i, gumPreheatHotendTemp);
-    EEPROM_READ_VAR(i, gumPreheatHPBTemp);
-    EEPROM_READ_VAR(i, gumPreheatFanSpeed);
-
-    #ifdef PIDTEMP
-      for (int e = 0; e < 4; e++) { // 4 = max hotend currently supported
-        EEPROM_READ_VAR(i, dummy); // Kp
-        if (e < EXTRUDERS && dummy != DUMMY_PID_VALUE) {
-          // do not need to scale PID values as the values in EEPROM are already scaled
-          PID_PARAM(Kp, e) = dummy;
-          EEPROM_READ_VAR(i, PID_PARAM(Ki, e));
-          EEPROM_READ_VAR(i, PID_PARAM(Kd, e));
-        }
-        else {
-          for (int q=3; q--;) EEPROM_READ_VAR(i, dummy); // Ki, Kd, Kc
-        }
-      }
-    #else // !PIDTEMP
-      // 4 x 3 = 12 slots for PID parameters
-      for (int q = 12; q--;) EEPROM_READ_VAR(i, dummy);  // 4x Kp, Ki, Kd
-    #endif // !PIDTEMP
-
-    #ifndef PIDTEMPBED
-      float bedKp, bedKi, bedKd;
-    #endif
-
-    EEPROM_READ_VAR(i, dummy); // bedKp
-    if (dummy != DUMMY_PID_VALUE) {
-      bedKp = dummy;
-      EEPROM_READ_VAR(i, bedKi);
-      EEPROM_READ_VAR(i, bedKd);
-    }
-    else {
-      for (int q = 2; q--;) EEPROM_READ_VAR(i, dummy); // bedKi, bedKd
-    }
-
-    #if !defined(DOGLCD) || LCD_CONTRAST < 0
-      int lcd_contrast;
-    #endif //DOGLCD
-
-    EEPROM_READ_VAR(i, lcd_contrast);
-
-    #ifdef SCARA
-      EEPROM_READ_VAR(i, axis_scaling);  // 3 floats
-    #else
-      EEPROM_READ_VAR(i, dummy);
-    #endif
-
-    #ifdef FWRETRACT
-      EEPROM_READ_VAR(i, autoretract_enabled);
-      EEPROM_READ_VAR(i, retract_length);
-      #if EXTRUDERS > 1
-        EEPROM_READ_VAR(i, retract_length_swap);
-      #else
-        EEPROM_READ_VAR(i, dummy);
-      #endif
-      EEPROM_READ_VAR(i, retract_feedrate);
-      EEPROM_READ_VAR(i, retract_zlift);
-      EEPROM_READ_VAR(i, retract_recover_length);
-      #if EXTRUDERS > 1
-        EEPROM_READ_VAR(i, retract_recover_length_swap);
-      #else
-        EEPROM_READ_VAR(i, dummy);
-      #endif
-      EEPROM_READ_VAR(i, retract_recover_feedrate);
-    #endif // FWRETRACT
-
-    EEPROM_READ_VAR(i, volumetric_enabled);
-
-    for (int q = 0; q < 4; q++) {
-      EEPROM_READ_VAR(i, dummy);
-      if (q < EXTRUDERS) filament_size[q] = dummy;
-    }
-
-    calculate_volumetric_multipliers();
-
-    #ifdef IDLE_OOZING_PREVENT
-      EEPROM_READ_VAR(i, idleoozing_enabled);
-    #endif
-
-    #if defined(POWER_CONSUMPTION) && defined(STORE_CONSUMPTION)
-      EEPROM_READ_VAR(i, power_consumption_hour);
-    #endif
-
-    // Call updatePID (similar to when we have processed M301)
-    updatePID();
-
     // Report settings retrieved and length
     SERIAL_ECHO_START;
     SERIAL_ECHO(ver);
-    SERIAL_ECHOPAIR(" stored settings retrieved (", (unsigned long)i);
+    SERIAL_ECHOPAIR(" stored settings retrieved (", (unsigned long)(i- EEPROM_OFFSET));
     SERIAL_ECHOLNPGM(" bytes)");
   }
 
-  #ifdef EEPROM_CHITCHAT
+  #ifdef INTERNAL_FLASH_EEPROM_CHITCHAT
     Config_PrintSettings();
   #endif
 }

@@ -11,10 +11,14 @@ void Config_ResetDefault();
   FORCE_INLINE void Config_PrintSettings(bool forReplay=false) {}
 #endif
 
-#ifdef EEPROM_SETTINGS
+#if MEMORY_SETTINGS==EEPROM_SETTINGS
   void Config_StoreSettings();
   void Config_RetrieveSettings();
-#else
+#elif MEMORY_SETTINGS== INTERNAL_FLASH_SETTINGS
+  void Config_StoreSettings();
+  void Config_RetrieveSettings();
+
+#else 
   FORCE_INLINE void Config_StoreSettings() {}
   FORCE_INLINE void Config_RetrieveSettings() { Config_ResetDefault(); Config_PrintSettings(); }
 #endif

@@ -455,10 +455,19 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // M500 - stores parameters in EEPROM
 // M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 // M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
+
+
+
+#define NON_MEMORY_SETTINGS -1
 //define this to enable EEPROM support
-//#define EEPROM_SETTINGS
-#define EEPROM_CHITCHAT
-// to disable EEPROM Serial responses and decrease program space by ~1700 byte: comment this out:
+#define EEPROM_SETTINGS 0
+// define this to enable internal flash support 
+#define INTERNAL_FLASH_SETTINGS 1
+// to disable EEPROM or internal flash Serial responses and decrease program space by ~1700 byte: comment this out:
+#define INTERNAL_FLASH_EEPROM_CHITCHAT
+
+#define MEMORY_SETTINGS NON_MEMORY_SETTINGS
+
 // please keep turned on if you can.
 //#define DISABLE_M503
 
