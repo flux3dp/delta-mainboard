@@ -721,7 +721,8 @@ int get_hardware_version(void) {
     return FLUX_DELTA;
 }
 
-void pin_setup(int hardware_version) {
+/* Hardware type: 1.FLUX DELTA 2.FLUX DELTA PLUS */
+void hardware_setup(int hardware_version) {
     if(hardware_version== FLUX_DELTA){
         pinMode(S_LAS2, OUTPUT);//PC26
         digitalWrite(S_LAS2, LOW);
@@ -749,6 +750,7 @@ void pin_setup(int hardware_version) {
         led_pins[0] = LED_P1;
         led_pins[1] = LED_P2;
         led_pins[2]= LED_P3;
+        axis_steps_per_unit[E_AXIS] = 145;// Jim:145 Devin:160
         manage_led_function = manage_led_plus;
         return;
 
@@ -1244,12 +1246,13 @@ void setup()
   //watchdog_init();
   st_init();    // Initialize stepper, this enables interrupts!
   
-  /*Try to get hardware version */
+  /*Fetch hardware version : FLUX Delta or FLUX Delta+ */
   pinMode(VERSION_0_PIN, INPUT_PULLUP);
   pinMode(VERSION_1_PIN, INPUT_PULLUP);
   pinMode(VERSION_2_PIN, INPUT_PULLUP);
   HARDWARE_TYPE=get_hardware_version();
-  pin_setup(HARDWARE_TYPE);
+  /* Must be after Config_RetrieveSettings();*/
+  hardware_setup(HARDWARE_TYPE);
 
   setup_homepin();
 
