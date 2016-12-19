@@ -136,7 +136,6 @@
 #define MSG_SERIAL_ERROR_MENU_STRUCTURE     "Error in menu structure"
 
 #define MSG_ERR_EEPROM_WRITE                "Error writing to EEPROM!"
-#define MSG_ERR_INTERNAL_FLASH_WRITE        "Error writing to INTERNAL FLASH!"
 
 // temperature.cpp strings
 #define MSG_PID_AUTOTUNE                    "PID Autotune"
