@@ -8534,9 +8534,8 @@ inline void gcode_C2()
             play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
             play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
             play_st.stashed_position[Z_AXIS] = current_position[Z_AXIS];
-            for(int i=Z_AXIS + 1;i<NUM_AXIS;i++) {
-                play_st.stashed_extruder_position[i] = current_position[i];
-            }
+            play_st.stashed_position[E_AXIS] = current_position[E_AXIS];
+
             play_st.stashed_feedrate = feedrate;
             play_st.stashed_extruder = target_extruder;
 
@@ -8579,6 +8578,7 @@ inline void gcode_C2()
 	        destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
             destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
 	        destination[E_AXIS] = play_st.stashed_position[E_AXIS];
+
             prepare_move_raw();
             st_synchronize();
 

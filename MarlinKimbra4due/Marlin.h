@@ -393,8 +393,7 @@ typedef struct PlayStatus {
   int stashed;
   unsigned long last_no;
   int stashed_laser_pwm;
-  float stashed_position[3];
-  float stashed_extruder_position[NUM_AXIS - 3];
+  float stashed_position[NUM_AXIS];
   float stashed_feedrate;
   uint8_t stashed_extruder;
 } PlayStatus;
