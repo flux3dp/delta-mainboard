@@ -40,6 +40,9 @@ local.properties
 .vs/
 __vm/
 
+MarlinKimbra4due/MarlinKimbra4due.vcxproj.filters
+MarlinKimbra4due/MarlinKimbra4due.vcxproj.filters
+
 # User-specific files
 *.suo
 *.user
