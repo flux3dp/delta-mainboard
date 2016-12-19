@@ -243,15 +243,6 @@
     <ClInclude Include="Hysteresis.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Desktop\DueFlashStorage-master\src\efc.h">
-      <Filter>原始程式檔</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Desktop\DueFlashStorage-master\src\DueFlashStorage.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Desktop\DueFlashStorage-master\src\flash_efc.h">
-      <Filter>標頭檔</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BlinkM.cpp">
@@ -321,12 +312,6 @@
       <Filter>原始程式檔</Filter>
     </ClCompile>
     <ClCompile Include="Hysteresis.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Desktop\DueFlashStorage-master\src\DueFlashStorage.cpp">
-      <Filter>原始程式檔</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Desktop\DueFlashStorage-master\src\flash_efc.cpp">
       <Filter>原始程式檔</Filter>
     </ClCompile>
   </ItemGroup>

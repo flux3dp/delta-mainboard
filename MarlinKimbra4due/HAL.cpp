@@ -243,7 +243,7 @@ void eeprom_write_byte(unsigned char *pos, unsigned char value) {
     eeprom_init();
 
     Wire.beginTransmission(eeprom_device_address);
-    Wire.write((int)(eeprom_address >> 8));   // MSB
+    Wire.write((int)(eeprom_address > 8));   // MSB
     Wire.write((int)(eeprom_address & 0xFF)); // LSB
     Wire.write(value);
     Wire.endTransmission();
