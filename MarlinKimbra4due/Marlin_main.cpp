@@ -123,7 +123,7 @@ bool target_direction;
 static bool home_all_axis = true;
 bool led_debug = false;
 bool led_show_pwm_val = false;
-int led_mode_debug[3] = { 0,0,0 };
+int led_mode_debug[4] = { 0,0,0,0 };
 
 void (*manage_led_function)(void);
 
@@ -262,16 +262,16 @@ struct GlobalVariable global = {
 
 struct FilamentDetect filament_detect = {false, 0};
 
-int led_pins[3] = {LED_P1, LED_P2, LED_P3};
+int led_pins[4] = {LED_P1, LED_P2, LED_P3,LED_P4};
 
 struct LedStatus led_st = {
   'W',              // situational Prepare
   'D',              // Wifi Prepare
   0,                // last update
   0,                // god mode
-  { LED_WAVE, LED_OFF, LED_OFF },        // mode LED_WAVE_POWER_ON
-  {0.0008, 1, 1},   // param_a
-  {0, 0, 0}         // param_b
+  { LED_WAVE, LED_OFF, LED_OFF , LED_OFF },        // mode LED_WAVE_POWER_ON
+  {0.0008, 1, 1, 0.0008 },   // param_a
+  {0, 0, 0, 0}         // param_b
 };
 
 struct PlayStatus play_st = {
@@ -746,10 +746,11 @@ void hardware_setup(int hardware_version) {
         pinMode(LED_P3, OUTPUT);
         pinMode(LED_P4,OUTPUT);
         analogWrite(LED_P3, 255);
-        analogWrite(LED_P4,0);
+        analogWrite(LED_P4,255);
         led_pins[0] = LED_P1;
         led_pins[1] = LED_P2;
         led_pins[2]= LED_P3;
+        led_pins[3] = LED_P4;
         axis_steps_per_unit[E_AXIS] = 145;// Jim:145 Devin:160
         manage_led_function = manage_led_plus;
         return;
@@ -901,6 +902,128 @@ inline void update_led_flags(char operation_flag, char wifi_flag) {
 
 	}
 }
+
+inline void update_led_flags_plus(char operation_flag, char wifi_flag) {
+    if (operation_flag != 'W') {
+        switch (wifi_flag) {
+        case PI_WIFI_CONNECTED:
+            led_st.param_a[2] = 0.0009;
+            led_st.param_b[2] = millis();
+            if (led_st.mode[2] != LED_ON) led_st.mode[2] = LED_WAVE_2_ON;
+            break;
+        case PI_WIFI_ASSOCOATING:
+            if (led_st.mode[2] != LED_WAVE) {
+                led_st.mode[2] = LED_WAVE;
+                led_st.param_a[2] = 0.0009;
+                led_st.param_b[2] = millis();
+            }
+            break;
+        case PI_WIFI_HOSTED:
+            if (led_st.mode[2] != LED_BLINK) {
+                led_st.mode[2] = LED_BLINK;
+                led_st.param_a[2] = 0.0015;//0.00045
+                led_st.param_b[2] = millis();
+            }
+            break;
+        case PI_SLEEP:
+            led_st.mode[0] = LED_OFF;
+            led_st.mode[1] = LED_OFF;
+            led_st.mode[2] = LED_OFF;
+            led_st.mode[3] = LED_OFF;
+            gcode_M18_M84();
+            break;
+        case PI_WIFI_DISCONNECTED:
+            led_st.mode[2] = LED_OFF;
+            break;
+        }
+    }
+
+    switch (operation_flag) {
+    case PI_SLEEP: //Sleep
+        led_st.mode[0] = led_st.mode[1] = led_st.mode[2] = LED_OFF;
+        gcode_M18_M84();
+        break;
+    case PI_IDLE: //白燈呼吸燈 系統待機
+        led_st.param_a[0] = 0.0004;
+        led_st.param_b[0] = millis();
+        led_st.mode[0] = LED_WAVE;
+        led_st.mode[1] = LED_OFF;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_PAUSED: //白燈閃爍 工作暫停
+        led_st.param_a[0] = 0.0015;
+        led_st.param_b[0] = millis();
+        led_st.mode[0] = LED_BLINK;
+        led_st.mode[1] = LED_OFF;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_RUNNING: //白燈恆亮 工作中
+        led_st.mode[0] = LED_ON;
+        led_st.mode[1] = LED_OFF;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_FATEL: //橘燈恆亮 系統故障
+        led_st.mode[0] = LED_OFF;
+        led_st.mode[1] = LED_ON;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_ERROR: //橘燈閃爍 工作異常
+        led_st.mode[0] = LED_OFF;
+        led_st.param_a[1] = 0.0015;
+        led_st.param_b[1] = millis();
+        led_st.mode[1] = LED_BLINK;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_RUNNING_WAIT_HEAD: //橘燈呼吸燈 準備中
+        led_st.mode[0] = LED_OFF;
+        led_st.param_a[1] = 0.0004;
+        led_st.param_b[1] = millis();
+        led_st.mode[1] = LED_WAVE;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_UPDATE: //更新中
+        led_st.mode[3] = LED_BLINK;
+        led_st.param_a[3] = 0.0015;//0.00045
+        led_st.param_b[3] = millis();
+        break;
+    case PI_STARTING_TASK:
+        led_st.param_a[0] = 0.003;
+        led_st.param_b[0] = millis();
+        led_st.mode[0] = LED_BLINK;
+        led_st.mode[1] = LED_OFF;
+        led_st.mode[3] = LED_OFF;
+        break;
+    case PI_WAKINGUP:
+        led_st.param_a[3] = 0.0008;
+        led_st.mode[3] = LED_WAVE;
+        led_st.mode[0] = LED_OFF;
+        led_st.mode[1] = LED_OFF;
+
+        break;
+    case PI_ERROR_1:
+    case PI_ERROR_2:
+    case PI_ERROR_3:
+    case PI_ERROR_4:
+    case PI_ERROR_5:
+    case PI_ERROR_6:
+    case PI_ERROR_7:
+    case PI_ERROR_8:
+    case PI_ERROR_9:
+        led_st.param_a[1] = operation_flag - PI_ERROR_1 + 1;
+        led_st.param_b[1] = millis();
+        led_st.mode[0] = LED_OFF;
+        led_st.mode[1] = LED_FLASH;
+        led_st.mode[3] = LED_OFF;
+        break;
+    default:
+        led_st.mode[0] = LED_OFF;
+        led_st.mode[1] = LED_OFF;
+        led_st.mode[2] = LED_OFF;
+        led_st.mode[3] = LED_OFF;
+
+    }
+}
+
 /*
 Delta status telling:
 
@@ -1125,7 +1248,7 @@ void manage_led_plus()
 
     if (new_situational != led_st.situational || new_wifi_flag != led_st.wifi) {
         if (new_wifi_flag != PI_NOT_DEFINED)
-            update_led_flags(new_situational, new_wifi_flag);
+            update_led_flags_plus(new_situational, new_wifi_flag);
         led_st.situational = new_situational;
         led_st.wifi = new_wifi_flag;
     }
@@ -1134,11 +1257,10 @@ void manage_led_plus()
         led_st.mode[0] = led_mode_debug[0];
         led_st.mode[1] = led_mode_debug[1];
         led_st.mode[2] = led_mode_debug[2];
-
+        led_st.mode[3] = led_mode_debug[3];
     }
-    
     uint32_t pwm = 0;
-    for (int i = 0; i<3; i++) {
+    for (int i = 0; i<4; i++) {
         switch (led_st.mode[i]) {
         case LED_OFF:
             pwm = 0;

@@ -44,9 +44,9 @@ typedef struct LedStatus {
   unsigned long last_update;
   char god_mode;
 
-  char mode[3];
-  float param_a[3];
-  float param_b[3];
+  char mode[4];
+  float param_a[4];
+  float param_b[4];
 } LedStatus;
 
 // manage_led
