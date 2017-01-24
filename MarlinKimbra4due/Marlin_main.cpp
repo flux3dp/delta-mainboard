@@ -982,9 +982,12 @@ inline void update_led_flags_plus(char operation_flag, char wifi_flag) {
         led_st.mode[3] = LED_OFF;
         break;
     case PI_UPDATE: //更新中
+        led_st.param_a[3] = 0.0015;
+        led_st.param_b[3] = 666.6666;
         led_st.mode[3] = LED_BLINK;
-        led_st.param_a[3] = 0.0015;//0.00045
-        led_st.param_b[3] = millis();
+        led_st.param_a[0] = 0.0015;
+        led_st.param_b[0] = 0;
+        led_st.mode[0] = LED_BLINK;
         break;
     case PI_STARTING_TASK:
         led_st.param_a[0] = 0.003;
@@ -1173,7 +1176,12 @@ void manage_led(void)
         led_st.situational = new_situational;
         led_st.wifi = new_wifi_flag;
     }
-
+    if (led_debug) {
+        led_st.mode[0] = led_mode_debug[0];
+        led_st.mode[1] = led_mode_debug[1];
+        led_st.mode[2] = led_mode_debug[2];
+        led_st.mode[3] = led_mode_debug[3];
+    }
     uint32_t pwm = 0;
     volatile float val;
     for (int i = 0; i<3; i++) {
