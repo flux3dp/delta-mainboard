@@ -42,6 +42,7 @@
 // Effective horizontal distance bridged by diagonal push rods.
 //#define DEFAULT_DELTA_RADIUS (DELTA_SMOOTH_ROD_OFFSET-DELTA_EFFECTOR_OFFSET-DELTA_CARRIAGE_OFFSET)//=97.25
 #define DEFAULT_DELTA_RADIUS 96.7//96.7
+#define DEFAULT_DELTA_PLUS_DADIUS 96.2
 
 // Z-Probe variables
 // Start and end location values are used to deploy/retract the probe (will move from start to end and back again)

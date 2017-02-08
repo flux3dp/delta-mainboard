@@ -731,6 +731,7 @@ void hardware_setup(int hardware_version) {
         manage_led_function = manage_led;
         return;
     }else if(hardware_version== FLUX_DELTA_PLUS){
+        delta_radius = DEFAULT_DELTA_PLUS_DADIUS;
         R_IO1 = 2; //PB25
         R_IO2 = 3; //PC28
         S_LAS1 = 4 ; //PC26
