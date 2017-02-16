@@ -8650,7 +8650,12 @@ inline void gcode_C1()
   }
 }
 
-/* stash=pause */
+/* 
+stash=pause 
+C2OE??S0  噴頭原地不動
+C2OE??S1  噴頭抬高
+C2OE??S2  移動到進料位置
+*/
 inline void gcode_C2()
 {
     if (play_st.enable_linecheck == 0) {
@@ -8661,10 +8666,19 @@ inline void gcode_C2()
     if (code_seen('O') || code_seen('E'))
     {
         if (play_st.stashed == 0) {
+            int16_t mode = -1;
+            if (code_seen('S')) {
+                mode = code_value_short();
+
+            }
+            if (mode > 2 || mode < 0) {
+                SERIAL_PROTOCOL("ER BAD_CMD\n");
+                return;
+            }
             play_st.stashed = code_seen('E') ? code_value_short() : 1;
             st_synchronize();
             analogWrite(M_IO2, 0);
-
+            
             // Remember current status
             play_st.stashed_position[X_AXIS] = current_position[X_AXIS];
             play_st.stashed_position[Y_AXIS] = current_position[Y_AXIS];
@@ -8674,18 +8688,25 @@ inline void gcode_C2()
             play_st.stashed_feedrate = feedrate;
             play_st.stashed_extruder = target_extruder;
 
-            // Retraction
-            feedrate = 500;
-            destination[E_AXIS] = current_position[E_AXIS] - 20;
-            prepare_move();
-            st_synchronize();
-
-            float z_raise = 25.0;
-            if (code_seen('Z')) {
-                z_raise = code_value();
-                if (z_raise < 0)
-                    z_raise = 25.0;
+            if (mode == 2) {
+                // Retraction
+                feedrate = 1500;
+                destination[E_AXIS] = current_position[E_AXIS] - 20;
+                prepare_move();
+                st_synchronize();
             }
+            
+            float z_raise;
+            if (mode == 0) {
+                z_raise = 0;
+            }
+            else if (mode == 1) {
+                z_raise = 25;
+            }
+            else {
+                z_raise = 210.0;
+            }
+            
             // z_slow raise within 5mm
             float z_slow = min(z_raise, 5.0);
             float z_left = z_raise - z_slow;
@@ -8699,12 +8720,12 @@ inline void gcode_C2()
                 st_synchronize();
                 // z_left F = 2500
                 destination[Z_AXIS] = min(current_position[Z_AXIS] + z_left, 210);
-                feedrate = 2500;
+                feedrate = 4000;
                 prepare_move();
                 st_synchronize();
             }
             /* if z_raise > 0 then move the tool head to corner */
-            if (z_raise > 0.01) {
+            if (mode == 2) {
                 destination[X_AXIS] = 0;
                 destination[Y_AXIS] = -90;
                 feedrate = 6000;
@@ -8728,7 +8749,7 @@ inline void gcode_C2()
             prepare_move();
             st_synchronize();
 
-            feedrate = 2500;
+            feedrate = 4000;
             destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
             prepare_move();
             st_synchronize();
