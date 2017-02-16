@@ -1514,6 +1514,7 @@ void inline proc_heigh_level_control(const char* cmd) {
     play_st.stashed = 0;
     led_st.god_mode = 0;
     play_st.stashed_laser_pwm = 0;
+    global.home_btn_press++;
     analogWrite(M_IO2, 0);
   } else if(strcmp(cmd, "HOME_BUTTON_TRIGGER") == 0) {
     global.home_btn_press++;
