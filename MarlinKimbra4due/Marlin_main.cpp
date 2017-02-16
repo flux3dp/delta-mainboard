@@ -8676,26 +8676,39 @@ inline void gcode_C2()
 
             // Retraction
             feedrate = 500;
-            destination[E_AXIS] = current_position[E_AXIS] - 5;
+            destination[E_AXIS] = current_position[E_AXIS] - 20;
             prepare_move();
             st_synchronize();
 
+            float z_raise = 25.0;
+            if (code_seen('Z')) {
+                z_raise = code_value();
+                if (z_raise < 0)
+                    z_raise = 25.0;
+            }
+            // z_slow raise within 5mm
+            float z_slow = min(z_raise, 5.0);
+            float z_left = z_raise - z_slow;
+
+            /* z_raise = z_slow + z_left */
             if (current_position[Z_AXIS] < 210) {
-                destination[Z_AXIS] = min(current_position[Z_AXIS] + 5, 210);
+                // z_slow F = 300
+                destination[Z_AXIS] = min(current_position[Z_AXIS] + z_slow, 210);
                 feedrate = 300;
-                prepare_move_raw();
+                prepare_move();
+                st_synchronize();
+                // z_left F = 2500
+                destination[Z_AXIS] = min(current_position[Z_AXIS] + z_left, 210);
+                feedrate = 2500;
+                prepare_move();
                 st_synchronize();
             }
-            if (current_position[Z_AXIS] < 210) {
-		        int16_t z_raise = 25;
-		        if (code_seen('Z')) {
-			        z_raise = code_value_short();
-			        if (z_raise < 0)
-				        z_raise = 25;
-		        }
-                destination[Z_AXIS] = min(current_position[Z_AXIS] + z_raise, 210);
-                feedrate = 2500;
-                prepare_move_raw();
+            /* if z_raise > 0 then move the tool head to corner */
+            if (z_raise > 0.01) {
+                destination[X_AXIS] = 0;
+                destination[Y_AXIS] = -90;
+                feedrate = 6000;
+                prepare_move();
                 st_synchronize();
             }
 
@@ -8711,10 +8724,13 @@ inline void gcode_C2()
 		    feedrate = 6000;
             destination[X_AXIS] = play_st.stashed_position[X_AXIS];
 	        destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
-            destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
 	        destination[E_AXIS] = play_st.stashed_position[E_AXIS];
+            prepare_move();
+            st_synchronize();
 
-            prepare_move_raw();
+            feedrate = 2500;
+            destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
+            prepare_move();
             st_synchronize();
 
 	        analogWrite(M_IO2, play_st.stashed_laser_pwm);
