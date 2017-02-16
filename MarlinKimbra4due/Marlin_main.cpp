@@ -8706,7 +8706,7 @@ inline void gcode_C2()
             else {
                 z_raise = 210.0;
             }
-            
+            bool move_flag=current_position[Z_AXIS] < 210?true:false;
             // z_slow raise within 5mm
             float z_slow = min(z_raise, 5.0);
             float z_left = z_raise - z_slow;
@@ -8725,7 +8725,7 @@ inline void gcode_C2()
                 st_synchronize();
             }
             /* if z_raise > 0 then move the tool head to corner */
-            if (mode == 2) {
+            if (mode == 2 && move_flag) {
                 destination[X_AXIS] = 0;
                 destination[Y_AXIS] = -90;
                 feedrate = 6000;
