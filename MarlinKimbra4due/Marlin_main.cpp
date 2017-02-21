@@ -8749,12 +8749,6 @@ inline void gcode_C2()
             prepare_move();
             st_synchronize();
 
-            feedrate = 600;
-            destination[E_AXIS] = play_st.stashed_position[E_AXIS]+8;
-            prepare_move();
-            st_synchronize();
-            plan_set_e_position(play_st.stashed_position[E_AXIS]);
-
             feedrate = 4000;
             destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
             prepare_move();
