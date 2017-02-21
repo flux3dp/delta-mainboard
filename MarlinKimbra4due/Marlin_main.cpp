@@ -8749,6 +8749,12 @@ inline void gcode_C2()
             prepare_move();
             st_synchronize();
 
+            feedrate = 600;
+            destination[E_AXIS] = play_st.stashed_position[E_AXIS]+8;
+            prepare_move();
+            st_synchronize();
+            plan_set_e_position(play_st.stashed_position[E_AXIS]);
+
             feedrate = 4000;
             destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
             prepare_move();
@@ -8777,7 +8783,7 @@ inline void gcode_C3(int t=0) {
   feedrate = 8000;
   if(current_position[Z_AXIS] > 200) {
     destination[Z_AXIS] = 220;
-    prepare_move_raw();
+    prepare_move();
     st_synchronize();
   }
 
@@ -8785,7 +8791,7 @@ inline void gcode_C3(int t=0) {
   destination[Y_AXIS] = -90;
   destination[Z_AXIS] = 220;
   destination[E_AXIS] = current_position[E_AXIS];
-  prepare_move_raw();
+  prepare_move();
   st_synchronize();
 
 
@@ -8831,7 +8837,15 @@ inline void gcode_C3(int t=0) {
 
     int new_speed = (ref_current - ref_base) * 6;
     // int new_speed = (ref_base - avg[0]) * 6;
-    if(new_speed > 6000) new_speed = 6000;
+
+    int speed_limit = 6000;
+    if (HARDWARE_TYPE == FLUX_DELTA) {
+        speed_limit = 6000;
+    }
+    else if (HARDWARE_TYPE == FLUX_DELTA_PLUS) {
+        speed_limit = 1000;
+    }
+    if(new_speed > speed_limit) new_speed = speed_limit;
     new_speed = (new_speed / 500) * 500 + 150;
 
     if(new_speed - speed > 350) speed += 350;
