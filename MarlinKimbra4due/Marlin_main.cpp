@@ -8651,7 +8651,7 @@ inline void gcode_C1()
 }
 
 /* 
-stash=pause 
+stash == pause 
 C2OE??S0  噴頭原地不動
 C2OE??S1  噴頭抬高
 C2OE??S2  移動到進料位置
@@ -8744,8 +8744,7 @@ inline void gcode_C2()
 		
 		    feedrate = 6000;
             destination[X_AXIS] = play_st.stashed_position[X_AXIS];
-	        destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
-	        destination[E_AXIS] = play_st.stashed_position[E_AXIS];
+            destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
             prepare_move();
             st_synchronize();
 
@@ -8753,6 +8752,14 @@ inline void gcode_C2()
             destination[Z_AXIS] = play_st.stashed_position[Z_AXIS];
             prepare_move();
             st_synchronize();
+
+            destination[E_AXIS] = play_st.stashed_position[E_AXIS]-10;
+            prepare_move();
+            st_synchronize();
+
+            float v = current_position[E_AXIS] = destination[E_AXIS];
+            plan_set_e_position(v);
+                
 
 	        analogWrite(M_IO2, play_st.stashed_laser_pwm);
             feedrate = play_st.stashed_feedrate;
@@ -8782,7 +8789,7 @@ inline void gcode_C3(int t=0) {
   }
 
   destination[X_AXIS] = 0;
-  destination[Y_AXIS] = -90;
+  destination[Y_AXIS] = -85;
   destination[Z_AXIS] = 220;
   destination[E_AXIS] = current_position[E_AXIS];
   prepare_move();
