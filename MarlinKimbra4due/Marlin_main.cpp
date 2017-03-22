@@ -1472,7 +1472,6 @@ void loop() {
       SERIAL_PROTOCOL("ER BAD_CMD ");
       SERIAL_PROTOCOL(cmdbuffer[bufindr]);
     }
-
     buflen--;
     bufindr = (bufindr + 1) % BUFSIZE;
 
@@ -7366,14 +7365,17 @@ inline void gcode_M665() {
           endstop_adj[i] = code_value();
         }
       }
+
       if (code_seen('H'))
       {
+        // Equle to "G92Z(saved_endstop_adj[3])"
         saved_endstop_adj[3] = code_value() - max_pos[Z_AXIS];
         max_pos[Z_AXIS]= code_value();
         set_delta_constants();
+        current_position[Z_AXIS] = current_position[Z_AXIS] + saved_endstop_adj[3];
       }
       calculate_delta(current_position);
-      plan_set_position(delta[X_AXIS] - saved_endstop_adj[X_AXIS] + saved_endstop_adj[3], delta[Y_AXIS] - saved_endstop_adj[Y_AXIS] + saved_endstop_adj[3], delta[Z_AXIS] - saved_endstop_adj[Z_AXIS] + saved_endstop_adj[3], current_position[E_AXIS]);
+      plan_set_position(delta[X_AXIS] - saved_endstop_adj[X_AXIS], delta[Y_AXIS] - saved_endstop_adj[Y_AXIS], delta[Z_AXIS] - saved_endstop_adj[Z_AXIS], current_position[E_AXIS]);
       st_synchronize();
     }
     if (code_seen('A')) {
@@ -8727,7 +8729,7 @@ inline void gcode_C2()
             /* if z_raise > 0 then move the tool head to corner */
             if (mode == 2 && move_flag) {
                 destination[X_AXIS] = 0;
-                destination[Y_AXIS] = -90;
+                destination[Y_AXIS] = -85;
                 feedrate = 6000;
                 prepare_move();
                 st_synchronize();
