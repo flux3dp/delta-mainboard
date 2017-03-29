@@ -8671,7 +8671,10 @@ inline void gcode_C2()
             int16_t mode = -1;
             if (code_seen('S')) {
                 mode = code_value_short();
-
+                play_st.stashed_mode = mode;
+            }
+            else {
+                play_st.stashed_mode = STASH_PRINT;
             }
             if (mode > 2 || mode < 0) {
                 SERIAL_PROTOCOL("ER BAD_CMD\n");
@@ -8690,19 +8693,19 @@ inline void gcode_C2()
             play_st.stashed_feedrate = feedrate;
             play_st.stashed_extruder = target_extruder;
 
-            if (mode == 2) {
+            if (mode == STASH_PRINT) {
                 // Retraction
-                feedrate = 1500;
+                feedrate = 2000;
                 destination[E_AXIS] = current_position[E_AXIS] - 20;
                 prepare_move();
                 st_synchronize();
             }
             
             float z_raise;
-            if (mode == 0) {
+            if (mode == STASH_PEN) {
                 z_raise = 0;
             }
-            else if (mode == 1) {
+            else if (mode == STASH_LASER) {
                 z_raise = 25;
             }
             else {
@@ -8722,12 +8725,12 @@ inline void gcode_C2()
                 st_synchronize();
                 // z_left F = 2500
                 destination[Z_AXIS] = min(current_position[Z_AXIS] + z_left, 210);
-                feedrate = 4000;
+                feedrate = 6000;
                 prepare_move();
                 st_synchronize();
             }
             /* if z_raise > 0 then move the tool head to corner */
-            if (mode == 2 && move_flag) {
+            if (mode == STASH_PRINT && move_flag) {
                 destination[X_AXIS] = 0;
                 destination[Y_AXIS] = -85;
                 feedrate = 6000;
@@ -8755,11 +8758,20 @@ inline void gcode_C2()
             prepare_move();
             st_synchronize();
 
-            destination[E_AXIS] = play_st.stashed_position[E_AXIS]-10;
-            prepare_move();
-            st_synchronize();
+            if (play_st.stashed_mode == STASH_PRINT) {
+                // Tunned using delta+
+                destination[E_AXIS] = play_st.stashed_position[E_AXIS] - 0.8;
+                prepare_move();
+                st_synchronize();
+            }/*
+            else if (play_st.stashed_mode == STASH_LOAD_FILAMENT) {
+                destination[E_AXIS] = current_position[E_AXIS]+5;
+                prepare_move();
+                st_synchronize();
+            }*/
+            
 
-            float v = current_position[E_AXIS] = destination[E_AXIS];
+            float v = current_position[E_AXIS] = destination[E_AXIS]= play_st.stashed_position[E_AXIS];
             plan_set_e_position(v);
                 
 
@@ -8776,6 +8788,7 @@ inline void gcode_C2()
 inline void gcode_C3(int t=0) {
   if(t > 2) t = 0;
   target_extruder = t;
+  //play_st.stashed_mode = STASH_LOAD_FILAMENT;
 
   float e_pos = current_position[E_AXIS];
   destination[X_AXIS] = current_position[X_AXIS];
@@ -8785,14 +8798,14 @@ inline void gcode_C3(int t=0) {
   // Move to stash position
   feedrate = 8000;
   if(current_position[Z_AXIS] > 200) {
-    destination[Z_AXIS] = 220;
+    destination[Z_AXIS] = 210;
     prepare_move();
     st_synchronize();
   }
 
   destination[X_AXIS] = 0;
   destination[Y_AXIS] = -85;
-  destination[Z_AXIS] = 220;
+  destination[Z_AXIS] = 210;
   destination[E_AXIS] = current_position[E_AXIS];
   prepare_move();
   st_synchronize();
@@ -8863,8 +8876,12 @@ inline void gcode_C3(int t=0) {
 
     prepare_move();
   }
+  feedrate = 2000;
+  destination[E_AXIS] = current_position[E_AXIS] - 20;
+  prepare_move();
+  st_synchronize();
 
-  current_position[E_AXIS] = e_pos;
+  destination[E_AXIS]=current_position[E_AXIS] = e_pos;
   plan_set_e_position(e_pos);
 
   disable_e();
