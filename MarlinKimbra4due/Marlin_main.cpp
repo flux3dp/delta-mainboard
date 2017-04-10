@@ -8763,13 +8763,7 @@ inline void gcode_C2()
                 destination[E_AXIS] = play_st.stashed_position[E_AXIS] - 0.8;
                 prepare_move();
                 st_synchronize();
-            }/*
-            else if (play_st.stashed_mode == STASH_LOAD_FILAMENT) {
-                destination[E_AXIS] = current_position[E_AXIS]+5;
-                prepare_move();
-                st_synchronize();
-            }*/
-            
+            }
 
             float v = current_position[E_AXIS] = destination[E_AXIS]= play_st.stashed_position[E_AXIS];
             plan_set_e_position(v);
@@ -8785,10 +8779,11 @@ inline void gcode_C2()
         SERIAL_PROTOCOLLN("ER BAD_CMD");
     }
 }
+
+/* Load filament */
 inline void gcode_C3(int t=0) {
   if(t > 2) t = 0;
   target_extruder = t;
-  //play_st.stashed_mode = STASH_LOAD_FILAMENT;
 
   float e_pos = current_position[E_AXIS];
   destination[X_AXIS] = current_position[X_AXIS];
@@ -8854,13 +8849,9 @@ inline void gcode_C3(int t=0) {
     int new_speed = (ref_current - ref_base) * 6;
     // int new_speed = (ref_base - avg[0]) * 6;
 
-    int speed_limit = 6000;
-    if (HARDWARE_TYPE == FLUX_DELTA) {
-        speed_limit = 6000;
-    }
-    else if (HARDWARE_TYPE == FLUX_DELTA_PLUS) {
-        speed_limit = 1000;
-    }
+    // For delta+ and delta with upgrade kit
+    int speed_limit = 1000;
+
     if(new_speed > speed_limit) new_speed = speed_limit;
     new_speed = (new_speed / 500) * 500 + 150;
 
