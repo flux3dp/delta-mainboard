@@ -3985,6 +3985,21 @@ inline void gcode_G4() {
   if (code_seen('P')) codenum = code_value_long(); // milliseconds to wait
   if (code_seen('S')) codenum = code_value_long() * 1000; // seconds to wait
 
+  /* FLUX_MODIFIED ==== */
+  if (code_seen('B')) {  // wait until click or timeout
+    codenum = code_value_long() * 1000;  // seconds to timeout
+    st_synchronize();
+    refresh_cmd_timeout();
+    codenum += previous_millis_cmd;  // keep track of when we started waiting
+    global.home_btn_press = 0;  // reset button click counter
+
+    while(millis() < codenum && global.home_btn_press == 0) {
+      manage_inactivity();
+    }
+    return;
+  }
+  /* ==== FLUX_MODIFIED*/
+
   st_synchronize();
   refresh_cmd_timeout();
   codenum += previous_millis_cmd;  // keep track of when we started waiting
