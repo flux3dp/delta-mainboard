@@ -5992,6 +5992,7 @@ inline void gcode_M92() {
   for(int8_t i = 0; i < NUM_AXIS; i++) {
     if (code_seen(axis_codes[i])) {
       if (i == E_AXIS) {
+        HARDWARE_TYPE = FLUX_DELTA_UPGRADE;
         float value = code_value();
         if (value < 20.0) {
           float factor = axis_steps_per_unit[i] / value; // increase e constants if M92 E14 is given for netfab.
@@ -8865,7 +8866,11 @@ inline void gcode_C3(int t=0) {
     // int new_speed = (ref_base - avg[0]) * 6;
 
     // For delta+ and delta with upgrade kit
-    int speed_limit = 1000;
+    int speed_limit;
+    if (HARDWARE_TYPE == FLUX_DELTA_UPGRADE || HARDWARE_TYPE == FLUX_DELTA_PLUS)
+        speed_limit = 1000;
+    else
+        speed_limit = 6000;
 
     if(new_speed > speed_limit) new_speed = speed_limit;
     new_speed = (new_speed / 500) * 500 + 150;
