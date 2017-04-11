@@ -132,6 +132,7 @@ Hardware type
 */
 int HARDWARE_TYPE = FLUX_DELTA;
 int const HARDWARE_PIN_DEFINE[8][3] = { { HIGH,HIGH,HIGH },{ LOW,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH },{ HIGH,HIGH,HIGH } };
+int UPGRADE_KIT_VERSION = 0;
 int R_IO1 = 64; //PB19
 int R_IO2 = 65; //PB20
 int S_LAS1 = 5; //PC25
@@ -5989,26 +5990,26 @@ inline void gcode_M85() {
  * M92: Set inactivity shutdown timer with parameter S<seconds>. To disable set zero (default)
  */
 inline void gcode_M92() {
-  for(int8_t i = 0; i < NUM_AXIS; i++) {
-    if (code_seen(axis_codes[i])) {
-      if (i == E_AXIS) {
-        HARDWARE_TYPE = FLUX_DELTA_UPGRADE;
-        float value = code_value();
-        if (value < 20.0) {
-          float factor = axis_steps_per_unit[i] / value; // increase e constants if M92 E14 is given for netfab.
-          max_e_jerk *= factor;
-          max_feedrate[i] *= factor;
-          axis_steps_per_sqr_second[i] *= factor;
-        }
-        axis_steps_per_unit[i] = value;
-        axis_steps_per_unit[E_AXIS+1] = value;
+    for(int8_t i = 0; i < NUM_AXIS; i++) {
+        if (code_seen(axis_codes[i])) {
+            if (i == E_AXIS) {
+                UPGRADE_KIT_VERSION = 1;
+                float value = code_value();
+                if (value < 20.0) {
+                    float factor = axis_steps_per_unit[i] / value; // increase e constants if M92 E14 is given for netfab.
+                    max_e_jerk *= factor;
+                    max_feedrate[i] *= factor;
+                    axis_steps_per_sqr_second[i] *= factor;
+                }
+                axis_steps_per_unit[i] = value;
+                axis_steps_per_unit[E_AXIS+1] = value;
 
-      }
-      else {
-        axis_steps_per_unit[i] = code_value();
-      }
+            }
+            else {
+                axis_steps_per_unit[i] = code_value();
+            }
+        }
     }
-  }
 }
 
 /**
@@ -8867,10 +8868,10 @@ inline void gcode_C3(int t=0) {
 
     // For delta+ and delta with upgrade kit
     int speed_limit;
-    if (HARDWARE_TYPE == FLUX_DELTA_UPGRADE || HARDWARE_TYPE == FLUX_DELTA_PLUS)
-        speed_limit = 1000;
-    else
+    if (UPGRADE_KIT_VERSION==0)
         speed_limit = 6000;
+    else if(UPGRADE_KIT_VERSION==1)
+        speed_limit = 1000;
 
     if(new_speed > speed_limit) new_speed = speed_limit;
     new_speed = (new_speed / 500) * 500 + 150;
