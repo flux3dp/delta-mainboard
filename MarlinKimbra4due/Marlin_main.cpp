@@ -8867,7 +8867,7 @@ inline void gcode_C3(int t=0) {
     // int new_speed = (ref_base - avg[0]) * 6;
 
     // For delta+ and delta with upgrade kit
-    int speed_limit;
+    int speed_limit=1000;
     if (HARDWARE_TYPE == FLUX_DELTA) {
         if (UPGRADE_KIT_VERSION == 0)
             speed_limit = 6000;
