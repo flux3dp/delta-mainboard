@@ -399,7 +399,7 @@ typedef struct PlayStatus {
   uint8_t stashed_mode;
 } PlayStatus;
 
-enum STASH_MODE { STASH_PEN  = 0, STASH_LASER = 1, STASH_PRINT = 2, STASH_LOAD_FILAMENT = 3};
+enum STASH_MODE { STASH_PEN  = 0, STASH_LASER = 1, STASH_PRINT = 2, STASH_LOADED_FILAMENT = 3};
 
 //To detect G28 that doesn't touch micro switch
 extern volatile bool endstop_x_hit;

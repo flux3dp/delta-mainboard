@@ -262,6 +262,7 @@ struct GlobalVariable global = {
 };
 
 struct FilamentDetect filament_detect = {false, 0};
+struct FilamentDetect filament_detect4stash = { false, 0 };
 
 int led_pins[4] = {LED_P1, LED_P2, LED_P3,LED_P4};
 
@@ -2873,7 +2874,6 @@ uint Test_FSR(void) {
   ;
 
   }
-
   void calculate_delta_position(float cartesian[3], float actuator_mm[], float r)
   {
     float delta_tower[6];
@@ -8684,6 +8684,8 @@ inline void gcode_C2()
 
     if (code_seen('O') || code_seen('E'))
     {
+        filament_detect4stash.last_trigger = 0;
+        filament_detect4stash.enable = true;
         if (play_st.stashed == 0) {
             int16_t mode = -1;
             if (code_seen('S')) {
@@ -8713,7 +8715,7 @@ inline void gcode_C2()
             if (mode == STASH_PRINT) {
                 // Retraction
                 feedrate = 2000;
-                destination[E_AXIS] = current_position[E_AXIS] - 20;
+                destination[E_AXIS] = current_position[E_AXIS] - 40;
                 prepare_move();
                 st_synchronize();
             }
@@ -8763,7 +8765,18 @@ inline void gcode_C2()
         if (play_st.stashed == 0) {
             SERIAL_PROTOCOLLN("ER NOT_STASHED");
         } else {
-		
+            filament_detect4stash.enable = false;
+            if (play_st.stashed_mode == STASH_PRINT && filament_detect4stash.last_trigger > 0){
+                // Tunned using delta+
+                feedrate = 300;
+                destination[E_AXIS] = current_position[E_AXIS] + 39.2;
+                prepare_move();
+                st_synchronize();
+                feedrate = 2000;
+                destination[E_AXIS] = current_position[E_AXIS] - 40;
+                prepare_move();
+                st_synchronize();
+            }
 		    feedrate = 6000;
             destination[X_AXIS] = play_st.stashed_position[X_AXIS];
             destination[Y_AXIS] = play_st.stashed_position[Y_AXIS];
@@ -8775,9 +8788,10 @@ inline void gcode_C2()
             prepare_move();
             st_synchronize();
 
-            if (play_st.stashed_mode == STASH_PRINT) {
+            if (play_st.stashed_mode == STASH_PRINT || play_st.stashed_mode == STASH_LOADED_FILAMENT) {
                 // Tunned using delta+
-                destination[E_AXIS] = play_st.stashed_position[E_AXIS] - 0.8;
+                feedrate = 4000;
+                destination[E_AXIS] = current_position[E_AXIS] + 39;
                 prepare_move();
                 st_synchronize();
             }
@@ -8799,114 +8813,118 @@ inline void gcode_C2()
 
 /* Load filament */
 inline void gcode_C3(int t=0) {
-  if(t > 2) t = 0;
-  target_extruder = t;
+    if(t > 2) t = 0;
+    target_extruder = t;
+    play_st.stashed_mode = STASH_LOADED_FILAMENT;
+    float e_pos = current_position[E_AXIS];
+    destination[X_AXIS] = current_position[X_AXIS];
+    destination[Y_AXIS] = current_position[Y_AXIS];
+    destination[Z_AXIS] = current_position[Z_AXIS];
+    destination[E_AXIS] = current_position[E_AXIS];
+    // Move to stash position
+    feedrate = 8000;
+    if(current_position[Z_AXIS] > 200) {
+        destination[Z_AXIS] = 210;
+        prepare_move();
+        st_synchronize();
+    }
 
-  float e_pos = current_position[E_AXIS];
-  destination[X_AXIS] = current_position[X_AXIS];
-  destination[Y_AXIS] = current_position[Y_AXIS];
-  destination[Z_AXIS] = current_position[Z_AXIS];
-  destination[E_AXIS] = current_position[E_AXIS];
-  // Move to stash position
-  feedrate = 8000;
-  if(current_position[Z_AXIS] > 200) {
+    destination[X_AXIS] = 0;
+    destination[Y_AXIS] = -85;
     destination[Z_AXIS] = 210;
+    destination[E_AXIS] = current_position[E_AXIS];
     prepare_move();
     st_synchronize();
-  }
-
-  destination[X_AXIS] = 0;
-  destination[Y_AXIS] = -85;
-  destination[Z_AXIS] = 210;
-  destination[E_AXIS] = current_position[E_AXIS];
-  prepare_move();
-  st_synchronize();
 
 
-  unsigned long timer = 0;
-  float avg[3], sd[3];
-  int dummy1[3], dummy2[3];
-  read_fsr_helper(5, avg, sd, dummy1, dummy2);
-
-  int ref_base = fsr2val(avg[0] + sd[0] * 3);
-  int ref_current = 150;
-  int speed = 150;
-  bool check_filament = code_seen('+');
-
-  global.home_btn_press = 0;
-  while(global.home_btn_press == 0) {
-    if(millis() - timer > 500) {
-      if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-        SERIAL_PROTOCOLLN("CTRL FILAMENT-");
-      } else {
-        SERIAL_PROTOCOLLN("CTRL FILAMENT+");
-      }
-      timer = millis();
-    }
-
+    unsigned long timer = 0;
+    float avg[3], sd[3];
+    int dummy1[3], dummy2[3];
     read_fsr_helper(5, avg, sd, dummy1, dummy2);
-    ref_current = fsr2val(avg[0]);
-    if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
-        if(ref_current > 2796) {
-          // If no filament but user press FSR hard enough,
-          // let moter it run slowly
-          ref_current = max(ref_current - 2796, ref_base);
-        } else {
-          delay(10);
-          manage_inactivity();
-          continue;
+
+    int ref_base = fsr2val(avg[0] + sd[0] * 3);
+    int ref_current = 150;
+    int speed = 150;
+    bool check_filament = code_seen('+');
+
+    global.home_btn_press = 0;
+    while(global.home_btn_press == 0) {
+        if(millis() - timer > 500) {
+            if(READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+            SERIAL_PROTOCOLLN("CTRL FILAMENT-");
+            } else {
+            SERIAL_PROTOCOLLN("CTRL FILAMENT+");
+            }
+            timer = millis();
         }
-    }
 
-    if(ref_current < ref_base) ref_base = ref_current;
-    // if(avg[0] > ref_base) ref_base = avg[0];
-    if(ref_base < 600) ref_base = 600;
-    // if(ref_base < 3500) ref_base = 3500;
+        read_fsr_helper(5, avg, sd, dummy1, dummy2);
+        ref_current = fsr2val(avg[0]);
+        if(check_filament && READ(F0_STOP)^FIL_RUNOUT_INVERTING) {
+            if(ref_current > 2796) {
+                // If no filament but user press FSR hard enough,
+                // let moter it run slowly
+                ref_current = max(ref_current - 2796, ref_base);
+            } else {
+                delay(10);
+                manage_inactivity();
+                continue;
+            }
+        }
 
-    int new_speed = (ref_current - ref_base) * 6;
-    // int new_speed = (ref_base - avg[0]) * 6;
+        if(ref_current < ref_base) ref_base = ref_current;
+        // if(avg[0] > ref_base) ref_base = avg[0];
+        if(ref_base < 600) ref_base = 600;
+        // if(ref_base < 3500) ref_base = 3500;
 
-    // For delta+ and delta with upgrade kit
-    int speed_limit=1000;
-    if (HARDWARE_TYPE == FLUX_DELTA) {
-        if (UPGRADE_KIT_VERSION == 0)
-            speed_limit = 6000;
-        else if (UPGRADE_KIT_VERSION == 1)
-            speed_limit = 1000;
-    }
-    else if (HARDWARE_TYPE == FLUX_DELTA_PLUS) {
-        speed_limit = 1000;
-    }
+        int new_speed = (ref_current - ref_base) * 6;
+        // int new_speed = (ref_base - avg[0]) * 6;
+
+        // For delta+ and delta with upgrade kit
+        int speed_limit=6000;
+        if (current_position[E_AXIS] > e_pos + 390) {
+            if (HARDWARE_TYPE == FLUX_DELTA) {
+                if (UPGRADE_KIT_VERSION == 0)
+                    speed_limit = 6000;
+                else if (UPGRADE_KIT_VERSION == 1)
+                    speed_limit = 1000;
+            }
+            else if (HARDWARE_TYPE == FLUX_DELTA_PLUS) {
+                speed_limit = 1000;
+            }
+        }
+        
     
 
-    if(new_speed > speed_limit) new_speed = speed_limit;
-    new_speed = (new_speed / 500) * 500 + 150;
+        if(new_speed > speed_limit) new_speed = speed_limit;
+        new_speed = (new_speed / 500) * 500 + 150;
 
-    if(new_speed - speed > 350) speed += 350;
-    else if(new_speed - speed < -700) speed -= 700;
-    else speed = new_speed;
+        if(new_speed - speed > 350) speed += 350;
+        else if(new_speed - speed < -700) speed -= 700;
+        else speed = new_speed;
 
-    if (speed < 150) {
-        speed = 150;
+        if (speed < 150) {
+            speed = 150;
+        }
+        feedrate = speed;
+        destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
+
+        prepare_move();
     }
-    feedrate = speed;
-    destination[E_AXIS] = current_position[E_AXIS] + (speed / 1000.0);
-
+    feedrate = 2000;
+    destination[E_AXIS] = current_position[E_AXIS] - 40;
     prepare_move();
-  }
-  feedrate = 2000;
-  destination[E_AXIS] = current_position[E_AXIS] - 20;
-  prepare_move();
-  st_synchronize();
+    st_synchronize();
 
-  destination[E_AXIS]=current_position[E_AXIS] = e_pos;
-  plan_set_e_position(e_pos);
+    destination[E_AXIS]=current_position[E_AXIS] = e_pos;
+    plan_set_e_position(e_pos);
 
-  disable_e();
+    disable_e();
 
-  SERIAL_PROTOCOLLN("ok");
+    SERIAL_PROTOCOLLN("ok");
 }
 
+/* Unload filament */
 inline void gcode_C4(int t=0) {
     float extru_distance = 3;
     float extru_speed = 200;
@@ -8999,6 +9017,7 @@ inline void gcode_X6()
 	  for (int i = X_AXIS; i <= Z_AXIS; i++) current_position[i] = 0;
 	  sync_plan_position();
 
+      // Go to top until endstop triggered
 	  for (int i = X_AXIS; i <= Z_AXIS; i++)
 	  {
 		  //destination[i] = 1;
@@ -11802,12 +11821,13 @@ float sampling_read(int pin, uint32_t sampling_times) {
  *  - check oozing prevent
  */
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) {
-  if(filament_detect.enable) {
+    if (filament_detect.enable || filament_detect4stash.enable) {
     if(((sampling_read(F0_STOP,20)>0.8)^FIL_RUNOUT_INVERTING) &&
        (millis() - filament_detect.last_trigger > 1000)) {
-
-       SERIAL_PROTOCOLLN("CTRL FILAMENTRUNOUT 0");
-       filament_detect.last_trigger = millis();
+        if (filament_detect.enable)
+            SERIAL_PROTOCOLLN("CTRL FILAMENTRUNOUT 0");
+        filament_detect.last_trigger = millis();
+        filament_detect4stash.last_trigger = millis();
     }
   }
 
