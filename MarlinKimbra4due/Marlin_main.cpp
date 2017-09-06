@@ -8812,7 +8812,7 @@ inline void gcode_C2()
 }
 
 /* Load filament */
-inline void gcode_C3(int t=0) {
+inline void gcode_C3(int t=0, int disable_accelerate=0) {
     if(t > 2) t = 0;
     target_extruder = t;
     play_st.stashed_mode = STASH_LOADED_FILAMENT;
@@ -8903,7 +8903,7 @@ inline void gcode_C3(int t=0) {
         else if(new_speed - speed < -700) speed -= 700;
         else speed = new_speed;
 
-        if (speed < 150) {
+        if (speed < 150 || disable_accelerate) {
             speed = 150;
         }
         feedrate = speed;
@@ -11512,10 +11512,13 @@ bool process_commands()
         gcode_C2();
         break;
       case 3:
-        gcode_C3();
+        gcode_C3(target_extruder);
         break;
       case 4:
         gcode_C4();
+        break;
+      case 5:
+        gcode_C3(target_extruder, 1);
         break;
       default:
         return false;
