@@ -8911,8 +8911,11 @@ inline void gcode_C3(int t=0, int disable_accelerate=0) {
 
         prepare_move();
     }
+
+    if (!disable_accelerate) {
+      destination[E_AXIS] = current_position[E_AXIS] - 40;
+    }
     feedrate = 2000;
-    destination[E_AXIS] = current_position[E_AXIS] - 40;
     prepare_move();
     st_synchronize();
 
